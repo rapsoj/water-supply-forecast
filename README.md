@@ -24,11 +24,11 @@ By improving the accuracy, explainability, and uncertainty characterization of s
 
 - NASA (an independent agency of the U.S. federal government responsible for the civil space program, aeronautics research, and space research)
 
-<img src="usda.png" width="400">
+<img src="usda.png" width="200">
 
 - USDA Natural Resources Conservation Service (an agency of the United States Department of Agriculture that provides technical assistance to farmers and other private landowners and managers)
 
-<img src="army-corps.png" width="400">
+<img src="army-corps.png" width="200">
 
 - The United States Army Corps of Engineers (an engineer formation of the United States Army that has three primary mission areas: Engineer Regiment, military construction, and civil works)
 
