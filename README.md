@@ -12,7 +12,7 @@ The goal of this challenge is to develop probabilistic forecast models that pred
 
 By improving the accuracy, explainability, and uncertainty characterization of seasonal streamflow forecasts, water resources managers will be better equiped to operate facilities for high flows, mitigate impacts of drought, improve hydropower generation, and meet environmental targets.
 
-<img src="timeline.png" width="900">
+![timeline](timeline.png)
 
 ### Organisations
 
