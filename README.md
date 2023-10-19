@@ -1,5 +1,7 @@
 # Water Supply Forecast Rodeo: Development Arena
 
+![title card](title-card.png)
+
 [Challenge Link](https://www.drivendata.org/competitions/254/reclamation-water-supply-forecast-dev/)
 
 Accurate seasonal water supply forecasts are crucial for effective water resources management in the Western United States. This region faces dry conditions and high demand for water, and these forecasts are essential for making informed decisions. They guide everything from water supply management and flood control to hydropower generation and environmental objectives.
@@ -10,10 +12,25 @@ The goal of this challenge is to develop probabilistic forecast models that pred
 
 By improving the accuracy, explainability, and uncertainty characterization of seasonal streamflow forecasts, water resources managers will be better equiped to operate facilities for high flows, mitigate impacts of drought, improve hydropower generation, and meet environmental targets.
 
+![timeline](timeline.png)
+
 ### Organisations
 
+<img src="bureau-of-reclamation.png" width="400">
+
 - Bureau of Reclamation (a provider of wholesale water and hydroelectric power in the U.S. that manages, develops, and protects water and related resources in an environmentally and economically sound manner)
-o NASA (an independent agency of the U.S. federal government responsible for the civil space program, aeronautics research, and space research)
+
+<img src="nasa.png" width="400">
+
+- NASA (an independent agency of the U.S. federal government responsible for the civil space program, aeronautics research, and space research)
+
+<img src="usda.png" width="400">
+
+- USDA Natural Resources Conservation Service (an agency of the United States Department of Agriculture that provides technical assistance to farmers and other private landowners and managers)
+
+<img src="army-corps.png" width="400">
+
+- The United States Army Corps of Engineers (an engineer formation of the United States Army that has three primary mission areas: Engineer Regiment, military construction, and civil works)
 
 ### Efficacy analysis of water supply forecasts for development
 - [Article explaining importance of water security in global development](https://www.lse.ac.uk/granthaminstitute/explainers/what-is-water-security-and-how-is-it-impacted-by-climate-change/)
