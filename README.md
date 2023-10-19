@@ -24,14 +24,6 @@ By improving the accuracy, explainability, and uncertainty characterization of s
 
 - NASA (an independent agency of the U.S. federal government responsible for the civil space program, aeronautics research, and space research)
 
-<img src="usda.png" width="200">
-
-- USDA Natural Resources Conservation Service (an agency of the United States Department of Agriculture that provides technical assistance to farmers and other private landowners and managers)
-
-<img src="army-corps.png" width="200">
-
-- The United States Army Corps of Engineers (an engineer formation of the United States Army that has three primary mission areas: Engineer Regiment, military construction, and civil works)
-
 ### Efficacy analysis of water supply forecasts for development
 - [Article explaining importance of water security in global development](https://www.lse.ac.uk/granthaminstitute/explainers/what-is-water-security-and-how-is-it-impacted-by-climate-change/)
 - Though this specific data is US-focused, the models and methods developed can be generalised to developing countries to improve water supply forecasting globally
