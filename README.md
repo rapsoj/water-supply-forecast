@@ -27,6 +27,7 @@ By improving the accuracy, explainability, and uncertainty characterization of s
 ### Efficacy analysis of water supply forecasts for development
 - [Article explaining importance of water security in global development](https://www.lse.ac.uk/granthaminstitute/explainers/what-is-water-security-and-how-is-it-impacted-by-climate-change/)
 - Though this specific data is US-focused, the models and methods developed can be generalised to developing countries to improve water supply forecasting globally
+- This is a relatively novel way of trying to predict stream flow and I think a neat techincal challenge with potentially interesting results
 
 ### Team
 - Jessica Rapson (lead, geospatial analysis)
