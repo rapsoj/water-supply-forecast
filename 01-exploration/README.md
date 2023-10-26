@@ -9,6 +9,7 @@ The following Google Sheets documents are available for tracking data exploratio
 - **Variable Descriptions**: Summaries of all variables in the Water Supply Forecast Rodeo data sources
 
 [Google Sheets link](https://docs.google.com/spreadsheets/d/1bqkxBPs88jt1aW8on0KQWt8KL3NOCux4M1tsnmY-UOA/edit?usp=sharing)
+
 [Introduction to geospatial data using Python](https://developer.ibm.com/learningpaths/data-analysis-using-python/introduction-to-geospatial-data-using-python)
 
 ### Open Questions
