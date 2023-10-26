@@ -1,6 +1,14 @@
 # Exploration
 
-Exploring different hypotheses and issues with the data for the DrivenData Water Supply Forecast Rodeo.  Please track open questions, literature reviews, key hydrological terminology, and potential solutions to the challenge here.
+Exploring different hypotheses and issues with the data for the DrivenData Water Supply Forecast Rodeo. Please track open questions, literature reviews, key hydrological terminology, and potential solutions to the challenge here.
+
+The following Google Sheets documents are available for tracking data exploration progress:
+- **Literature Review**: Academic and technical literature on current best practices and proposed methodology for streamflow forecasting
+- **Hydrological Terminology**: Key terms and definitions for understanding water supply forecasting
+- **Data Sources**: Descriptions for all available data sources for the Water Supply Forecast Rodeo
+- **Variable Descriptions**: Summaries of all variables in the Water Supply Forecast Rodeo data sources
+
+[Google Sheets link](https://docs.google.com/spreadsheets/d/1bqkxBPs88jt1aW8on0KQWt8KL3NOCux4M1tsnmY-UOA/edit?usp=sharing)
 
 ### Open Questions
 
