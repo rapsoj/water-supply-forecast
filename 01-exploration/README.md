@@ -15,11 +15,9 @@ The following Google Sheets documents are available for tracking data exploratio
 ### Open Questions
 
 **Data**
-- Why is the training data annual and the forecast format is monthly? Is this a mistake?
 - Is it better to transform the output variable to be percent change from average to account for gauge-specific variation not in the data?
 - Are there any open source data sources on land use/land use change that we can use?
 - How are streamflow adjustment equations applied?
-- How can we make weekly predictions when the ground truth data is given in annual increments?
 
 **Models**
 - What is the M4 model that has been used in the past? How can we improve on its predictions and explainability?
