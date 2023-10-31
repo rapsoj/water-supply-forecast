@@ -34,4 +34,4 @@ By improving the accuracy, explainability, and uncertainty characterization of s
 - Yonatan Gideoni (model optimisation)
 - Emil Ryd (climate data, feature engineering)
 - John Walker (enviornmental data, causal inference, feature engineering)
-- Alexis Park (probalistic modeling)
+- Alexis Park (probalistic modeling, data cleaning)
