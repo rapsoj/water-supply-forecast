@@ -24,4 +24,4 @@ The following Google Sheets documents are available for tracking data exploratio
 - What is the M4 model that has been used in the past? How can we improve on its predictions and explainability?
 - How do we calculate natural flow? What operations are performed to transformed observed flow into natural flow?
 - What are the best physical models? Can produce a physical model forecast as a predictor?
-- Can we improve performance on data outliers/extreme values by using re-sampling techniques?
+- Can we improve performance on data outliers/extreme values by using re-sampling techniques or two-stage models?
