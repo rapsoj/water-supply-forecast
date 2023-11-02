@@ -18,6 +18,7 @@ The following Google Sheets documents are available for tracking data exploratio
 - Is it better to transform the output variable to be percent change from average to account for gauge-specific variation not in the data?
 - Are there any open source data sources on land use/land use change that we can use?
 - How are streamflow adjustment equations applied?
+- Do spatio-temporal neighbourhood indicators improve predictions?
 
 **Models**
 - What is the M4 model that has been used in the past? How can we improve on its predictions and explainability?
