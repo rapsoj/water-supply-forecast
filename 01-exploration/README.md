@@ -28,3 +28,4 @@ The following Google Sheets documents are available for tracking data exploratio
 
 **Explainability**
 - Can data source-specific PCA improve explainability while still enabling dimensionality reductions?
+- Can we apply callibration to improve forecast probabilities?
