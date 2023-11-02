@@ -25,3 +25,6 @@ The following Google Sheets documents are available for tracking data exploratio
 - How do we calculate natural flow? What operations are performed to transformed observed flow into natural flow?
 - What are the best physical models? Can produce a physical model forecast as a predictor?
 - Can we improve performance on data outliers/extreme values by using re-sampling techniques or two-stage models?
+
+**Explainability**
+- Can data source-specific PCA improve explainability while still enabling dimensionality reductions?
