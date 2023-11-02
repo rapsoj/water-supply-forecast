@@ -1,6 +1,6 @@
 # Water Supply Forecast Rodeo: Development Arena
 
-![title card](assets/title-card.png)
+![title card](assets/images/title-card.png)
 
 [Challenge Link](https://www.drivendata.org/competitions/254/reclamation-water-supply-forecast-dev/)
 
@@ -12,15 +12,15 @@ The goal of this challenge is to develop probabilistic forecast models that pred
 
 By improving the accuracy, explainability, and uncertainty characterization of seasonal streamflow forecasts, water resources managers will be better equiped to operate facilities for high flows, mitigate impacts of drought, improve hydropower generation, and meet environmental targets.
 
-![timeline](assets/timeline.png)
+![timeline](assets/images/timeline.png)
 
 ### Organisations
 
-<img src="assets/bureau-of-reclamation.png" width="400">
+<img src="assets/images/bureau-of-reclamation.png" width="400">
 
 - Bureau of Reclamation (a provider of wholesale water and hydroelectric power in the U.S. that manages, develops, and protects water and related resources in an environmentally and economically sound manner)
 
-<img src="assets/nasa.png" width="400">
+<img src="assets/images/nasa.png" width="400">
 
 - NASA (an independent agency of the U.S. federal government responsible for the civil space program, aeronautics research, and space research)
 
