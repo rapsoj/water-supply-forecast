@@ -21,3 +21,4 @@ The following Google Sheets documents are available for tracking data exploratio
 
 **Models**
 - What is the M4 model that has been used in the past? How can we improve on its predictions and explainability?
+- How do we calculate natural flow? What operations are performed to transformed observed flow into natural flow?
