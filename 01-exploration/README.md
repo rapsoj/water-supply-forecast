@@ -29,3 +29,8 @@ The following Google Sheets documents are available for tracking data exploratio
 **Explainability**
 - Can data source-specific PCA improve explainability while still enabling dimensionality reductions?
 - Can we apply callibration to improve forecast probabilities?
+
+## Additional thoughts:
+- Explainability is still unclear. Based on NRCS still using PCR as SOTA for long timescale streamflow prediction [src](https://www.sciencedirect.com/science/article/pii/S0022169421008325?ref=pdf_download&fr=RR-2&rr=821ef5f08c5c52c0) and the M4 model, which is apparently used in practice, attempting to explain the different feature's weights, it seems that this might be what they mean by explainability. Need to ask an expert about this!
+- Many works exist that are unused in practice although they allegedly improve results. Why is this? Is it because of the explainability? Why would PCR instead of a better method be used?
+- If feature weights are important, why does statistical info regarding them or getting their importance through different means (eg. testing the model's sensitivity to them by taking the gradient w.r.t them) good enough?
