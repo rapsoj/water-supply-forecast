@@ -35,6 +35,6 @@ dependencies:
     - six==1.16.0
     - threadpoolctl==3.2.0
     - tzdata==2023.3
-    - ncurses=6.4
-    - readline=8.2
+    - ncurses==6.4
+    - readline==8.2
 prefix: /Users/emilryd/opt/anaconda3/envs/water_supply_forecast
