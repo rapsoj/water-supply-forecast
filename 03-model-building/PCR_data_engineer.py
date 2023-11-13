@@ -60,6 +60,6 @@ for idx, year in enumerate(years):
         print(year)
         
 new_df = new_df.drop(labels=['mjoPENTAD'], axis=1)
-new_df.to_csv("training_data.csv")
+new_df.to_csv("02-data-cleaning/training_data.csv")
 
 
