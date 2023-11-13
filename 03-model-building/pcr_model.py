@@ -10,9 +10,12 @@ from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import cross_val_predict
 from sklearn.metrics import mean_squared_error, r2_score
+import os
 
-data = pd.read_csv("training_data.csv")
-X = data.values[:, :-3]
+# os.chdir("/Users/emilryd/programming/water-supply-forecast")
+
+data = pd.read_csv("02-data-cleaning/training_data.csv")
+X = data.values[:,:-3]
 y = np.reshape(data["volume"].to_numpy(), (-1, 1))
 
 

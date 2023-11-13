@@ -1,3 +1,4 @@
+
 import pandas as pd
 import os
 import numpy as np
@@ -5,7 +6,7 @@ import datetime as dt
 
 path = os.getcwd()
 # Set working directory to yours
-# os.chdir("/Users/emilryd/programming/water-supply-forecast")
+os.chdir("/Users/emilryd/programming/water-supply-forecast")
 
 # Read data
 data = pd.read_csv("02-data-cleaning/merged_dataframe.csv",
@@ -65,4 +66,4 @@ for idx, year in enumerate(years):
         print(year)
 
 new_df = new_df.drop(labels=['mjoPENTAD'], axis=1)
-new_df.to_csv("training_data.csv")
+new_df.to_csv("02-data-cleaning/training_data.csv")
