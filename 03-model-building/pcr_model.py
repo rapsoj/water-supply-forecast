@@ -14,7 +14,7 @@ import os
 
 os.chdir("/Users/emilryd/programming/water-supply-forecast")
 
-data = pd.read_csv("02-data-cleaning/training_data.csv")
+data = pd.read_csv("02-data-cleaningtraining_data.csv")
 X = data.values[:,:-3]
 y = np.reshape(data["volume"].to_numpy(), (-1, 1))
 
