@@ -29,6 +29,8 @@ volume_idx = reduced_data.columns.get_loc("volume")
 X = data.values[:, -1:]
 volumes = data["volume"]
 site_ids = np.unique(data["site_id"].to_numpy()[:300])
+site_df = pd.DataFrame({"site_id":site_ids})
+site_df.to_csv("site_ids.csv", index=False)
 years = np.unique(np.floor(data["mjoPENTAD"].to_numpy() / 1e4))
 
 dates = data["mjoPENTAD"].to_numpy()
@@ -65,4 +67,5 @@ for idx, year in enumerate(years):
         print(year)
 
 new_df = new_df.drop(labels=['mjoPENTAD'], axis=1)
-new_df.to_csv(os.path.join("..", "02-data-cleaning", "training_data.csv"))
+new_df.to_csv(os.path.join("..", "02-data-cleaning", "training_data.csv"), index=False)
+
