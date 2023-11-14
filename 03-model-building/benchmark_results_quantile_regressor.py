@@ -26,14 +26,9 @@ def main(gt_path: str, preds_path: str):
     quantile_preds = {}
     for i in quantiles:
         quantile_preds[i] = preds[f"{i}"].to_numpy()
-    #quantile_preds = {quantile: gen_predictive_quantile(preds, std, quantile) for quantile in quantiles}
     quantile_losses = {quantile: mean_pinball_loss(ground_truth, q_preds) for quantile, q_preds in
                        quantile_preds.items()}
-    #print(len(quantile_preds[0.1]))
-    #print(len(quantile_preds[0.9]))
-    #print(len(ground_truth))
-    #ground_truth.align(quantile_preds[0.1], axis=0)
-    #ground_truth.align(quantile_preds[0.9], axis=0)
+    
     interval = (quantile_preds[0.1] <= ground_truth) & (ground_truth <= quantile_preds[0.9])
     print(f'Mean quantile loss:{sum(quantile_losses.values()) / len(quantiles)}, ' f'percent in 0.1-0.9 quantiles:{100 * np.mean(interval):.2f}%')
 
