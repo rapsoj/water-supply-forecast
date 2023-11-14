@@ -12,11 +12,12 @@ from sklearn.model_selection import cross_val_predict
 from sklearn.metrics import mean_squared_error, r2_score
 import os
 
-os.chdir("/Users/emilryd/programming/water-supply-forecast")
+# os.chdir("/Users/emilryd/programming/water-supply-forecast")
 
-data = pd.read_csv("02-data-cleaningtraining_data.csv")
+data = pd.read_csv("02-data-cleaning/training_data.csv")
 X = data.values[:,:-3]
 y = np.reshape(data["volume"].to_numpy(), (-1, 1))
+
 
 def pcr(X, y, pc):
     # Instantiate the PCA object
@@ -26,10 +27,10 @@ def pcr(X, y, pc):
     d1X = savgol_filter(X, 25, polyorder=5, deriv=1)
 
     # Standardize features removing the mea
-    Xstd = StandardScaler().fit_transform(d1X[:,:])
+    Xstd = StandardScaler().fit_transform(d1X[:, :])
 
     # Run PCA
-    Xreg = pca.fit_transform(Xstd)[:,:pc]
+    Xreg = pca.fit_transform(Xstd)[:, :pc]
 
     # Instantiate linear regression object
     regr = linear_model.LinearRegression()
@@ -45,32 +46,32 @@ def pcr(X, y, pc):
 
     # Scores
     score_c = r2_score(y, y_c)
-    score_cv= r2_score(y, y_cv)
+    score_cv = r2_score(y, y_cv)
 
-    # Mean sqaure error
+    # Mean square error
     mse_c = mean_squared_error(y, y_c)
     mse_cv = mean_squared_error(y, y_cv)
 
-    return(y_cv, score_c, score_cv, mse_c, mse_cv)
+    return y_cv, score_c, score_cv, mse_c, mse_cv
 
 
 # Iterate over every site
 site_ids = np.unique(data["site_id"].to_numpy())
 for site_id in site_ids:
-    mask = np.array((data["site_id"]==site_id))
-    mask = np.reshape(mask, (1,-1))
-    #print(mask.shape)
-    mask = np.transpose(mask)    
-    masked_X = mask*X
-    masked_y = mask*y
+    mask = np.array((data["site_id"] == site_id))
+    mask = np.reshape(mask, (1, -1))
+    # print(mask.shape)
+    mask = np.transpose(mask)
+    masked_X = mask * X
+    masked_y = mask * y
     mse_cs = []
     score_cs = []
     mse_cvs = []
     score_cvs = []
     pcs = []
-    for pc in range(1,30):
+    for pc in range(1, 30):
         pcs.append(pc)
-        results = pcr(masked_X,masked_y, pc)
+        results = pcr(masked_X, masked_y, pc)
         mse_cs.append(np.log(results[3]))
         mse_cvs.append(np.log(results[4]))
         score_cs.append(results[1])
@@ -85,8 +86,6 @@ for site_id in site_ids:
     '''plt.plot(score_cs, 'g')
     plt.plot(score_cvs, 'b')
     plt.show()'''
-
-
 
 '''# Define the parameter range
 parameters = {'pca_n_components': np.arange(1,11,1)}
