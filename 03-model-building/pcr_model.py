@@ -15,18 +15,11 @@ from sklearn.utils.fixes import parse_version, sp_version
 from sklearn.metrics import mean_pinball_loss
 import os
 
-os.chdir("/Users/emilryd/programming/water-supply-forecast")
-
-data = pd.read_csv("02-data-cleaning/training_data.csv")
-X = data.values[:,:-3]
-print(X)
-y = np.reshape(data["volume"].to_numpy(), (-1, 1))
-
-quantiles = [0.1, 0.5, 0.9]
+from consts import DEF_QUANTILES
 
 
-solver = "highs" if sp_version >= parse_version("1.6.0") else "inferior-point"
-def quantile_pcr(X, y, pc):
+def quantile_pcr(X, y, pc, solver="highs" if sp_version >= parse_version("1.6.0") else "inferior-point",
+                 debug: bool = False):
     # Instantiate the PCA object
     pca = PCA()
 
@@ -39,40 +32,20 @@ def quantile_pcr(X, y, pc):
     # Run PCA
     Xreg = pca.fit_transform(Xstd)[:, :pc]
     predictions = {}
-    for qu in quantiles:
+    for qu in DEF_QUANTILES:
         qregr = linear_model.QuantileRegressor(quantile=qu, alpha=0.00, solver=solver)
         qregr.fit(Xreg, y)
         y_qc = qregr.predict(Xreg)
-        print(f"{qu} -> {np.mean(y_qc>y)}")
+
+        if debug:
+            print(f"{qu} -> {np.mean(y_qc > y)}")
+
         predictions[qu] = y_qc
-    
-    
+
     quantile_losses = {quantile: mean_pinball_loss(y, q_preds) for quantile, q_preds in
                        predictions.items()}
-    return predictions, sum(quantile_losses.values()) / len(quantiles)
+    return predictions, sum(quantile_losses.values()) / len(DEF_QUANTILES)
 
-
-    # Instantiate linear regression object
-    regr = linear_model.LinearRegression()
-
-    # Fit
-    regr.fit(Xreg, y)
-
-    # Calibrate
-    y_c = regr.predict(Xreg)
-
-    # Cross-validation
-    y_cv = cross_val_predict(regr, Xreg, y, cv=10)
-
-    # Scores
-    score_c = r2_score(y, y_c)
-    score_cv = r2_score(y, y_cv)
-
-    # Mean square error
-    mse_c = mean_squared_error(y, y_c)
-    mse_cv = mean_squared_error(y, y_cv)
-
-    return y_c, y_cv, score_c, score_cv, mse_c, mse_cv
 
 def mean_pcr(X, y, pc):
     # Instantiate the PCA object
@@ -86,7 +59,6 @@ def mean_pcr(X, y, pc):
 
     # Run PCA
     Xreg = pca.fit_transform(Xstd)[:, :pc]
-    
 
     # Instantiate linear regression object
     regr = linear_model.LinearRegression()
@@ -111,65 +83,60 @@ def mean_pcr(X, y, pc):
     return y_c, y_cv, score_c, score_cv, mse_c, mse_cv
 
 
-quantile = True
-# Iterate over every site
-site_ids = np.unique(data["site_id"].to_numpy())
-for site_id in site_ids:
-    mask = np.array((data["site_id"] == site_id))
-    mask = np.reshape(mask, (1, -1))
-    # print(mask.shape)
-    mask = np.transpose(mask)
-    masked_X = mask * X    
-    masked_y = mask * y
+def fit_basins(quantile: bool, data: pd.DataFrame,
+               results_path: str = os.path.join('03-model-building', 'model-outputs',
+                                                'linear-model-training-optimization'), max_n_pcs: int = 30):
+    X = data.drop(columns={'volume', 'site_id', 'forecast_year'})
+    y = data.volume
 
-    real_X = np.array([masked_X[idx,:] for idx, i in enumerate(masked_y) if not i==0])
-    real_y = np.array([masked_y[idx] for idx, i in enumerate(masked_y) if not i == 0])
-    mse_cs = []
-    score_cs = []
-    mse_cvs = []
-    score_cvs = []
-    pcs = []
-    min_mse = -1
-    min_pc = 1
-    pred = {}
+    # Iterate over every site
+    site_ids = np.unique(data.site_id.to_numpy())
+    for site_id in site_ids:
+        mask = np.array((data.site_id == site_id))
+        masked_X = X[mask]
+        masked_y = y[mask]
 
-    for pc in range(1, 30):
-        pcs.append(pc)
+        real_X = masked_X[masked_y != 0]
+        real_y = masked_y[masked_y != 0]
+        mse_cvs = []
+        pcs = []
+        min_mse = -1
+        min_pc = 1
+        pred = {}
+
+        for pc in range(1, max_n_pcs):
+            pcs.append(pc)
+            if quantile:
+                results = quantile_pcr(real_X, real_y, pc)
+            else:
+                results = mean_pcr(real_X, real_y, pc)
+
+            if results[-1] < min_mse or pc == 1:
+                min_mse = results[-1]
+                pred = results[0]
+                min_pc = pc
+            mse_cvs.append(results[-1])
+
+        if not quantile:
+            pred = np.reshape(pred, (-1,))
+
+        site_path = os.path.join(results_path, f'predicted_{site_id}.csv')
         if quantile:
-            results = quantile_pcr(real_X, real_y, pc)
+            res = {q: pred[q] for q in DEF_QUANTILES}
+            res["pcs"] = min_pc
+            df = pd.DataFrame(res)
         else:
-            results = mean_pcr(real_X, real_y, pc)
-        
-        
-        if results[-1] < min_mse or pc == 1:
-            min_mse = results[-1]
-            pred = results[0]
-            min_pc = pc
-        mse_cvs.append(results[-1])
+            df = pd.DataFrame({"pred": pred})
+        df.to_csv(site_path, index=False)
 
-    if not quantile:
-        pred = np.reshape(pred, (-1,))
-    
-    real_y = np.reshape(real_y, (-1,))
-    
-    if quantile:
-        df = pd.DataFrame({"0.1": pred[0.1], "0.5": pred[0.5], "0.9": pred[0.9], "pcs": min_pc})
-        df.to_csv(f"03-model-building/model-outputs/quantile-model-training-optimization/predicted{site_id}.csv", index=False)
-    else:
-        df = pd.DataFrame({"pred":pred})
-        df.to_csv(f"03-model-building/model-outputs/linear-model-training-optimization/predicted{site_id}.csv", index=False)
-    
-    #gt_df = pd.DataFrame({"gt": real_y})
-    #gt_df.to_csv(f"03-model-building/model-outputs/ground_truth{site_id}.csv", index=False)
-    
-    '''plt.plot(pcs, mse_cvs, 'r')
 
-    plt.xlabel("Principal components")
-    plt.ylabel("Log MSE: Training (red), Cross-validation (blue)")
-    plt.title(site_id)
-    plt.show()'''
+def main():
+    os.chdir("..")
 
-    '''plt.plot(score_cs, 'g')  §
-    plt.plot(score_cvs, 'b')
-    plt.show()'''
+    data = pd.read_csv(os.path.join("02-data-cleaning", "training_data.csv"))
 
+    fit_basins(quantile=True, data=data)
+
+
+if __name__ == '__main__':
+    main()
