@@ -18,36 +18,9 @@ import os
 from consts import DEF_QUANTILES
 
 
-def quantile_pcr(X, y, pc, solver="highs" if sp_version >= parse_version("1.6.0") else "inferior-point",
-                 debug: bool = False):
-    # Instantiate the PCA object
-    pca = PCA()
-
-    #  Preprocessing first derivative
-    d1X = savgol_filter(X, 25, polyorder=5, deriv=1)
-
-    # Standardize features removing the mean
-    Xstd = StandardScaler().fit_transform(d1X[:, :])
-
-    # Run PCA
-    Xreg = pca.fit_transform(Xstd)[:, :pc]
-    predictions = {}
-    for qu in DEF_QUANTILES:
-        qregr = linear_model.QuantileRegressor(quantile=qu, alpha=0.00, solver=solver)
-        qregr.fit(Xreg, y)
-        y_qc = qregr.predict(Xreg)
-
-        if debug:
-            print(f"{qu} -> {np.mean(y_qc > y)}")
-
-        predictions[qu] = y_qc
-
-    quantile_losses = {quantile: mean_pinball_loss(y, q_preds) for quantile, q_preds in
-                       predictions.items()}
-    return predictions, sum(quantile_losses.values()) / len(DEF_QUANTILES)
-
-
-def mean_pcr(X, y, pc):
+def pcr_fitter(X, y, pc, quantile: bool = True,
+               solver="highs" if sp_version >= parse_version("1.6.0") else "inferior-point",
+               debug: bool = False):
     # Instantiate the PCA object
     pca = PCA()
 
@@ -60,30 +33,46 @@ def mean_pcr(X, y, pc):
     # Run PCA
     Xreg = pca.fit_transform(Xstd)[:, :pc]
 
-    # Instantiate linear regression object
-    regr = linear_model.LinearRegression()
+    if not quantile:
+        # Instantiate linear regression object
+        regr = linear_model.LinearRegression()
 
-    # Fit
-    regr.fit(Xreg, y)
+        # Fit
+        regr.fit(Xreg, y)
 
-    # Calibrate
-    y_c = regr.predict(Xreg)
+        # Calibrate
+        y_c = regr.predict(Xreg)
 
-    # Cross-validation
-    y_cv = cross_val_predict(regr, Xreg, y, cv=10)
+        # Cross-validation
+        y_cv = cross_val_predict(regr, Xreg, y, cv=10)
 
-    # Scores
-    score_c = r2_score(y, y_c)
-    score_cv = r2_score(y, y_cv)
+        # Scores
+        score_c = r2_score(y, y_c)
+        score_cv = r2_score(y, y_cv)
 
-    # Mean square error
-    mse_c = mean_squared_error(y, y_c)
-    mse_cv = mean_squared_error(y, y_cv)
+        # Mean square error
+        mse_c = mean_squared_error(y, y_c)
+        mse_cv = mean_squared_error(y, y_cv)
 
-    return y_c, y_cv, score_c, score_cv, mse_c, mse_cv
+        return y_c, y_cv, score_c, score_cv, mse_c, mse_cv
+    else:
+        predictions = {}
+        for qu in DEF_QUANTILES:
+            qregr = linear_model.QuantileRegressor(quantile=qu, alpha=0.00, solver=solver)
+            qregr.fit(Xreg, y)
+            y_qc = qregr.predict(Xreg)
+
+            if debug:
+                print(f"{qu} -> {np.mean(y_qc > y)}")
+
+            predictions[qu] = y_qc
+
+        quantile_losses = {quantile: mean_pinball_loss(y, q_preds) for quantile, q_preds in
+                           predictions.items()}
+        return predictions, sum(quantile_losses.values()) / len(DEF_QUANTILES)
 
 
-def fit_basins(quantile: bool, data: pd.DataFrame,
+def fit_basins(fitter: callable, quantile: bool, data: pd.DataFrame,
                results_path: str = os.path.join('03-model-building', 'model-outputs',
                                                 'model-training-optimization-new'), max_n_pcs: int = 30):
     results_path = os.path.join(results_path, f'{"quantile" if quantile else "regular"}')
@@ -109,10 +98,7 @@ def fit_basins(quantile: bool, data: pd.DataFrame,
 
         for pc in range(1, max_n_pcs):
             pcs.append(pc)
-            if quantile:
-                results = quantile_pcr(real_X, real_y, pc)
-            else:
-                results = mean_pcr(real_X, real_y, pc)
+            results = fitter(real_X, real_y, pc=pc, quantile=quantile)
 
             if results[-1] < min_mse or pc == 1:
                 min_mse = results[-1]
@@ -138,7 +124,7 @@ def main():
 
     data = pd.read_csv(os.path.join("02-data-cleaning", "training_data.csv"))
 
-    fit_basins(quantile=True, data=data)
+    fit_basins(fitter=pcr_fitter, quantile=True, data=data)
 
 
 if __name__ == '__main__':
