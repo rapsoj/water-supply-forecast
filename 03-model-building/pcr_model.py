@@ -90,9 +90,9 @@ def fit_basins(quantile: bool, data: pd.DataFrame,
     y = data.volume
 
     # Iterate over every site
-    site_ids = np.unique(data.site_id.to_numpy())
+    site_ids = data.site_id.unique()
     for site_id in site_ids:
-        mask = np.array((data.site_id == site_id))
+        mask = data.site_id == site_id
         masked_X = X[mask]
         masked_y = y[mask]
 
