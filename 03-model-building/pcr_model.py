@@ -85,7 +85,10 @@ def mean_pcr(X, y, pc):
 
 def fit_basins(quantile: bool, data: pd.DataFrame,
                results_path: str = os.path.join('03-model-building', 'model-outputs',
-                                                'linear-model-training-optimization'), max_n_pcs: int = 30):
+                                                'model-training-optimization-new'), max_n_pcs: int = 30):
+    results_path = os.path.join(results_path, f'{"quantile" if quantile else "regular"}')
+    os.makedirs(results_path, exist_ok=True)
+
     X = data.drop(columns={'volume', 'site_id', 'forecast_year'})
     y = data.volume
 
