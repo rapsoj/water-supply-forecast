@@ -35,6 +35,7 @@ years = np.unique(np.floor(data["mjoPENTAD"].to_numpy() / 1e4))
 
 dates = data["mjoPENTAD"].to_numpy()
 new_df = pd.DataFrame(columns=keys)
+test_df = pd.DataFrame(columns=keys)
 # Loop over all years, get the preceding years feature data
 for idx, year in enumerate(years):
     # Get data from October through February
@@ -62,10 +63,9 @@ for idx, year in enumerate(years):
             year_labels = np.sum(masked_data[first_april_index:last_july_index, volume_idx], axis=0)
             year_data[forecast_year_idx] = year + 1
             year_data[volume_idx] = year_labels
+            
             year_data[id_idx] = site_id
             new_df.loc[len(new_df)] = year_data
         print(year)
-
 new_df = new_df.drop(labels=['mjoPENTAD'], axis=1)
 new_df.to_csv(os.path.join("..", "02-data-cleaning", "training_data.csv"), index=False)
-
