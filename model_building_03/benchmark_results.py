@@ -23,8 +23,6 @@ def main(gt_path: str, preds_path: str):
     std = calc_predictive_std(ground_truth, preds)
     quantiles = [0.1, 0.5, 0.9]
     quantile_preds = {quantile: gen_predictive_quantile(preds, std, quantile) for quantile in quantiles}
-    #print(quantile_preds)
-    #print(preds)
     quantile_losses = {quantile: mean_pinball_loss(ground_truth, q_preds) for quantile, q_preds in
                        quantile_preds.items()}
     interval = (quantile_preds[0.1] <= ground_truth) & (ground_truth <= quantile_preds[0.9])
