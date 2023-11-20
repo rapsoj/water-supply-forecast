@@ -19,9 +19,9 @@ def fit_basins(fitter: callable, quantile: bool, data: pd.DataFrame,
     # Iterate over every site
     site_ids = data.site_id.unique()
     for site_id in site_ids:
-        mask = data.site_id == site_id
-        masked_X = X[mask]
-        masked_y = y[mask]
+        site_mask = data.site_id == site_id
+        masked_X = X[site_mask]
+        masked_y = y[site_mask]
 
         real_X = masked_X[masked_y != 0]
         real_y = masked_y[masked_y != 0]
