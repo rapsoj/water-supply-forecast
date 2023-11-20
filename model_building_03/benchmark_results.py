@@ -5,6 +5,7 @@ from sklearn.metrics import mean_pinball_loss
 import os
 
 # os.chdir("/Users/emilryd/programming/water-supply-forecast")
+os.chdir("..")
 
 
 def calc_predictive_std(gt: pd.Series, preds: pd.Series) -> float:
@@ -39,5 +40,5 @@ def main(gt_path: str, preds_path: str, gen_std: bool = True):
 if __name__ == '__main__':
     site_ids = pd.read_csv("02-data-cleaning/site_ids.csv")["site_id"]
     for site_id in site_ids:
-        main(gt_path=f"03-model-building/model-outputs/ground_truth{site_id}.csv",
-             preds_path=f"03-model-building/model-outputs/linear-model-training-optimization/predicted{site_id}.csv")
+        main(gt_path=f"model_building_03/model-outputs/ground_truth{site_id}.csv",
+             preds_path=f"model_building_03/model-outputs/linear-model-training-optimization/predicted{site_id}.csv")
