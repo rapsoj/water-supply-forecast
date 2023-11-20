@@ -3,7 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 
-from model_building_03.fitters import pcr_fitter
+from model_building_03.models import pcr_fitter
 from consts import DEF_QUANTILES
 
 
