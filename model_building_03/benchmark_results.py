@@ -20,10 +20,11 @@ def gen_predictive_quantile(preds: pd.Series, std: float, quantile: float) -> pd
 
 def main(gt_path: str, preds_path: str, gen_std: bool = True):
     ground_truth = pd.read_csv(gt_path)["gt"]
-    preds = pd.read_csv(preds_path)["pred"]
+    preds = pd.read_csv(preds_path)
 
     quantiles = [0.1, 0.5, 0.9]
     if gen_std:
+        # todo use preds GT here
         std = calc_predictive_std(ground_truth, preds)
         quantile_preds = {quantile: gen_predictive_quantile(preds, std, quantile) for quantile in quantiles}
     else:
@@ -37,8 +38,10 @@ def main(gt_path: str, preds_path: str, gen_std: bool = True):
           f'percent in 0.1-0.9 quantiles:{100 * np.mean(interval):.2f}%')
 
 
+# todo create single file with path utils
 if __name__ == '__main__':
     site_ids = pd.read_csv("02-data-cleaning/site_ids.csv")["site_id"]
     for site_id in site_ids:
         main(gt_path=f"model_building_03/model-outputs/ground_truth{site_id}.csv",
-             preds_path=f"model_building_03/model-outputs/linear-model-training-optimization/predicted{site_id}.csv")
+             preds_path=f"model_building_03/model-outputs/model-training-optimization/quantile/predicted_{site_id}.csv",
+             gen_std=False)

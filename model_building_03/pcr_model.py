@@ -9,7 +9,7 @@ from consts import DEF_QUANTILES
 
 def fit_basins(fitter: callable, quantile: bool, data: pd.DataFrame,
                results_path: str = os.path.join('model_building_03', 'model-outputs',
-                                                'model-training-optimization-new'), max_n_pcs: int = 30):
+                                                'model-training-optimization'), max_n_pcs: int = 30):
     results_path = os.path.join(results_path, f'{"quantile" if quantile else "regular"}')
     os.makedirs(results_path, exist_ok=True)
 
