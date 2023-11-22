@@ -1,4 +1,4 @@
-site_id,time,gws_inst,rtzsm_inst,sfsm_inst
+site_id,time,mean_gws_inst,mean_rtzsm_inst,mean_sfsm_inst
 hungry_horse_reservoir_inflow,2005-04-11,24.702488,22.948473,22.036083
 snake_r_nr_heise,2005-04-11,53.55703,54.950146,51.8621
 pueblo_reservoir_inflow,2005-04-11,44.91711,49.60661,56.252365
