@@ -1,0 +1,47 @@
+,Data provided for site 14181500,Unnamed: 1,Unnamed: 2,Unnamed: 3
+0,ts_id,parameter,statistic,Description
+1,226002,00010,00001,"Temperature, water, degrees Celsius"
+2,226003,00010,00002,"Temperature, water, degrees Celsius"
+3,226327,00010,00003,"Temperature, water, degrees Celsius"
+4,205411,00011,00001,"Temperature, water, degrees Fahrenheit([Temperature, water (deg F)])"
+5,205410,00011,00002,"Temperature, water, degrees Fahrenheit([Temperature, water (deg F)])"
+6,234288,00025,00001,"Barometric pressure, millimeters of mercury"
+7,234289,00025,00002,"Barometric pressure, millimeters of mercury"
+8,234287,00025,00003,"Barometric pressure, millimeters of mercury"
+9,234357,00047,00001,"Total partial pressure of dissolved gases, water, unfiltered, millimeters of mercury"
+10,234358,00047,00002,"Total partial pressure of dissolved gases, water, unfiltered, millimeters of mercury"
+11,234356,00047,00003,"Total partial pressure of dissolved gases, water, unfiltered, millimeters of mercury"
+12,113937,00060,00003,"Discharge, cubic feet per second"
+13,234354,00095,00001,"Specific conductance, water, unfiltered, microsiemens per centimeter at 25 degrees Celsius"
+14,234352,00095,00002,"Specific conductance, water, unfiltered, microsiemens per centimeter at 25 degrees Celsius"
+15,234353,00095,00003,"Specific conductance, water, unfiltered, microsiemens per centimeter at 25 degrees Celsius"
+16,234360,00300,00001,"Dissolved oxygen, water, unfiltered, milligrams per liter"
+17,234355,00300,00002,"Dissolved oxygen, water, unfiltered, milligrams per liter"
+18,234359,00300,00003,"Dissolved oxygen, water, unfiltered, milligrams per liter"
+19,234345,00400,00001,"pH, water, unfiltered, field, standard units"
+20,234344,00400,00002,"pH, water, unfiltered, field, standard units"
+21,234346,00400,00008,"pH, water, unfiltered, field, standard units"
+22,250057,32295,00001,"Dissolved organic matter fluorescence (fDOM), water, in situ, concentration estimated from reference material, micrograms per liter as quinine sulfate equivalents (QSE)"
+23,250055,32295,00002,"Dissolved organic matter fluorescence (fDOM), water, in situ, concentration estimated from reference material, micrograms per liter as quinine sulfate equivalents (QSE)"
+24,250056,32295,00003,"Dissolved organic matter fluorescence (fDOM), water, in situ, concentration estimated from reference material, micrograms per liter as quinine sulfate equivalents (QSE)"
+25,249286,32316,00001,"Chlorophyll fluorescence (fChl), water, in situ, concentration estimated from reference material, micrograms per liter as chlorophyll"
+26,249285,32316,00002,"Chlorophyll fluorescence (fChl), water, in situ, concentration estimated from reference material, micrograms per liter as chlorophyll"
+27,249284,32316,00003,"Chlorophyll fluorescence (fChl), water, in situ, concentration estimated from reference material, micrograms per liter as chlorophyll"
+28,249289,32319,00001,"Phycocyanin fluorescence (fPC), water, in situ, concentration estimated from reference material, micrograms per liter as phycocyanin"
+29,249288,32319,00002,"Phycocyanin fluorescence (fPC), water, in situ, concentration estimated from reference material, micrograms per liter as phycocyanin"
+30,249287,32319,00003,"Phycocyanin fluorescence (fPC), water, in situ, concentration estimated from reference material, micrograms per liter as phycocyanin"
+31,234361,62361,00001,"Chlorophyll, total, water, fluorometric, 650-700 nanometers, in situ sensor, micrograms per liter"
+32,234363,62361,00002,"Chlorophyll, total, water, fluorometric, 650-700 nanometers, in situ sensor, micrograms per liter"
+33,234362,62361,00003,"Chlorophyll, total, water, fluorometric, 650-700 nanometers, in situ sensor, micrograms per liter"
+34,234351,63680,00001,"Turbidity, water, unfiltered, monochrome near infra-red LED light, 780-900 nm, detection angle 90 +-2.5 degrees, formazin nephelometric units (FNU)([(2)])"
+35,247342,63680,00001,"Turbidity, water, unfiltered, monochrome near infra-red LED light, 780-900 nm, detection angle 90 +-2.5 degrees, formazin nephelometric units (FNU)"
+36,234348,63680,00002,"Turbidity, water, unfiltered, monochrome near infra-red LED light, 780-900 nm, detection angle 90 +-2.5 degrees, formazin nephelometric units (FNU)([(2)])"
+37,247343,63680,00002,"Turbidity, water, unfiltered, monochrome near infra-red LED light, 780-900 nm, detection angle 90 +-2.5 degrees, formazin nephelometric units (FNU)"
+38,234350,63680,00008,"Turbidity, water, unfiltered, monochrome near infra-red LED light, 780-900 nm, detection angle 90 +-2.5 degrees, formazin nephelometric units (FNU)([(2)])"
+39,247344,63680,00008,"Turbidity, water, unfiltered, monochrome near infra-red LED light, 780-900 nm, detection angle 90 +-2.5 degrees, formazin nephelometric units (FNU)"
+40,,,,
+41,Data-value qualification codes included in this output:,,,
+42,A,Approved for publication -- Processing and review completed.,,
+43,P,Provisional data subject to revision.,,
+44,[4],Returned when there is no matching qualifier.,,
+45,e,Value has been estimated.,,
