@@ -1,0 +1,30 @@
+,Data provided for site 09406000,Unnamed: 1,Unnamed: 2,Unnamed: 3
+0,ts_id,parameter,statistic,Description
+1,143267,00010,00001,"Temperature, water, degrees Celsius"
+2,143268,00010,00002,"Temperature, water, degrees Celsius"
+3,143269,00010,00003,"Temperature, water, degrees Celsius"
+4,143270,00010,00011,"Temperature, water, degrees Celsius"
+5,143271,00060,00003,"Discharge, cubic feet per second"
+6,143274,00065,00003,"Gage height, feet"
+7,143281,00095,00001,"Specific conductance, water, unfiltered, microsiemens per centimeter at 25 degrees Celsius"
+8,143282,00095,00002,"Specific conductance, water, unfiltered, microsiemens per centimeter at 25 degrees Celsius"
+9,143283,00095,00003,"Specific conductance, water, unfiltered, microsiemens per centimeter at 25 degrees Celsius"
+10,143278,00300,00001,"Dissolved oxygen, water, unfiltered, milligrams per liter"
+11,143279,00300,00002,"Dissolved oxygen, water, unfiltered, milligrams per liter"
+12,143280,00300,00003,"Dissolved oxygen, water, unfiltered, milligrams per liter"
+13,143275,63675,00001,"Turbidity, water, unfiltered, broad band light source (400-680 nm), detection angle 90 +-30 degrees to incident light, nephelometric turbidity units (NTU)"
+14,143276,63675,00002,"Turbidity, water, unfiltered, broad band light source (400-680 nm), detection angle 90 +-30 degrees to incident light, nephelometric turbidity units (NTU)"
+15,143277,63675,00003,"Turbidity, water, unfiltered, broad band light source (400-680 nm), detection angle 90 +-30 degrees to incident light, nephelometric turbidity units (NTU)"
+16,215671,63680,00001,"Turbidity, water, unfiltered, monochrome near infra-red LED light, 780-900 nm, detection angle 90 +-2.5 degrees, formazin nephelometric units (FNU)"
+17,215672,63680,00002,"Turbidity, water, unfiltered, monochrome near infra-red LED light, 780-900 nm, detection angle 90 +-2.5 degrees, formazin nephelometric units (FNU)"
+18,215673,63680,00003,"Turbidity, water, unfiltered, monochrome near infra-red LED light, 780-900 nm, detection angle 90 +-2.5 degrees, formazin nephelometric units (FNU)"
+19,143272,80154,00003,"Suspended sediment concentration, milligrams per liter"
+20,143273,80155,00003,"Suspended sediment discharge, short tons per day"
+21,,,,
+22,Data-value qualification codes included in this output:,,,
+23,<,Actual value is known to be less than reported value.,,
+24,>,Actual value is known to be greater than reported value.,,
+25,A,Approved for publication -- Processing and review completed.,,
+26,P,Provisional data subject to revision.,,
+27,[4],Returned when there is no matching qualifier.,,
+28,e,Value has been estimated.,,
