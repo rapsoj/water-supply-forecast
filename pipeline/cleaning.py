@@ -68,7 +68,7 @@ def clean_pdo(df_pdo) :
     # Basic cleaning for pdo dataset
     df_pdo = pd.melt(df_pdo, id_vars=['Year'], var_name='Month', value_name='pdo')
     df_pdo = df_pdo.rename(columns={'Year':'year', 'Month':'month'})
-    df_pdo = df_pdo[df_pdo['pdo'] != 99.99] # Remove future values (missing)
+    df_pdo['pdo'] = df_pdo['pdo'].replace(99.99, np.nan) # Remove future values (missing)
     df_pdo['month'] = df_pdo['month'].map(month_to_num)
     df_pdo['day'] = -1
 

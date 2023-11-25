@@ -1,6 +1,6 @@
 def preprocess_column(df, column_name):
     # Skip preprocessing for specified columns
-    if column_name in ["month", "year", "day"]:
+    if column_name in ['month', 'year', 'day', 'volume']:
         return df
     
     # Check the data type of the column
