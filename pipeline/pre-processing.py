@@ -72,7 +72,7 @@ df_snotel = clean_snotel(df_snotel)
 data_frames = [df_mjo, df_nino, df_oni, df_pdo, df_pna, df_soi1, 
                df_soi2, df_flow, df_grace, df_snotel]
 df_merged = reduce(lambda  left,right: pd.merge(left,right,on=['year', 'month', 'day'],
-                                            how='outer'), data_frames)
+                                                how='outer'), data_frames)
 
 # Outlier cleaning
 

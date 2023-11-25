@@ -6,6 +6,20 @@ import calendar
 from datetime import datetime
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
 
+# Dictionary to map month abbreviations to numeric values
+month_to_num = {
+    'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4,
+    'May': 5, 'Jun': 6, 'Jul': 7, 'Aug': 8,
+    'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
+}
+
+# Dictionary to map month abbreviations to numeric values
+month_to_num_up = {
+    'JAN': 1, 'FEB': 2, 'MAR': 3, 'APR': 4,
+    'MAY': 5, 'JUN': 6, 'JUL': 7, 'AUG': 8,
+    'SEP': 9, 'OCT': 10, 'NOV': 11, 'DEC': 12
+}
+
 def import_mjo(current_dir) :
     # Import mjo dataset
     folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'teleconnections')
@@ -14,7 +28,6 @@ def import_mjo(current_dir) :
 
 def clean_mjo(df_mjo): 
     # Basic cleaning for mjo dataset
-    df_mjo = pd.read_table(os.path.join(folder_path,"mjo.txt"),delim_whitespace=True, skiprows=1)
     df_mjo = df_mjo.iloc[1:]
     df_mjo.columns = df_mjo.columns.str.strip()
     df_mjo = df_mjo.add_prefix('mjo')
@@ -63,6 +76,7 @@ def import_pdo(current_dir) :
     # Import pdo dataset
     folder_path = os.path.join(current_dir, '..','assets', 'data', 'teleconnections')
     df_pdo = pd.read_table(os.path.join(folder_path,"pdo.txt"),delim_whitespace=True,skiprows=1)
+    return df_pdo
 
 def clean_pdo(df_pdo) :
     # Basic cleaning for pdo dataset
@@ -71,27 +85,32 @@ def clean_pdo(df_pdo) :
     df_pdo['pdo'] = df_pdo['pdo'].replace(99.99, np.nan) # Remove future values (missing)
     df_pdo['month'] = df_pdo['month'].map(month_to_num)
     df_pdo['day'] = -1
+    return df_pdo
 
 def import_pna(current_dir) :
     # Import pna dataset
     folder_path = os.path.join(current_dir, '..','assets', 'data', 'teleconnections')
     df_pna = pd.read_table(os.path.join(folder_path,"pna.txt"),delim_whitespace=True)
+    return df_pna
 
 def clean_pna(df_pna) :
     # Basic cleaning for pna dataset
     df_pna = pd.melt(df_pna, id_vars=['year'], var_name='month', value_name='pna')
     df_pna['month'] = df_pna['month'].map(month_to_num)
     df_pna['day'] = -1
+    return df_pna
 
 def import_soi1(current_dir) :
     # Import soi 1
     folder_path = os.path.join(current_dir, '..','assets', 'data', 'teleconnections')
     df_soi1 = pd.read_table(os.path.join(folder_path,"soi1.txt"),delim_whitespace=True,skiprows=3)
+    return df_soi1
 
 def import_soi2(current_dir) :
     # Import soi 2
     folder_path = os.path.join(current_dir, '..','assets', 'data', 'teleconnections')
     df_soi2 = pd.read_table(os.path.join(folder_path,"soi2.txt"),delim_whitespace=True,skiprows=3)
+    return df_soi2
 
 def clean_soi1(df_soi1) :
     # Clean soi 1
@@ -100,6 +119,7 @@ def clean_soi1(df_soi1) :
     df_soi1 = df_soi1.rename(columns={'YEAR':'year'})
     df_soi1['month'] = df_soi1['month'].map(month_to_num_up)
     df_soi1['day'] = -1
+    return df_soi1
 
 def clean_soi2(df_soi2) :
     # Clean soi 2
@@ -108,20 +128,24 @@ def clean_soi2(df_soi2) :
     df_soi2 = df_soi2.rename(columns={'YEAR':'year'})
     df_soi2['month'] = df_soi2['month'].map(month_to_num_up)
     df_soi2['day'] = -1
+    return df_soi2
 
 def import_flow(current_dir) :
     # Import flows training dataset
     folder_path = os.path.join(current_dir, '..','assets', 'data')
     df_flow = pd.read_csv(os.path.join(folder_path,"train_monthly_naturalized_flow.csv"))
+    return df_flow
 
 def clean_flow(df_flow) :
     # Clean flows training dataset
     df_flow['day'] = -1
+    return df_flow
 
 def import_grace(current_dir) :
     # Import non-pixel grace indicators
     folder_path = os.path.join(current_dir, '..','assets', 'data', 'grace_indicators')
     df_grace = pd.read_csv(os.path.join(folder_path,"grace_aggregated.csv"))
+    return df_grace
 
 def clean_grace(df_grace) :
     # Clean grace dataset
@@ -133,14 +157,13 @@ def clean_grace(df_grace) :
     df_grace['month'] = df_grace['time'].dt.month
     df_grace['year'] = df_grace['time'].dt.year
     df_grace.drop('time', axis=1, inplace=True)
-    data_frames = [df_merged, df_grace]
-    df_merged = reduce(lambda  left,right: pd.merge(left,right,on=['year', 'month', 'day', 'site_id'],
-                                                how='outer'), data_frames)
+    return df_grace
     
 def import_snotel(current_dir) :
     # Import Snotel dataset
     folder_path = os.path.join(current_dir, '..','assets', 'data')
-    df_snotel = pd.read_csv(os.path.join(current_dir,"snotel.csv"))
+    df_snotel = pd.read_csv(os.path.join(folder_path,"snotel.csv"))
+    return df_snotel
 
 def clean_snotel(df_snotel) :
     # Extract day, month, and year into separate columns
@@ -149,5 +172,6 @@ def clean_snotel(df_snotel) :
     df_snotel['month'] = df_snotel['date'].dt.month
     df_snotel['year'] = df_snotel['date'].dt.year
     df_snotel.drop('date', axis=1, inplace=True)
-
+    
     df_snotel= df_snotel.rename(columns={'site':'site_id'})
+    return df_snotel
