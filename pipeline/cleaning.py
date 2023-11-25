@@ -6,10 +6,9 @@ import calendar
 from datetime import datetime
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
 
-
 def import_mjo(current_dir) :
     # Import mjo dataset
-    folder_path = os.path.join(current_dir, '..','assets', 'data', 'teleconnections')
+    folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'teleconnections')
     df_mjo = pd.read_table(os.path.join(folder_path,"mjo.txt"),delim_whitespace=True, skiprows=1)
     return df_mjo
 
@@ -20,7 +19,12 @@ def clean_mjo(df_mjo):
     df_mjo.columns = df_mjo.columns.str.strip()
     df_mjo = df_mjo.add_prefix('mjo')
     df_mjo = df_mjo[df_mjo['mjo20E'] != '*****'] # Remove future values (missing)
-
+    # Iterate over columns
+    for column_name in df_mjo.columns:
+        # Check if the column name contains the substring 'mjo'
+        if 'mjo' in column_name:
+            # Convert values to float using pd.to_numeric
+            df_mjo[column_name] = pd.to_numeric(df_mjo[column_name], errors='coerce')
     df_mjo['year'] = df_mjo['mjoPENTAD'].astype(str).str[:4].astype(int)
     df_mjo['month'] = df_mjo['mjoPENTAD'].astype(str).str[4:6].astype(int)
     df_mjo['day'] = df_mjo['mjoPENTAD'].astype(str).str[6:8].astype(int)
