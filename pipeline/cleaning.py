@@ -132,15 +132,14 @@ def clean_grace(df_grace) :
     df_grace['day'] = df_grace['time'].dt.day
     df_grace['month'] = df_grace['time'].dt.month
     df_grace['year'] = df_grace['time'].dt.year
-
     df_grace.drop('time', axis=1, inplace=True)
-
     data_frames = [df_merged, df_grace]
     df_merged = reduce(lambda  left,right: pd.merge(left,right,on=['year', 'month', 'day', 'site_id'],
                                                 how='outer'), data_frames)
     
 def import_snotel(current_dir) :
     # Import Snotel dataset
+    folder_path = os.path.join(current_dir, '..','assets', 'data')
     df_snotel = pd.read_csv(os.path.join(current_dir,"snotel.csv"))
 
 def clean_snotel(df_snotel) :
