@@ -2,6 +2,7 @@ import pandas as pd
 import os
 import numpy as np
 import datetime as dt
+from scipy.interpolate import interp1d
 
 path = os.getcwd()
 # Set working directory to yours
@@ -40,15 +41,18 @@ data = pd.read_csv(os.path.join("..", "02-data-cleaning", "transformed_vars.csv"
                    dtype=col2dtype)
 
 # Create integer dates to work with
-data["date"] = pd.to_datetime(data[['year', 'month', 'day']].applymap(int))
+date_cols = ['year', 'month', 'day']
+data["date"] = pd.to_datetime(data[date_cols].applymap(int))
 data = data.sort_values('date')
 
 # Get site ids
 site_id_str = 'site_id_'
-data['site_id'] = data[[col for col in data.columns if 'site_id' in col]] \
+site_id_cols = [col for col in data.columns if 'site_id' in col]
+# assert (data[site_id_cols].sum(axis='columns') == 1).all() todo enable once previous data processing is done
+data['site_id'] = data[site_id_cols] \
     .idxmax(axis='columns') \
     .apply(lambda x: x[x.find(site_id_str) + len(site_id_str):])
-data = data.drop(columns=[col for col in data.columns if site_id_str in col])
+data = data.drop(columns=site_id_cols)
 
 # Prediction months and dates
 prediction_dates = [dt.datetime(year, month, day) for year in data.year.unique() for month in range(4, 8) for day in
@@ -56,8 +60,29 @@ prediction_dates = [dt.datetime(year, month, day) for year in data.year.unique()
 
 
 # Create training set for a site_id
-def process_features(df: pd.DataFrame):
+def process_features(df: pd.DataFrame, N_DAYS_DELTA: int = 7):
+    # Generate a df with r<ows for every prediction date, then gather data accordingly up until that point
+    start_date = df.date.min()
+    end_date = df.date.max()
+    feat_dates = pd.date_range(start=start_date, end=end_date, freq=f'{N_DAYS_DELTA}D')
+    feat_dates = feat_dates[(feat_dates.month < 4) | (feat_dates.month > 9)].to_series()
+
+    interp_cols = set(df.columns) - \
+                  ({'site_id', 'date', 'volume', 'station', 'forecast_year'} |
+                   {col for col in df.columns if 'nino' in col} |
+                   {col for col in df.columns if 'oni' in col and col not in {'oniANOM', 'oniTOTAL'}} |
+                   set(date_cols))
+
+    # Get associated dates
+    orig_dates_vals = (df.date - start_date).dt.days
+    feat_dates_vals = (feat_dates - start_date).dt.days
+    processed_df = df[list(interp_cols)] \
+        .apply(lambda x: np.interp(feat_dates_vals, x.dropna(), orig_dates_vals[~x.isna()]))
     print()
+
+    # todo re-add nino data manually
+    # todo re-add oni data once we understand what's going on there/whether it's relevant
+    # todo make sure this is after the train/test split, don't want leakage
 
 
 data.groupby('site_id').apply(process_features)
