@@ -36,7 +36,7 @@ data = pd.read_csv(os.path.join("..", "02-data-cleaning", "merged_dataframe.csv"
                    dtype=dict)
 
 # Create integer dates to work with
-data["dateint"] = data["year"]*1e4+data["month"]*1e2+data["day"]
+data["date"] = data["year"]*1e4+data["month"]*1e2+data["day"]
 
 # Get site ids
 site_ids = np.unique(data["site_id"].to_numpy()[:300])
@@ -45,14 +45,25 @@ site_ids = np.unique(data["site_id"].to_numpy()[:300])
 years = np.unique(np.floor(data["year"].to_numpy() / 1e4))
 
 # Prediction months and days
-prediction_dates = np.zeros()
+num_predictions = 5*4
+prediction_dates = np.zeros(num_predictions)
+for idx in range(num_predictions):
+    prediction_date = ((np.floor(idx / 5)+4)*1e2+(idx % 5)*7+1)
+    prediction_dates[idx] = prediction_date
 
+print(prediction_dates)
 # Create training set for a site_id
 for site_id in site_ids:
-
+  
     # Iterate over every year:
     for year in years:
         # Now the fun begins
-        # Iterate over every site you want to make a prediction for
 
+        # Generate prediction dates for the year
+        year_prediction_dates = (year+1)+prediction_dates
+
+        for year_prediction_date in year_prediction_dates:
+
+        # Iterate over every site you want to make a prediction for
+        break;
 
