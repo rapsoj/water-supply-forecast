@@ -3,12 +3,11 @@ import os
 import numpy as np
 import pandas as pd
 
-
-
 from model_building_03.models import pcr_fitter
 from consts import DEF_QUANTILES
 
-def fit_basins(fitter: callable, quantile: bool, data: pd.DataFrame,
+
+def fit_basins(fitter: callable, quantile: bool, data: pd.DataFrame, site_ids: list,
                results_path: str = os.path.join('model_building_03', 'model-outputs',
                                                 'model-training-optimization'), max_n_pcs: int = 30):
     results_path = os.path.join(results_path, f'{"quantile" if quantile else "regular"}')
@@ -19,7 +18,6 @@ def fit_basins(fitter: callable, quantile: bool, data: pd.DataFrame,
     years = data.forecast_year
 
     # Iterate over every site
-    site_ids = data.site_id.unique()
     for site_id in site_ids:
         site_mask = data.site_id == site_id
         masked_X = X[site_mask]
@@ -28,8 +26,8 @@ def fit_basins(fitter: callable, quantile: bool, data: pd.DataFrame,
         print(masked_y)
         print(masked_years)
 
-        real_X = masked_X[masked_y != 0] # Get rid of empty labels (from test years, odd 2005-2023)
-        real_y = masked_y[masked_y != 0] # Get rid of empty labels (from test years, odd 2005-2023)
+        real_X = masked_X[masked_y != 0]  # Get rid of empty labels (from test years, odd 2005-2023)
+        real_y = masked_y[masked_y != 0]  # Get rid of empty labels (from test years, odd 2005-2023)
 
         mse_cvs = []
         pcs = []
@@ -63,9 +61,11 @@ def fit_basins(fitter: callable, quantile: bool, data: pd.DataFrame,
 def main():
     os.chdir("..")
 
-    data = pd.read_csv(os.path.join("02-data-cleaning", "training_data.csv"))
+    data = pd.read_csv(os.path.join("02-data-cleaning", "transformed_vars.csv"))
+    site_id_str = 'site_id_'
+    site_ids = [col[col.find(site_id_str) + len(site_id_str):] for col in data.columns]
 
-    fit_basins(fitter=pcr_fitter, quantile=True, data=data)
+    fit_basins(fitter=pcr_fitter, quantile=True, data=data, site_ids=site_ids)
 
 
 if __name__ == '__main__':
