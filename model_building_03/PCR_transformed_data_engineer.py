@@ -35,56 +35,24 @@ for i in list:
 data = pd.read_csv(os.path.join("..", "02-data-cleaning", "merged_dataframe.csv"),
                    dtype=dict)
 
-# Fill empty cells as 0 (may be done differently in the future)
-data = data.fillna(0)
-reduced_data = data.drop(labels=['oniSEAS'], axis=1)
-keys = reduced_data.keys()
+# Create integer dates to work with
+data["dateint"] = data["year"]*1e4+data["month"]*1e2+data["day"]
 
-np_data = reduced_data.to_numpy()
-id_idx = reduced_data.columns.get_loc("site_id")
-forecast_year_idx = reduced_data.columns.get_loc("forecast_year")
-volume_idx = reduced_data.columns.get_loc("volume")
-
-X = data.values[:, -1:]
-volumes = data["volume"]
+# Get site ids
 site_ids = np.unique(data["site_id"].to_numpy()[:300])
-site_df = pd.DataFrame({"site_id":site_ids})
-site_df.to_csv("site_ids.csv", index=False)
-years = np.unique(np.floor(data["mjoPENTAD"].to_numpy() / 1e4))
 
-dates = data["mjoPENTAD"].to_numpy()
-new_df = pd.DataFrame(columns=keys)
-test_df = pd.DataFrame(columns=keys)
-# Loop over all years, get the preceding years feature data
-for idx, year in enumerate(years):
-    # Get data from October through February
+# Get years
+years = np.unique(np.floor(data["year"].to_numpy() / 1e4))
 
-    if year <= 2022 and year > 0:
-        # todo handle leap years
-    
-        first_october = year * 1e4 + 1001  # First October
-        last_february = (year + 1) * 1e4 + 228  # 28th February
+# Prediction months and days
+prediction_dates = np.zeros()
 
-        first_april = (year+1) * 1e4 + 401  # First October
-        last_july = (year+1) * 1e4 + 731  # 28th February
+# Create training set for a site_id
+for site_id in site_ids:
 
-        first_october_index = np.where(dates >= first_october)[0][0]
-        last_february_index = np.where(dates >= last_february)[0][0]
-        first_april_index = np.where(dates >= first_april)[0][0]
-        last_july_index = np.where(dates >= last_july)[0][0]
+    # Iterate over every year:
+    for year in years:
+        # Now the fun begins
+        # Iterate over every site you want to make a prediction for
 
-        for site_id in site_ids:
-            mask = np.array((data["site_id"] == site_id))
-            mask = np.reshape(mask, (1, -1))
-            mask = np.transpose(mask)
-            masked_data = mask * np_data
-            year_data = np.sum(masked_data[first_october_index: last_february_index, :], axis=0)
-            year_labels = np.sum(masked_data[first_april_index:last_july_index, volume_idx], axis=0)
-            year_data[forecast_year_idx] = year + 1
-            year_data[volume_idx] = year_labels
-            
-            year_data[id_idx] = site_id
-            new_df.loc[len(new_df)] = year_data
-        print(year)
-new_df = new_df.drop(labels=['mjoPENTAD'], axis=1)
-new_df.to_csv(os.path.join("..", "02-data-cleaning", "training_data.csv"), index=False)
+
