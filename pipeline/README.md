@@ -11,4 +11,4 @@ Pipeline to run data cleaning files. File contain functions that can be executed
 
 The rough idea for how to build the ensemble model based on the M4 model structure is as follows:
 
-![model](assets/images/model.png)
+![model](model.png)
