@@ -76,7 +76,12 @@ def process_features(df: pd.DataFrame, N_DAYS_DELTA: int = 7):
     # Get associated dates
     orig_dates_vals = (df.date - start_date).dt.days
     feat_dates_vals = (feat_dates - start_date).dt.days
-    processed_df = df[list(interp_cols)] \
+    # Removing sites with no snotel data
+    reducted_df = df[(df.site_id != 'american_river_folsom_lake')
+                     &(df.site_id != 'merced_river_yosemite_at_pohono_bridge')
+                     &(df.site_id != 'san_joaquin_river_millerton_reservoir')
+                     &(df.site_id !='skagit_ross_reservoir')]
+    processed_df = reducted_df[list(interp_cols)] \
         .apply(lambda x: np.interp(feat_dates_vals, x.dropna(), orig_dates_vals[~x.isna()]))
     print()
 
