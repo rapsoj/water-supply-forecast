@@ -54,6 +54,24 @@ data['site_id'] = data[site_id_cols] \
     .apply(lambda x: x[x.find(site_id_str) + len(site_id_str):])
 data = data.drop(columns=site_id_cols)
 
+global_mjo_cols = ['mjo20E', 'mjo70E', 'mjo80E', 'mjo100E', 'mjo120E', 'mjo140E', 'mjo160E', 'mjo120W', 'mjo40W',
+                   'mjo10W']
+global_oni_cols = ['oniSEAS_AMJ', 'oniSEAS_ASO', 'oniSEAS_DJF', 'oniSEAS_FMA', 'oniSEAS_JAS', 'oniSEAS_JFM',
+                   'oniSEAS_JJA', 'oniSEAS_MAM', 'oniSEAS_MJJ', 'oniSEAS_NDJ', 'oniSEAS_OND', 'oniSEAS_SON', 'oniTOTAL',
+                   'oniANOM']
+global_nino_cols = ['ninoNINO1+2', 'ninoANOM', 'ninoNINO3', 'ninoANOM.1', 'ninoNINO4', 'ninoANOM.2',
+                    'ninoNINO3.4', 'ninoANOM.3']
+global_misc_cols = ['pdo', 'pna', 'soi_anom', 'soi_sd']
+
+shared_cols = ['date']
+
+# todo make sure you re-incorporate all of these+interpolate them properly
+mjo_data = data[global_mjo_cols + shared_cols].dropna()
+oni_data = data[global_oni_cols + shared_cols].dropna()
+nino_data = data[global_nino_cols + shared_cols].dropna()
+misc_data = data[global_misc_cols + shared_cols].dropna()
+data = data.drop(columns=global_mjo_cols + global_nino_cols + global_oni_cols + global_misc_cols).dropna()
+
 # Prediction months and dates
 prediction_dates = [dt.datetime(year, month, day) for year in data.year.unique() for month in range(4, 8) for day in
                     range(1, 30, 7)]
@@ -77,11 +95,7 @@ def process_features(df: pd.DataFrame, N_DAYS_DELTA: int = 7):
     orig_dates_vals = (df.date - start_date).dt.days
     feat_dates_vals = (feat_dates - start_date).dt.days
     # Removing sites with no snotel data
-    reducted_df = df[(df.site_id != 'american_river_folsom_lake')
-                     &(df.site_id != 'merced_river_yosemite_at_pohono_bridge')
-                     &(df.site_id != 'san_joaquin_river_millerton_reservoir')
-                     &(df.site_id !='skagit_ross_reservoir')]
-    processed_df = reducted_df[list(interp_cols)] \
+    processed_df = df[list(interp_cols)] \
         .apply(lambda x: np.interp(feat_dates_vals, x.dropna(), orig_dates_vals[~x.isna()]))
     print()
 
@@ -90,4 +104,9 @@ def process_features(df: pd.DataFrame, N_DAYS_DELTA: int = 7):
     # todo make sure this is after the train/test split, don't want leakage
 
 
-data.groupby('site_id').apply(process_features)
+# todo process this data separately
+missing_snotel_site_mask = data.site_id.isin(['american_river_folsom_lake',
+                                              'merced_river_yosemite_at_pohono_bridge',
+                                              'san_joaquin_river_millerton_reservoir',
+                                              'skagit_ross_reservoir'])
+data[~missing_snotel_site_mask].groupby('site_id').apply(process_features)
