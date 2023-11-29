@@ -1,6 +1,5 @@
 # Pipeline
-
-Pipeline to run data cleaning files. File contain functions that can be executed to automate data cleaning. Order to execute is:
+Pipeline to run data cleaning files. The main file, pre-processing.py calls files containing functions that are executed to automate data cleaning. Order to execute is:
 
 - cleaning.py
 - feature_eng.py
