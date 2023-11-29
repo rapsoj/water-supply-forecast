@@ -49,11 +49,11 @@ df_flow = cleaning.clean_flow(df_flow)
 df_grace = cleaning.clean_grace(df_grace)
 df_snotel = cleaning.clean_snotel(df_snotel)
 
-## Merge code
+# Merging dataframes
+from helper_functions import merge
 data_frames = [df_mjo, df_nino, df_oni, df_pdo, df_pna, df_soi1, 
-               df_soi2, df_flow, df_grace, df_snotel]
-df_merged = reduce(lambda  left,right: pd.merge(left,right,on=['year', 'month', 'day'],
-                                                how='outer'), data_frames)
+                df_soi2, df_flow, df_grace, df_snotel]
+df_merged = merge.merge_dfs(data_frames)
 
 # Outlier cleaning
 

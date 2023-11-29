@@ -6,7 +6,6 @@ from functools import reduce
 import calendar
 from datetime import datetime
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
-
 from . import dictionaries
 
 def import_mjo(current_dir) :
@@ -44,7 +43,6 @@ def clean_nino(df_nino) :
     # Basic cleaning for nino dataset
     df_nino = df_nino.rename(columns={'YR':'year', 'MON':'month'})
     df_nino = df_nino.rename(columns={c: 'nino'+c for c in df_nino.columns if c not in ['year', 'month']})
-    df_nino['day'] = -1
     return df_nino
 
 def import_oni(current_dir) :
@@ -56,9 +54,7 @@ def import_oni(current_dir) :
 def clean_oni(df_oni) :
     # Basic cleaning for oni dataset
     df_oni = df_oni.rename(columns={'YR':'year'})
-    df_oni['month'] = -1 #Assume month of collection is january
     df_oni = df_oni.rename(columns={c: 'oni'+c for c in df_oni.columns if c not in ['year', 'month']})
-    df_oni['day'] = -1
     return df_oni
 
 def import_pdo(current_dir) :
@@ -73,7 +69,6 @@ def clean_pdo(df_pdo) :
     df_pdo = df_pdo.rename(columns={'Year':'year', 'Month':'month'})
     df_pdo['pdo'] = df_pdo['pdo'].replace(99.99, np.nan) # Remove future values (missing)
     df_pdo['month'] = df_pdo['month'].map(dictionaries.month_to_num)
-    df_pdo['day'] = -1
     return df_pdo
 
 def import_pna(current_dir) :
@@ -86,7 +81,6 @@ def clean_pna(df_pna) :
     # Basic cleaning for pna dataset
     df_pna = pd.melt(df_pna, id_vars=['year'], var_name='month', value_name='pna')
     df_pna['month'] = df_pna['month'].map(dictionaries.month_to_num)
-    df_pna['day'] = -1
     return df_pna
 
 def import_soi1(current_dir) :
@@ -107,7 +101,6 @@ def clean_soi1(df_soi1) :
     df_soi1 = pd.melt(df_soi1, id_vars=['YEAR'], var_name='month', value_name='soi_anom')
     df_soi1 = df_soi1.rename(columns={'YEAR':'year'})
     df_soi1['month'] = df_soi1['month'].map(dictionaries.month_to_num_up)
-    df_soi1['day'] = -1
     return df_soi1
 
 def clean_soi2(df_soi2) :
@@ -116,7 +109,6 @@ def clean_soi2(df_soi2) :
     df_soi2 = pd.melt(df_soi2, id_vars=['YEAR'], var_name='month', value_name='soi_sd')
     df_soi2 = df_soi2.rename(columns={'YEAR':'year'})
     df_soi2['month'] = df_soi2['month'].map(dictionaries.month_to_num_up)
-    df_soi2['day'] = -1
     return df_soi2
 
 def import_flow(current_dir) :
@@ -127,7 +119,6 @@ def import_flow(current_dir) :
 
 def clean_flow(df_flow) :
     # Clean flows training dataset
-    df_flow['day'] = -1
     return df_flow
 
 def import_grace(current_dir) :
