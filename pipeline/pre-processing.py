@@ -2,6 +2,7 @@
 import os
 import csv
 import pandas as pd
+import numpy as np
 from functools import reduce
 import calendar
 from datetime import datetime
@@ -39,8 +40,8 @@ from helper_functions import dictionaries
 # Run functions
 df_mjo = cleaning.clean_mjo(df_mjo)
 df_nino = cleaning.clean_nino(df_nino)
-df_oni = cleaning.clean_nino(df_oni)
-df_pdo = cleaning.clean_nino(df_pdo)
+df_oni = cleaning.clean_oni(df_oni)
+df_pdo = cleaning.clean_pdo(df_pdo)
 df_pna = cleaning.clean_pna(df_pna)
 df_soi1 = cleaning.clean_soi1(df_soi1)
 df_soi2 = cleaning.clean_soi2(df_soi2)
@@ -60,5 +61,11 @@ df_merged = reduce(lambda  left,right: pd.merge(left,right,on=['year', 'month', 
 
 # Feature engineering from features.py
 
+# Import functions used in scaling 
+from helper_functions import scaling
+
 # Perform preprocessing on columns except day, month, year
 trans_vars = scaling.preprocess_dataframe(df_merged)
+
+# Output the DataFrame to a CSV file
+trans_vars.to_csv('transformed_vars.csv', index=False) 

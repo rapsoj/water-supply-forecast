@@ -1,3 +1,6 @@
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
+import pandas as pd
+
 def preprocess_column(df, column_name):
     # Skip preprocessing for specified columns
     if column_name in ['month', 'year', 'day', 'volume']:

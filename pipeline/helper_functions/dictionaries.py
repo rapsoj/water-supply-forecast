@@ -5,7 +5,7 @@ month_to_num = {
         'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
     }
 
-    # Dictionary to map month abbreviations to numeric values
+# Dictionary to map month abbreviations to numeric values
 month_to_num_up = {
         'JAN': 1, 'FEB': 2, 'MAR': 3, 'APR': 4,
         'MAY': 5, 'JUN': 6, 'JUL': 7, 'AUG': 8,

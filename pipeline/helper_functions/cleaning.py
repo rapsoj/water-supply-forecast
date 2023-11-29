@@ -1,6 +1,7 @@
 import os
 import csv
 import pandas as pd
+import numpy as np
 from functools import reduce
 import calendar
 from datetime import datetime
@@ -71,7 +72,7 @@ def clean_pdo(df_pdo) :
     df_pdo = pd.melt(df_pdo, id_vars=['Year'], var_name='Month', value_name='pdo')
     df_pdo = df_pdo.rename(columns={'Year':'year', 'Month':'month'})
     df_pdo['pdo'] = df_pdo['pdo'].replace(99.99, np.nan) # Remove future values (missing)
-    df_pdo['month'] = df_pdo['month'].map(month_to_num)
+    df_pdo['month'] = df_pdo['month'].map(dictionaries.month_to_num)
     df_pdo['day'] = -1
     return df_pdo
 
@@ -84,7 +85,7 @@ def import_pna(current_dir) :
 def clean_pna(df_pna) :
     # Basic cleaning for pna dataset
     df_pna = pd.melt(df_pna, id_vars=['year'], var_name='month', value_name='pna')
-    df_pna['month'] = df_pna['month'].map(month_to_num)
+    df_pna['month'] = df_pna['month'].map(dictionaries.month_to_num)
     df_pna['day'] = -1
     return df_pna
 
@@ -105,7 +106,7 @@ def clean_soi1(df_soi1) :
     df_soi1.columns = df_soi1.columns.str.strip()
     df_soi1 = pd.melt(df_soi1, id_vars=['YEAR'], var_name='month', value_name='soi_anom')
     df_soi1 = df_soi1.rename(columns={'YEAR':'year'})
-    df_soi1['month'] = df_soi1['month'].map(month_to_num_up)
+    df_soi1['month'] = df_soi1['month'].map(dictionaries.month_to_num_up)
     df_soi1['day'] = -1
     return df_soi1
 
@@ -114,7 +115,7 @@ def clean_soi2(df_soi2) :
     df_soi2.columns = df_soi2.columns.str.strip()
     df_soi2 = pd.melt(df_soi2, id_vars=['YEAR'], var_name='month', value_name='soi_sd')
     df_soi2 = df_soi2.rename(columns={'YEAR':'year'})
-    df_soi2['month'] = df_soi2['month'].map(month_to_num_up)
+    df_soi2['month'] = df_soi2['month'].map(dictionaries.month_to_num_up)
     df_soi2['day'] = -1
     return df_soi2
 
