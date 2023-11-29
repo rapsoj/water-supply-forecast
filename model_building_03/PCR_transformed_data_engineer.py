@@ -39,7 +39,6 @@ for col in other_cols:
     col2dtype[col] = bool
 data = pd.read_csv(os.path.join("..", "02-data-cleaning", "transformed_vars.csv"),
                    dtype=col2dtype)
-
 # Create integer dates to work with
 date_cols = ['year', 'month', 'day']
 data["date"] = pd.to_datetime(data[date_cols].applymap(int))
@@ -48,7 +47,9 @@ data = data.sort_values('date')
 # Get site ids
 site_id_str = 'site_id_'
 site_id_cols = [col for col in data.columns if 'site_id' in col]
-# assert (data[site_id_cols].sum(axis='columns') == 1).all() todo enable once previous data processing is done
+#assert (data[site_id_cols].sum(axis='columns') == 1).all() #todo enable once previous data processing is done
+
+
 data['site_id'] = data[site_id_cols] \
     .idxmax(axis='columns') \
     .apply(lambda x: x[x.find(site_id_str) + len(site_id_str):])
@@ -119,8 +120,8 @@ def process_features(df: pd.DataFrame, N_DAYS_DELTA: int = 7):
 
 # Removing sites with no snotel data
 # todo process this data separately
-missing_snotel_site_mask = data.site_id.isin(['american_river_folsom_lake',
-                                              'merced_river_yosemite_at_pohono_bridge',
-                                              'san_joaquin_river_millerton_reservoir',
-                                              'skagit_ross_reservoir'])
+california_sites = ['american_river_folsom_lake',
+                    'merced_river_yosemite_at_pohono_bridge',
+                    'san_joaquin_river_millerton_reservoir']
+missing_snotel_site_mask = data.site_id.isin(california_sites)
 data[~missing_snotel_site_mask].groupby('site_id').apply(process_features)
