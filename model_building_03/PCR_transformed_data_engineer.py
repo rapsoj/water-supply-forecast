@@ -70,7 +70,7 @@ mjo_data = data[global_mjo_cols + shared_cols].dropna()
 oni_data = data[global_oni_cols + shared_cols].dropna()
 nino_data = data[global_nino_cols + shared_cols].dropna()
 misc_data = data[global_misc_cols + shared_cols].dropna()
-data = data.drop(columns=global_mjo_cols + global_nino_cols + global_oni_cols + global_misc_cols).dropna()
+data = data.drop(columns=global_mjo_cols + global_nino_cols + global_oni_cols + global_misc_cols)
 
 # Prediction months and dates
 prediction_dates = [dt.datetime(year, month, day) for year in data.year.unique() for month in range(4, 8) for day in
@@ -79,24 +79,37 @@ prediction_dates = [dt.datetime(year, month, day) for year in data.year.unique()
 
 # Create training set for a site_id
 def process_features(df: pd.DataFrame, N_DAYS_DELTA: int = 7):
+    interp_cols = set(df.columns) - \
+                  ({'site_id', 'date', 'volume', 'forecast_year', 'station'} |
+                   {col for col in df.columns if 'nino' in col} |
+                   {col for col in df.columns if 'oni' in col and col not in {'oniANOM', 'oniTOTAL'}} |
+                   set(date_cols))
+
+    # average over data from different stations in the same day, todo - deal with this properly by using lat/lon data or something groovier
+    df = df.groupby('date')[list(interp_cols)].agg(lambda x: x.dropna().mean()).reset_index()
+
+    # re-add global data into specific df todo use new data, currently this explods because of bad joins in the existing dataset
+    df = df.merge(mjo_data, on='date', how='outer') \
+        .merge(nino_data, on='date', how='outer') \
+        .merge(oni_data, on='date', how='outer') \
+        .merge(misc_data, on='date', how='outer')
+
+    # split into columns you interpolate and those you take the closest preceding value
+
+    # do that
+
     # Generate a df with r<ows for every prediction date, then gather data accordingly up until that point
     start_date = df.date.min()
     end_date = df.date.max()
     feat_dates = pd.date_range(start=start_date, end=end_date, freq=f'{N_DAYS_DELTA}D')
     feat_dates = feat_dates[(feat_dates.month < 4) | (feat_dates.month > 9)].to_series()
 
-    interp_cols = set(df.columns) - \
-                  ({'site_id', 'date', 'volume', 'station', 'forecast_year'} |
-                   {col for col in df.columns if 'nino' in col} |
-                   {col for col in df.columns if 'oni' in col and col not in {'oniANOM', 'oniTOTAL'}} |
-                   set(date_cols))
-
     # Get associated dates
     orig_dates_vals = (df.date - start_date).dt.days
     feat_dates_vals = (feat_dates - start_date).dt.days
-    # Removing sites with no snotel data
+
     processed_df = df[list(interp_cols)] \
-        .apply(lambda x: np.interp(feat_dates_vals, x.dropna(), orig_dates_vals[~x.isna()]))
+        .apply(lambda x: np.interp(feat_dates_vals, orig_dates_vals[~x.isna()], x.dropna()))
     print()
 
     # todo re-add nino data manually
@@ -104,6 +117,7 @@ def process_features(df: pd.DataFrame, N_DAYS_DELTA: int = 7):
     # todo make sure this is after the train/test split, don't want leakage
 
 
+# Removing sites with no snotel data
 # todo process this data separately
 missing_snotel_site_mask = data.site_id.isin(['american_river_folsom_lake',
                                               'merced_river_yosemite_at_pohono_bridge',
