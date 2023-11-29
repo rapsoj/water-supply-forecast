@@ -39,7 +39,6 @@ for col in other_cols:
     col2dtype[col] = bool
 data = pd.read_csv(os.path.join("..", "02-data-cleaning", "transformed_vars.csv"),
                    dtype=col2dtype)
-
 # Create integer dates to work with
 date_cols = ['year', 'month', 'day']
 data["date"] = pd.to_datetime(data[date_cols].applymap(int))
@@ -48,7 +47,9 @@ data = data.sort_values('date')
 # Get site ids
 site_id_str = 'site_id_'
 site_id_cols = [col for col in data.columns if 'site_id' in col]
-# assert (data[site_id_cols].sum(axis='columns') == 1).all() todo enable once previous data processing is done
+#assert (data[site_id_cols].sum(axis='columns') == 1).all() #todo enable once previous data processing is done
+
+
 data['site_id'] = data[site_id_cols] \
     .idxmax(axis='columns') \
     .apply(lambda x: x[x.find(site_id_str) + len(site_id_str):])
@@ -66,7 +67,7 @@ def process_features(df: pd.DataFrame, N_DAYS_DELTA: int = 7):
     end_date = df.date.max()
     feat_dates = pd.date_range(start=start_date, end=end_date, freq=f'{N_DAYS_DELTA}D')
     feat_dates = feat_dates[(feat_dates.month < 4) | (feat_dates.month > 9)].to_series()
-
+    #print(df.site_id)
     interp_cols = set(df.columns) - \
                   ({'site_id', 'date', 'volume', 'station', 'forecast_year'} |
                    {col for col in df.columns if 'nino' in col} |
@@ -77,17 +78,27 @@ def process_features(df: pd.DataFrame, N_DAYS_DELTA: int = 7):
     orig_dates_vals = (df.date - start_date).dt.days
     feat_dates_vals = (feat_dates - start_date).dt.days
     # Removing sites with no snotel data
-    reducted_df = df[(df.site_id != 'american_river_folsom_lake')
-                     &(df.site_id != 'merced_river_yosemite_at_pohono_bridge')
-                     &(df.site_id != 'san_joaquin_river_millerton_reservoir')
-                     &(df.site_id !='skagit_ross_reservoir')]
-    processed_df = reducted_df[list(interp_cols)] \
-        .apply(lambda x: np.interp(feat_dates_vals, x.dropna(), orig_dates_vals[~x.isna()]))
-    print()
+    '''reducted_df = df[(df.site_id != )
+                     &(df.site_id != '')
+                     &(df.site_id != '')
+                     &(df.site_id !='skagit_ross_reservoir')]'''
+    processed_df = df[list(interp_cols)].apply(lambda x: x.isna().all())
+    #print(processed_df)
+    #processed_df = df[list(interp_cols)] \
+    #    .apply(lambda x: np.interp(feat_dates_vals, x.dropna(), orig_dates_vals[~x.isna()]))
+    #print()
 
     # todo re-add nino data manually
     # todo re-add oni data once we understand what's going on there/whether it's relevant
     # todo make sure this is after the train/test split, don't want leakage
 
-
+# Drop California sites
+#print(data.describe())
+california_sites = ['american_river_folsom_lake', 
+                    'merced_river_yosemite_at_pohono_bridge', 
+                    'san_joaquin_river_millerton_reservoir']
+print(data.site_id.describe())
+#print((~data.site_id.isin(california_sites)).describe())
+data = data[~data.site_id.isin(california_sites)]
+#print(data.describe())
 data.groupby('site_id').apply(process_features)
