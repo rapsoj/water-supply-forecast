@@ -22,7 +22,6 @@ def fit_basins(fitter: callable, quantile: bool, data: pd.DataFrame, site_ids: l
         site_mask = data.site_id == site_id
         masked_X = X[site_mask]
         masked_y = y[site_mask]
-        masked_years = years[site_mask]
 
         real_X = masked_X[masked_y != 0]  # Get rid of empty labels (from test years, odd 2005-2023)
         real_y = masked_y[masked_y != 0]  # Get rid of empty labels (from test years, odd 2005-2023)
