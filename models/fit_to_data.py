@@ -55,6 +55,21 @@ def fit_basins(fitter: callable, quantile: bool, data: pd.DataFrame, site_ids: l
         df.to_csv(site_path, index=False)
 
 
+# todo change pcr fitter internal format
+def gen_basin_preds(train_site: pd.DataFrame, val_site: pd.DataFrame, test: pd.DataFrame,
+                        model_fitters=(pcr_fitter,)) -> tuple[pd.Series]:
+    if len(model_fitters) != 1:
+        raise NotImplementedError('Error - not implemented yet for ensembles!')
+
+    fitter = model_fitters[0]
+    model = fitter(train_site)
+    train_pred = model(train_site)
+    val_pred = model(val_site)
+    test_pred = model(test)
+
+    return train_pred, val_pred, test_pred
+
+
 def main():
     os.chdir("../exploration")
 
