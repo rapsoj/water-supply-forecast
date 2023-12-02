@@ -5,7 +5,7 @@ from sklearn.metrics import mean_pinball_loss
 import os
 
 # os.chdir("/Users/emilryd/programming/water-supply-forecast")
-os.chdir("..")
+os.chdir("../exploration")
 
 
 def calc_predictive_std(gt: pd.Series, preds: pd.Series) -> float:

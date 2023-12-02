@@ -3,12 +3,12 @@ import os
 import numpy as np
 import pandas as pd
 
-from model_building_03.models import pcr_fitter
 from consts import DEF_QUANTILES
+from models.models import pcr_fitter
 
 
 def fit_basins(fitter: callable, quantile: bool, data: pd.DataFrame, site_ids: list,
-               results_path: str = os.path.join('model_building_03', 'model-outputs',
+               results_path: str = os.path.join('model-outputs',
                                                 'model-training-optimization'), max_n_pcs: int = 30):
     results_path = os.path.join(results_path, f'{"quantile" if quantile else "regular"}')
     os.makedirs(results_path, exist_ok=True)
@@ -59,7 +59,7 @@ def fit_basins(fitter: callable, quantile: bool, data: pd.DataFrame, site_ids: l
 
 
 def main():
-    os.chdir("..")
+    os.chdir("../exploration")
 
     data = pd.read_csv(os.path.join("02-data-cleaning", "transformed_vars.csv"))
     site_id_str = 'site_id_'
