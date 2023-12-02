@@ -3,7 +3,7 @@ import os
 
 import pandas as pd
 
-from preprocessing.helper_functions import cleaning, scaling
+from preprocessing.helper_functions import cleaning, scaling, merge
 
 ## Import datasets
 current_dir = os.getcwd()
@@ -42,8 +42,6 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv') -> pd.
     df_snotel = cleaning.clean_snotel(df_snotel)
 
     # Merging dataframes
-    from helper_functions import merge
-
     # Merge on site id, day
     data_frames = [df_grace, df_snotel]
     df_merged = merge.merge_site_id_day(data_frames)
