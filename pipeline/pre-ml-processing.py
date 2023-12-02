@@ -90,7 +90,6 @@ shared_cols = ['date']
 # todo make sure you re-incorporate all of these+interpolate them properly
 mjo_data = data[global_mjo_cols + shared_cols].dropna()
 oni_data = data[global_oni_cols + shared_cols].dropna()
-assert (oni_data[oni_temporal_cols].sum(axis='columns') == 1).all()  # todo enable once previous data processing is done
 
 nino_data = data[global_nino_cols + shared_cols].dropna()
 misc_data = data[global_misc_cols + shared_cols].dropna()
@@ -108,33 +107,47 @@ def process_features(df: pd.DataFrame, N_DAYS_DELTA: int = 7):
     start_date = df.date.min()
     end_date = df.date.max()
     feat_dates = pd.date_range(start=start_date, end=end_date, freq=f'{N_DAYS_DELTA}D')
+    # todo we're throwing away data that we have here, can/should we use it eg for training?
     feat_dates = feat_dates[(feat_dates.month < 4) | (feat_dates.month > 9)].to_series()
 
-    # Get associated dates
-    orig_dates_vals = (df.date - start_date).dt.days
-    feat_dates_vals = (feat_dates - start_date).dt.days
-
-    site_feat_cols = set(df.columns) - \
-                     ({'site_id', 'date', 'forecast_year', 'station'} |
-                      set(date_cols))
+    site_feat_cols = set(df.columns) - ({'site_id', 'date', 'forecast_year', 'station'} | set(date_cols))
 
     # average over data from different stations in the same day, todo - deal with this properly by using lat/lon data or something groovier
+    site_id = df.name
     df = df.groupby('date')[list(site_feat_cols)].agg(lambda x: x.dropna().mean()).reset_index()
 
     # re-add global data into specific df todo use new data, currently this explods because of bad joins in the existing dataset
     df = df.merge(mjo_data, on='date', how='outer') \
         .merge(nino_data.drop_duplicates(), on='date', how='outer') \
         .merge(oni_data.drop_duplicates(), on='date', how='outer') \
-        .merge(misc_data.drop_duplicates(), on='date', how='outer')
+        .merge(misc_data.drop_duplicates(), on='date', how='outer') \
+        .sort_values(by='date') \
+        .reset_index(drop=True)
+
+    # Get associated dates
+    orig_dates_vals = (df.date - start_date).dt.days
+    feat_dates_vals = (feat_dates - start_date).dt.days
 
     # split into columns you interpolate and those you take the closest preceding value
     interp_cols = global_oni_cols + ['volume']
     interp_df = df[interp_cols].apply(lambda x: np.interp(feat_dates_vals, orig_dates_vals[~x.isna()],
-                                                          x.dropna()))
-    other_cols = list(set(df.columns) - set(interp_cols))
-    other_cols_df = NotImplemented
+                                                          x.dropna())).reset_index(drop=True)
+    other_cols = list(set(df.columns) - set(interp_cols) - {'date'})
+
+    def fill_preceding_val(column: pd.Series) -> pd.Series:
+        col_inds = np.maximum(np.searchsorted(orig_dates_vals[~column.isna()], feat_dates_vals) - 1, 0)
+        return column.dropna().iloc[col_inds].reset_index(drop=True)
+
+    other_cols_df = df[other_cols].apply(fill_preceding_val).reset_index(drop=True)
+
+    site_df = interp_df.join(other_cols_df)
+    site_df['date'] = feat_dates.reset_index(drop=True)
 
     # todo make sure this is after the train/test split, don't want leakage
+    assert not site_df.isna().any().any(), 'Error - we have nans!'
+
+    site_df['site_id'] = site_id
+    return site_df
 
 
 # Removing sites with no snotel data
@@ -143,4 +156,5 @@ california_sites = ['american_river_folsom_lake',
                     'merced_river_yosemite_at_pohono_bridge',
                     'san_joaquin_river_millerton_reservoir']
 missing_snotel_site_mask = data.site_id.isin(california_sites)
-data[~missing_snotel_site_mask].groupby('site_id').apply(process_features)
+processed_data = data[~missing_snotel_site_mask].groupby('site_id').apply(process_features).reset_index(drop=True)
+print()
