@@ -1,0 +1,12 @@
+,Data provided for site 13037500,Unnamed: 1,Unnamed: 2,Unnamed: 3
+0,ts_id,parameter,statistic,Description
+1,45221,00010,00001,"Temperature, water, degrees Celsius"
+2,45222,00010,00002,"Temperature, water, degrees Celsius"
+3,45223,00010,00003,"Temperature, water, degrees Celsius"
+4,45224,00060,00003,"Discharge, cubic feet per second"
+5,45225,00095,00011,"Specific conductance, water, unfiltered, microsiemens per centimeter at 25 degrees Celsius"
+6,,,,
+7,Data-value qualification codes included in this output:,,,
+8,A,Approved for publication -- Processing and review completed.,,
+9,P,Provisional data subject to revision.,,
+10,e,Value has been estimated.,,
