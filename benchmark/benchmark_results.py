@@ -4,6 +4,8 @@ from scipy.stats import norm
 from sklearn.metrics import mean_pinball_loss
 import os
 
+from consts import DEF_QUANTILES
+
 # os.chdir("/Users/emilryd/programming/water-supply-forecast")
 os.chdir("../exploration")
 
@@ -18,30 +20,46 @@ def gen_predictive_quantile(preds: pd.Series, std: float, quantile: float) -> pd
     return preds + n_stds * std
 
 
-def main(gt_path: str, preds_path: str, gen_std: bool = True):
-    ground_truth = pd.read_csv(gt_path)["gt"]
-    preds = pd.read_csv(preds_path)
-
-    quantiles = [0.1, 0.5, 0.9]
-    if gen_std:
-        # todo use preds GT here
-        std = calc_predictive_std(ground_truth, preds)
-        quantile_preds = {quantile: gen_predictive_quantile(preds, std, quantile) for quantile in quantiles}
+def benchmark_results(train_pred: [pd.Series, pd.DataFrame], train_gt: pd.Series, val_pred: [pd.Series, pd.DataFrame],
+                      val_gt: pd.Series, test_pred: [pd.Series, pd.DataFrame], benchmark_id: str = None,
+                      verbose: bool = False) \
+        -> tuple[pd.DataFrame]:
+    if isinstance(train_pred, pd.DataFrame):
+        assert isinstance(val_pred, pd.DataFrame) and isinstance(test_pred, pd.DataFrame), \
+            'Error - some of the predictions are for quantiles (as they are dataframes) while others are ' \
+            'single predictions!'
+        for preds in (train_pred, val_pred, test_pred):
+            assert set(preds.cols) == set(DEF_QUANTILES), "Error - pred cols aren't quantiles!"
     else:
-        quantile_preds = {i: preds[f"{i}"].to_numpy() for i in quantiles}
+        assert isinstance(val_pred, pd.Series) and isinstance(test_pred, pd.Series), \
+            'Error - some of the predictions are single predictions (as they are series) while others are ' \
+            'for quantiles!'
+        # generate predictive std+quantile preds using it, todo see if these preds really are normally distributed
+        std = calc_predictive_std(train_gt, train_pred)
 
-    quantile_losses = {quantile: mean_pinball_loss(ground_truth, q_preds) for quantile, q_preds in
-                       quantile_preds.items()}
-    interval = (quantile_preds[0.1] <= ground_truth) & (ground_truth <= quantile_preds[0.9])
+        train_pred = pd.DataFrame({q: gen_predictive_quantile(train_pred, std, q) for q in DEF_QUANTILES})
+        val_pred = pd.DataFrame({q: gen_predictive_quantile(val_pred, std, q) for q in DEF_QUANTILES})
+        test_pred = pd.DataFrame({q: gen_predictive_quantile(test_pred, std, q) for q in DEF_QUANTILES})
 
-    print(f'Mean quantile loss:{sum(quantile_losses.values()) / len(quantiles)}, '
-          f'percent in 0.1-0.9 quantiles:{100 * np.mean(interval):.2f}%')
+    min_q = min(DEF_QUANTILES)
+    max_q = max(DEF_QUANTILES)
+    perc_in_interval = {'train': (train_pred[min_q] <= train_gt) & (train_gt <= train_pred[max_q]),
+                        'val': (val_pred[min_q] <= val_gt) & (val_gt <= val_pred[max_q])}
+    quantile_losses = {'train': {q: mean_pinball_loss(train_gt, train_pred[q]) for q in DEF_QUANTILES},
+                       'val': {q: mean_pinball_loss(val_gt, val_gt[q]) for q in DEF_QUANTILES}}
+    avg_q_losses = {dataset_name: np.mean(losses.values()) for dataset_name, losses in quantile_losses.items()}
 
+    if benchmark_id is not None:
+        benchmark_res_path = f'benchmark_res_{benchmark_id}.txt'
+        with open(benchmark_res_path, 'w') as f:
+            f.write(str(perc_in_interval))
+            f.write('\n')
+            f.write(str(quantile_losses))
+            f.write('\n')
+            f.write(str(avg_q_losses))
 
-# todo create single file with path utils
-if __name__ == '__main__':
-    site_ids = pd.read_csv("02-data-cleaning/site_ids.csv")["site_id"]
-    for site_id in site_ids:
-        main(gt_path=f"model_building_03/model-outputs/ground_truth{site_id}.csv",
-             preds_path=f"model_building_03/model-outputs/model-training-optimization/quantile/predicted_{site_id}.csv",
-             gen_std=False)
+        if verbose:
+            print(f'Percent of preds between {min_q} and {max_q} quantiles: {perc_in_interval}\n'
+                  f'Quantile losses: {quantile_losses}\nAverage quantile loss:{avg_q_losses}')
+
+    return train_pred, val_pred, test_pred
