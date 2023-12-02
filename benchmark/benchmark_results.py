@@ -6,7 +6,6 @@ import os
 
 from consts import DEF_QUANTILES
 
-# os.chdir("/Users/emilryd/programming/water-supply-forecast")
 os.chdir("../exploration")
 
 
@@ -18,6 +17,27 @@ def calc_predictive_std(gt: pd.Series, preds: pd.Series) -> float:
 def gen_predictive_quantile(preds: pd.Series, std: float, quantile: float) -> pd.Series:
     n_stds = norm.ppf(quantile)
     return preds + n_stds * std
+
+
+def cache_preds(site_id: str, pred_dates: pd.Series, pred: pd.DataFrame, cache_id: str = None):
+    col_order = ['site_id', 'issue_date'] + [f'volume_{int(q * 100)}' for q in DEF_QUANTILES]
+    pred_df = pd.DataFrame({"issue_date": pred_dates, 'site_id': site_id} |
+                           {f'volume_{int(q * 100)}': pred[q] for q in DEF_QUANTILES})[col_order]
+
+    pred_df.to_csv(f'{cache_id}_pred.csv')
+
+
+def calc_losses(train_pred: [pd.Series, pd.DataFrame], train_gt: pd.Series, val_pred: [pd.Series, pd.DataFrame],
+                val_gt: pd.Series) -> tuple[dict]:
+    min_q = min(DEF_QUANTILES)
+    max_q = max(DEF_QUANTILES)
+    perc_in_interval = {'train': (train_pred[min_q] <= train_gt) & (train_gt <= train_pred[max_q]),
+                        'val': (val_pred[min_q] <= val_gt) & (val_gt <= val_pred[max_q])}
+    quantile_losses = {'train': {q: mean_pinball_loss(train_gt, train_pred[q]) for q in DEF_QUANTILES},
+                       'val': {q: mean_pinball_loss(val_gt, val_gt[q]) for q in DEF_QUANTILES}}
+    avg_q_losses = {dataset_name: np.mean(losses.values()) for dataset_name, losses in quantile_losses.items()}
+
+    return perc_in_interval, quantile_losses, avg_q_losses
 
 
 def benchmark_results(train_pred: [pd.Series, pd.DataFrame], train_gt: pd.Series, val_pred: [pd.Series, pd.DataFrame],
@@ -41,13 +61,7 @@ def benchmark_results(train_pred: [pd.Series, pd.DataFrame], train_gt: pd.Series
         val_pred = pd.DataFrame({q: gen_predictive_quantile(val_pred, std, q) for q in DEF_QUANTILES})
         test_pred = pd.DataFrame({q: gen_predictive_quantile(test_pred, std, q) for q in DEF_QUANTILES})
 
-    min_q = min(DEF_QUANTILES)
-    max_q = max(DEF_QUANTILES)
-    perc_in_interval = {'train': (train_pred[min_q] <= train_gt) & (train_gt <= train_pred[max_q]),
-                        'val': (val_pred[min_q] <= val_gt) & (val_gt <= val_pred[max_q])}
-    quantile_losses = {'train': {q: mean_pinball_loss(train_gt, train_pred[q]) for q in DEF_QUANTILES},
-                       'val': {q: mean_pinball_loss(val_gt, val_gt[q]) for q in DEF_QUANTILES}}
-    avg_q_losses = {dataset_name: np.mean(losses.values()) for dataset_name, losses in quantile_losses.items()}
+    perc_in_interval, quantile_losses, avg_q_losses = calc_losses(train_pred, train_gt, val_pred, val_gt)
 
     if benchmark_id is not None:
         benchmark_res_path = f'benchmark_res_{benchmark_id}.txt'
@@ -59,7 +73,9 @@ def benchmark_results(train_pred: [pd.Series, pd.DataFrame], train_gt: pd.Series
             f.write(str(avg_q_losses))
 
         if verbose:
-            print(f'Percent of preds between {min_q} and {max_q} quantiles: {perc_in_interval}\n'
-                  f'Quantile losses: {quantile_losses}\nAverage quantile loss:{avg_q_losses}')
+            print(f'Percent of preds between {min(DEF_QUANTILES)} and {max(DEF_QUANTILES)} quantiles:'
+                  f' {perc_in_interval}\n'
+                  f'Quantile losses: {quantile_losses}\n'
+                  f'Average quantile loss:{avg_q_losses}')
 
     return train_pred, val_pred, test_pred

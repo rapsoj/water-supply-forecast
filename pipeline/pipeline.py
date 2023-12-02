@@ -1,4 +1,4 @@
-from benchmark.benchmark_results import benchmark_results
+from benchmark.benchmark_results import benchmark_results, cache_preds
 from models.fit_to_data import gen_basin_preds
 from preprocessing.generic_preprocessing import get_processed_dataset
 
@@ -29,7 +29,8 @@ def run_pipeline(gt_col='gt'):  # todo change to correct column name
             results_id = f'{test_year}_{site_id}'
             train_pred, val_pred, test_pred = benchmark_results(train_pred, train_gt, val_pred, val_gt, test_pred,
                                                                 benchmark_id=results_id)
-            cache_results(train_pred, train_gt, val_pred, val_gt, test_pred, benchmark_id=results_id)
+            # todo make sure that `dates` is the dates column
+            cache_preds(pred=test_pred, cache_id=results_id, site_id=site_id, pred_dates=test_site.dates)
 
 
 if __name__ == '__main__':
