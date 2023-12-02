@@ -3,11 +3,10 @@ from models.fit_to_data import gen_basin_preds
 from preprocessing.generic_preprocessing import get_processed_dataset
 
 
-def run_pipeline(gt_col='gt'):  # todo change to correct column name
+def run_pipeline(gt_col: str = 'gt', test_years: tuple = (2017,)):  # todo change to correct column name
     # todo add output_csv paths to preprocessing, especially the ml preprocessing
     basic_preprocessed_df = get_processed_dataset()
 
-    test_years = NotImplemented
     for test_year in test_years:
         train, val, test = ml_preprocess_data(basic_preprocessed_df, test_year)
         assert gt_col not in test.columns, 'Error - test should not have a ground truth!'
