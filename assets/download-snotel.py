@@ -19,7 +19,7 @@ def main(output_directory, start, end):
     data_record = []
     for yr in years:
         snotel.download_snotel([yr])
-
+        
 
 if __name__ == "__main__":
     main()
