@@ -1,8 +1,8 @@
 from preprocessing.generic_preprocessing import get_processed_dataset
 
 
-# todo add output_csvs to preprocessing
-def main():
+def run_pipeline():
+    # todo add output_csv paths to preprocessing, especially the ml preprocessing
     basic_preprocessed_df = get_processed_dataset()
 
     test_years = NotImplemented
@@ -25,4 +25,4 @@ def main():
 
 
 if __name__ == '__main__':
-    pass
+    run_pipeline()
