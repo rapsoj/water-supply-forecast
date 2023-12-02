@@ -3,8 +3,7 @@ import os
 
 import pandas as pd
 
-from helper_functions import cleaning
-from helper_functions import scaling
+from preprocessing.helper_functions import cleaning, scaling
 
 ## Import datasets
 current_dir = os.getcwd()
