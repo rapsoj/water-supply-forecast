@@ -37,7 +37,7 @@ col2dtype = {"mjo20E": float, "mjo70E": float, "mjo80E": float, "mjo100E": float
 
 for col in other_cols:
     col2dtype[col] = bool
-data = pd.read_csv(os.path.join("..", "02-data-cleaning", "transformed_vars.csv"),
+data = pd.read_csv(os.path.join("..", "exploration/02-data-cleaning", "transformed_vars.csv"),
                    dtype=col2dtype)
 # Create integer dates to work with
 date_cols = ['year', 'month', 'day']
@@ -69,8 +69,12 @@ shared_cols = ['date']
 # todo make sure you re-incorporate all of these+interpolate them properly
 mjo_data = data[global_mjo_cols + shared_cols].dropna()
 oni_data = data[global_oni_cols + shared_cols].dropna()
+print(oni_data)
+assert (oni_data[site_id_cols].sum(axis='columns') == 1).all() #todo enable once previous data processing is done
+
 nino_data = data[global_nino_cols + shared_cols].dropna()
 misc_data = data[global_misc_cols + shared_cols].dropna()
+# Keeping only SNOTEL data
 data = data.drop(columns=global_mjo_cols + global_nino_cols + global_oni_cols + global_misc_cols)
 
 # Prediction months and dates
@@ -114,6 +118,7 @@ def process_features(df: pd.DataFrame, N_DAYS_DELTA: int = 7):
     print()
 
     # todo re-add nino data manually
+
     # todo re-add oni data once we understand what's going on there/whether it's relevant
     # todo make sure this is after the train/test split, don't want leakage
 
