@@ -20,7 +20,6 @@ date_cols = ['year', 'month', 'day']
 
 def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.DataFrame, oni_data: pd.DataFrame,
                      misc_data: pd.DataFrame, N_DAYS_DELTA: int = 7) -> pd.DataFrame:
-
     # Generate a df with rows for every prediction date, then gather data accordingly up until that point
     start_date = df.date.min()
     end_date = df.date.max()
@@ -59,8 +58,8 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
 
     site_df = interp_df.join(other_cols_df)
     site_df['date'] = feat_dates.reset_index(drop=True)
-    site_df['forecast_year'] = feat_dates.apply(lambda x: x.year + (x.month > 4)).reset_index(drop=True)  # set value as +1 for all
-
+    site_df['forecast_year'] = feat_dates.apply(lambda x: x.year + (x.month > 4)).reset_index(
+        drop=True)  # set value as +1 for all
 
     # todo make sure this is after the train/test split, don't want leakage
     assert not site_df.isna().any().any(), 'Error - we have nans!'
@@ -70,10 +69,9 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
 
 
 def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed_data.csv',
-                       test_years: tuple = tuple(np.arange(2003,2024,2)),
-                       load_from_cache: bool = False) -> pd.DataFrame:
-    if load_from_cache and os.path.exists(output_file_path):
-        return pd.read_csv(output_file_path)
+                       gt_file_path: str = 'ml_processed_gt_data.csv', load_from_cache: bool = False) -> tuple:
+    if load_from_cache and os.path.exists(output_file_path) and os.path.exists(gt_file_path):
+        return pd.read_csv(output_file_path), pd.read_csv(gt_file_path)
 
     data = data.copy()
 
@@ -158,7 +156,6 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
     # Keeping only SNOTEL data
     data = data.drop(columns=global_mjo_cols + global_nino_cols + global_oni_cols + global_misc_cols)
 
-
     # Removing sites with no snotel data
     # todo process this data separately
     california_sites = ['american_river_folsom_lake',
@@ -170,23 +167,20 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
                                                                               misc_data=misc_data) \
         .reset_index(drop=True)
 
-
-
     processed_data.to_csv(output_file_path, index=False)
 
     processed_ground_truth = pd.DataFrame()
-    processed_ground_truth['gt'] = data.volume.dropna()
+    processed_ground_truth['volume'] = data.volume.dropna()
 
-
-    seasonal_mask = [(data.date.dt.year) > 1982 & (data.date.dt.month >= 4) & (data.dt.date.month <= 7)]
+    months = data.date.apply(lambda x: x.month)
+    seasonal_mask = (data.date.apply(lambda x: x.year) > 1982) & (months >= 4) & (months <= 7)
     seasonal_data = data[seasonal_mask]
+
     # now only pick the relevant
     processed_ground_truth['date'] = seasonal_data.date
     processed_ground_truth['site_id'] = seasonal_data.site_id
     processed_ground_truth['forecast_year'] = seasonal_data.date.dt.year
+
+    processed_ground_truth.to_csv(gt_file_path, index=False)
+
     return processed_data, processed_ground_truth
-
-def ml_preprocess_ground_truth(data: pd.DataFrame, output_file_path: str = 'ml_processed_gt.csv',
-                       load_from_cache: bool = False) -> pd.DataFrame:
-    data = data.copy()
-
