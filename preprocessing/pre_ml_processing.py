@@ -175,21 +175,3 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
     processed_data.to_csv(output_file_path, index=False)
 
     return processed_data
-
-
-# function to carry out train, val, test split
-def train_val_test_split(df: pd.DataFrame, test_years: list, validation_years: list):
-    df = df.copy()
-    test_mask = df.forecast_year.isin(test_years)
-    test_df = df[test_mask].drop(columns='volume').reset_index(drop=True)
-    df = df.drop(test_df.index)
-
-    validation_mask = df.forecast_year.isin(validation_years)
-    val_df = df[validation_mask].reset_index(drop=True)
-    train_df = df.drop(val_df.index).reset_index(drop=True)
-
-    assert train_df.date.isin(val_df.date).sum() == 0 and \
-           train_df.date.isin(test_df.date).sum() == 0 and \
-           val_df.date.isin(test_df.date).sum() == 0, "Dates are overlapping between train, val, and test sets"
-
-    return train_df, val_df, test_df

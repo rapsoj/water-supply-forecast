@@ -1,9 +1,10 @@
 import numpy as np
+import pandas as pd
+
 from benchmark.benchmark_results import benchmark_results, cache_preds
 from models.fit_to_data import gen_basin_preds
 from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
-from preprocessing.pre_ml_processing import train_val_test_split
 
 
 def run_pipeline(gt_col: str = 'volume', test_years: tuple = tuple(np.arange(2003, 2024, 2)),
@@ -38,6 +39,23 @@ def run_pipeline(gt_col: str = 'volume', test_years: tuple = tuple(np.arange(200
         train_pred, val_pred, test_pred = benchmark_results(train_pred, train_gt, val_pred, val_gt, test_pred,
                                                             benchmark_id=results_id)
         cache_preds(pred=test_pred, cache_id=results_id, site_id=site_id, pred_dates=test_site.date)
+
+
+def train_val_test_split(df: pd.DataFrame, test_years: list, validation_years: list):
+    df = df.copy()
+    test_mask = df.forecast_year.isin(test_years)
+    test_df = df[test_mask].drop(columns='volume').reset_index(drop=True)
+    df = df.drop(test_df.index)
+
+    validation_mask = df.forecast_year.isin(validation_years)
+    val_df = df[validation_mask].reset_index(drop=True)
+    train_df = df.drop(val_df.index).reset_index(drop=True)
+
+    assert train_df.date.isin(val_df.date).sum() == 0 and \
+           train_df.date.isin(test_df.date).sum() == 0 and \
+           val_df.date.isin(test_df.date).sum() == 0, "Dates are overlapping between train, val, and test sets"
+
+    return train_df, val_df, test_df
 
 
 if __name__ == '__main__':
