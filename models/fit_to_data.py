@@ -1,10 +1,12 @@
 import os
+from typing import Tuple
 
 import numpy as np
 import pandas as pd
+from pandas import DataFrame, Series
 
 from consts import DEF_QUANTILES
-from models.models import pcr_fitter
+from models.models import pcr_fitter, general_pcr_fitter
 
 
 def fit_basins(fitter: callable, quantile: bool, data: pd.DataFrame, site_ids: list,
@@ -56,13 +58,13 @@ def fit_basins(fitter: callable, quantile: bool, data: pd.DataFrame, site_ids: l
 
 
 # todo change pcr fitter internal format
-def gen_basin_preds(train_site: pd.DataFrame, val_site: pd.DataFrame, test: pd.DataFrame,
-                        model_fitters=(pcr_fitter,)) -> tuple[pd.Series]:
+def gen_basin_preds(train_site: pd.DataFrame, train_gt: pd.Series, val_site: pd.DataFrame, val_gt: pd.Series,
+                    test: pd.DataFrame, model_fitters=(general_pcr_fitter,)) -> tuple:
     if len(model_fitters) != 1:
         raise NotImplementedError('Error - not implemented yet for ensembles!')
 
     fitter = model_fitters[0]
-    model = fitter(train_site)
+    model = fitter(train_site, train_gt, val_site, val_gt)
     train_pred = model(train_site)
     val_pred = model(val_site)
     test_pred = model(test)

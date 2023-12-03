@@ -9,7 +9,11 @@ from preprocessing.helper_functions import cleaning, scaling, merge
 current_dir = os.getcwd()
 
 
-def get_processed_dataset(output_file_path: str = 'transformed_vars.csv') -> pd.DataFrame:
+def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
+                          load_from_cache: bool = False) -> pd.DataFrame:
+    if load_from_cache and os.path.exists(output_file_path):
+        return pd.read_csv(output_file_path)
+
     # Importing steps
     df_mjo = cleaning.import_mjo(current_dir)
     df_nino = cleaning.import_nino(current_dir)
@@ -78,6 +82,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv') -> pd.
     trans_vars.to_csv(output_file_path, index=False)
 
     return trans_vars
+
 
 if __name__ == '__main__':
     get_processed_dataset()

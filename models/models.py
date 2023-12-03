@@ -1,65 +1,75 @@
 import numpy as np
+import pandas as pd
 from scipy.signal import savgol_filter
 from sklearn import linear_model
 from sklearn.decomposition import PCA
-from sklearn.metrics import mean_pinball_loss
-from sklearn.metrics import mean_squared_error, r2_score
-from sklearn.model_selection import cross_val_predict
+from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils.fixes import parse_version, sp_version
 
+from benchmark.benchmark_results import average_quantile_loss
 from consts import DEF_QUANTILES
 
 
+class StreamflowModel:
+    def __init__(self, model):
+        self.model = model
+        self.loss = average_quantile_loss if isinstance(self.model, dict) else mean_squared_error
+
+    def __call__(self, X):
+        assert (X.dtypes == float).all(), 'Error - wrong dtypes!'
+
+        if isinstance(self.model, dict):
+            pred = pd.DataFrame({q: q_model(X) for q, q_model in self.model.items()})
+        else:
+            pred = pd.Series(self.model(X))
+
+        return pred
+
+    def loss(self, X, y):
+        pred = self.model(X)
+        return self.loss(y, pred)
+
+
+def general_pcr_fitter(X, y, val_X, val_y, quantile: bool = True, max_n_pcs: int = 30):
+    min_v_loss = np.inf
+    best_model = None
+    for pc in range(1, max_n_pcs):
+        model = pcr_fitter(X, y, pc=pc, quantile=quantile)
+
+        loss = model.loss(val_X, val_y)
+        if min_v_loss < loss:
+            min_v_loss = loss
+            best_model = model
+
+    return best_model
+
+
 def pcr_fitter(X, y, pc, quantile: bool = True,
-               solver="highs" if sp_version >= parse_version("1.6.0") else "inferior-point",
-               debug: bool = False):
+               solver="highs" if sp_version >= parse_version("1.6.0") else "inferior-point"):
+    assert (X.dtypes == float).all(), 'Error - wrong dtypes!'
+
     # Instantiate the PCA object
     pca = PCA()
 
-    #  Preprocessing first derivative
-    d1X = savgol_filter(X, 25, polyorder=5, deriv=1)
-
-    # Standardize features removing the mean
-    Xstd = StandardScaler().fit_transform(d1X[:, :])
-
     # Run PCA
-    Xreg = pca.fit_transform(Xstd)[:, :pc]
+    Xreg = pca.fit_transform(X)[:, :pc]
 
     if not quantile:
         # Instantiate linear regression object
         regr = linear_model.LinearRegression()
 
-        # Fit
         regr.fit(Xreg, y)
 
-        # Calibrate
-        y_c = regr.predict(Xreg)
-
-        # Cross-validation
-        y_cv = cross_val_predict(regr, Xreg, y, cv=10)
-
-        # Scores
-        score_c = r2_score(y, y_c)
-        score_cv = r2_score(y, y_cv)
-
-        # Mean square error
-        mse_c = mean_squared_error(y, y_c)
-        mse_cv = mean_squared_error(y, y_cv)
-
-        return y_c, y_cv, score_c, score_cv, mse_c, mse_cv
+        predictor = StreamflowModel(regr)
     else:
-        predictions = {}
-        for qu in DEF_QUANTILES:
-            qregr = linear_model.QuantileRegressor(quantile=qu, alpha=0.00, solver=solver)
+        regressors = {}
+        for q in DEF_QUANTILES:
+            qregr = linear_model.QuantileRegressor(quantile=q, alpha=0.00, solver=solver)
             qregr.fit(Xreg, y)
-            y_qc = qregr.predict(Xreg)
 
-            if debug:
-                print(f"{qu} -> {np.mean(y_qc > y)}")
+            regressors[q] = qregr
 
-            predictions[qu] = y_qc
+        predictor = StreamflowModel(regressors)
 
-        quantile_losses = {quantile: mean_pinball_loss(y, q_preds) for quantile, q_preds in
-                           predictions.items()}
-        return predictions, sum(quantile_losses.values()) / len(DEF_QUANTILES)
+    return predictor

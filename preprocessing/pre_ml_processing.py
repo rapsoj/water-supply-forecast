@@ -1,8 +1,8 @@
-import pandas as pd
-import os
-import numpy as np
 import datetime as dt
-from scipy.interpolate import interp1d
+import os
+
+import numpy as np
+import pandas as pd
 
 path = os.getcwd()
 
@@ -70,7 +70,11 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
     return site_df
 
 
-def ml_preprocess_data(data: pd.DataFrame) -> pd.DataFrame:
+def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed_data.csv',
+                       load_from_cache: bool = False) -> pd.DataFrame:
+    if load_from_cache and os.path.exists(output_file_path):
+        return pd.read_csv(output_file_path)
+
     data = data.copy()
 
     # Read data
@@ -164,20 +168,7 @@ def ml_preprocess_data(data: pd.DataFrame) -> pd.DataFrame:
                                                                               nino_data=nino_data, oni_data=oni_data,
                                                                               misc_data=misc_data) \
         .reset_index(drop=True)
-    
+
+    processed_data.to_csv(output_file_path, index=False)
 
     return processed_data
-
-# function to carry out train, val, test split
-def train_val_test_split(df: pd.DataFrame, test_years: list, validation_years: list):
-    df = df.copy()
-    test_mask = df.forecast_year.isin(test_years)
-    test_df = df[test_mask]
-    df = df.drop(test_df.index)
-
-    validation_mask = df.forecast_year.isin(validation_years)
-    val_df = df[validation_mask]
-    train_df = df.drop(val_df.index)
-
-    return train_df, val_df, test_df
-
