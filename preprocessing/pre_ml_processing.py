@@ -1,8 +1,8 @@
-import pandas as pd
-import os
-import numpy as np
 import datetime as dt
-from scipy.interpolate import interp1d
+import os
+
+import numpy as np
+import pandas as pd
 
 path = os.getcwd()
 

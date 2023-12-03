@@ -5,8 +5,9 @@ from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
 from preprocessing.pre_ml_processing import train_val_test_split
 
-def run_pipeline(gt_col: str = 'gt', test_years: list = list(np.arange(2003, 2024, 2)), 
-                                                             validation_years: list = list(np.arange(1984,2023,8))):  # todo change to correct column name
+
+def run_pipeline(gt_col: str = 'volume', test_years: tuple = tuple(np.arange(2003, 2024, 2)),
+                 validation_years: tuple = tuple(np.arange(1984, 2023, 8))):
     # todo add output_csv paths to preprocessing, especially the ml preprocessing
     basic_preprocessed_df = get_processed_dataset()
 
@@ -20,7 +21,7 @@ def run_pipeline(gt_col: str = 'gt', test_years: list = list(np.arange(2003, 202
     assert gt_col not in test.columns, 'Error - test should not have a ground truth!'
 
     # todo implement global models
-    site_ids = processed_data.site_id.unique() # Get site id
+    site_ids = processed_data.site_id.unique()  # Get site id
     for site_id in site_ids:
         train_site = train[train.site_id == site_id]
         val_site = val[val.site_id == site_id]
@@ -36,8 +37,7 @@ def run_pipeline(gt_col: str = 'gt', test_years: list = list(np.arange(2003, 202
         results_id = f'{site_id}'
         train_pred, val_pred, test_pred = benchmark_results(train_pred, train_gt, val_pred, val_gt, test_pred,
                                                             benchmark_id=results_id)
-        # todo make sure that `dates` is the dates column
-        cache_preds(pred=test_pred, cache_id=results_id, site_id=site_id, pred_dates=test_site.dates)
+        cache_preds(pred=test_pred, cache_id=results_id, site_id=site_id, pred_dates=test_site.date)
 
 
 if __name__ == '__main__':
