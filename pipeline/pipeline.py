@@ -45,18 +45,18 @@ def run_pipeline(gt_col: str = 'volume', test_years: tuple = tuple(np.arange(200
 def train_val_test_split(df: pd.DataFrame, test_years: list, validation_years: list):
     df = df.copy()
     test_mask = df.forecast_year.isin(test_years)
-    test_df = df[test_mask].drop(columns='volume').reset_index(drop=True)
+    test_df = df[test_mask].drop(columns='volume')
     df = df.drop(test_df.index)
 
     validation_mask = df.forecast_year.isin(validation_years)
-    val_df = df[validation_mask].reset_index(drop=True)
-    train_df = df.drop(val_df.index).reset_index(drop=True)
+    val_df = df[validation_mask]
+    train_df = df.drop(val_df.index)
 
     assert train_df.date.isin(val_df.date).sum() == 0 and \
            train_df.date.isin(test_df.date).sum() == 0 and \
            val_df.date.isin(test_df.date).sum() == 0, "Dates are overlapping between train, val, and test sets"
 
-    return train_df, val_df, test_df
+    return train_df.reset_index(drop=True), val_df.reset_index(drop=True), test_df.reset_index(drop=True)
 
 
 if __name__ == '__main__':
