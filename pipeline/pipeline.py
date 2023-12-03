@@ -53,7 +53,7 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
     test_gt_mask = gt_df.forecast_year.isin(test_years)
 
     test_feature_df = feature_df[test_feature_mask].drop(columns='volume').reset_index(drop=True)
-    test_gt_df = gt_df[test_gt_mask].drop(columns='volume').reset_index(drop=True)
+    test_gt_df = gt_df[test_gt_mask].reset_index(drop=True)
 
     validation_feature_mask = feature_df.forecast_year.isin(validation_years)
     validation_gt_mask = feature_df.forecast_year.isin(validation_years)
