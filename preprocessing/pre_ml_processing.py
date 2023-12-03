@@ -162,6 +162,9 @@ def ml_preprocess_data(data: pd.DataFrame) -> pd.DataFrame:
                         'merced_river_yosemite_at_pohono_bridge',
                         'san_joaquin_river_millerton_reservoir']
     missing_snotel_site_mask = data.site_id.isin(california_sites)
-    processed_data = data[~missing_snotel_site_mask].groupby('site_id').apply(process_features).reset_index(drop=True)
+    processed_data = data[~missing_snotel_site_mask].groupby('site_id').apply(process_features, mjo_data=mjo_data,
+                                                                              nino_data=nino_data, oni_data=oni_data,
+                                                                              misc_data=misc_data) \
+        .reset_index(drop=True)
 
     return processed_data
