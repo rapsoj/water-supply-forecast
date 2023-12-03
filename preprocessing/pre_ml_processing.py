@@ -177,11 +177,9 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
     processed_ground_truth = pd.DataFrame()
     processed_ground_truth['gt'] = data.volume.dropna()
 
-    non_test_mask = ~data.forecast_year.isin(test_years)
-    non_test_df = data[non_test_mask].drop(columns='volume').reset_index(drop=True)
 
-    seasonal_mask = [(non_test_df.date.year) > 1982 & (non_test_df.date.month >= 4) & (non_test_df.date.month <= 7)]
-    seasonal_data = non_test_df[seasonal_mask]
+    seasonal_mask = [(data.date.dt.year) > 1982 & (data.date.dt.month >= 4) & (data.dt.date.month <= 7)]
+    seasonal_data = data[seasonal_mask]
     # now only pick the relevant
     processed_ground_truth['date'] = seasonal_data.date
     processed_ground_truth['site_id'] = seasonal_data.site_id
