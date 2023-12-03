@@ -1,14 +1,15 @@
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
 import pandas as pd
 
+
 def preprocess_column(df, column_name):
     # Skip preprocessing for specified columns
-    if column_name in ['month', 'year', 'day', 'volume']:
+    if column_name in ['month', 'year', 'day', 'volume', 'forecast_year']:
         return df
-    
+
     # Check the data type of the column
     column_dtype = df[column_name].dtype
-    
+
     if column_dtype == 'object':
         # If it's a categorical variable, perform one-hot encoding
         df = pd.get_dummies(df, columns=[column_name], prefix=[column_name])
@@ -29,10 +30,10 @@ def preprocess_column(df, column_name):
 
     return df
 
+
 def preprocess_dataframe(df):
     # Iterate over all columns in the DataFrame
     for column_name in df.columns:
         df = preprocess_column(df, column_name)
 
     return df
- 
