@@ -168,3 +168,17 @@ def ml_preprocess_data(data: pd.DataFrame) -> pd.DataFrame:
         .reset_index(drop=True)
 
     return processed_data
+
+# function to carry out train, val, test split
+def train_val_test_split(df: pd.Dataframe, test_years: list, validation_years: list):
+    df = df.copy()
+    test_mask = df.forecast_year.isin(test_years)
+    test_df = df[test_mask]
+    df = df.drop(test_df)
+
+    validation_mask = df.forecast_year.isin(validation_years)
+    val_df = df[validation_mask]
+    train_df = df.drop(val_df)
+
+    return train_df, val_df, test_df
+
