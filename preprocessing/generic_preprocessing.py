@@ -62,11 +62,11 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv') -> pd.
     data_frames = [df_oni, df_merged]
     df_merged = merge.merge_year(data_frames)
 
-    # Outlier cleaning
+    # Outlier cleaning todo
 
-    # Imputation
+    # Imputation todo
 
-    # Feature engineering from features.py
+    # Feature engineering from features.py todo
 
     # mark unknown measurement days explicitly
     df_merged.day[df_merged.day.isna()] = -1
