@@ -55,18 +55,18 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv') -> pd.
     df_merged = merge.merge_day(data_frames)
 
     # Merge on month
-    data_frames = [df_soi1, df_soi2, df_pdo, df_nino, df_merged]
+    data_frames = [df_pna, df_soi1, df_soi2, df_pdo, df_nino, df_merged]
     df_merged = merge.merge_mon(data_frames)
 
     # Merge on year
     data_frames = [df_oni, df_merged]
     df_merged = merge.merge_year(data_frames)
 
-    # Outlier cleaning
+    # Outlier cleaning todo
 
-    # Imputation
+    # Imputation todo
 
-    # Feature engineering from features.py
+    # Feature engineering from features.py todo
 
     # mark unknown measurement days explicitly
     df_merged.day[df_merged.day.isna()] = -1
