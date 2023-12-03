@@ -14,7 +14,7 @@ def import_mjo(current_dir) :
     df_mjo = pd.read_table(os.path.join(folder_path,"mjo.txt"),delim_whitespace=True, skiprows=1)
     return df_mjo
 
-def clean_mjo(df_mjo): 
+def clean_mjo(df_mjo):
     # Basic cleaning for mjo dataset
     df_mjo = df_mjo.iloc[1:]
     df_mjo.columns = df_mjo.columns.str.strip()
@@ -115,6 +115,8 @@ def import_flow(current_dir) :
     # Import flows training dataset
     folder_path = os.path.join(current_dir, '..','assets', 'data')
     df_flow = pd.read_csv(os.path.join(folder_path,"train_monthly_naturalized_flow.csv"))
+    df_flow['day']=-1
+
     return df_flow
 
 def clean_flow(df_flow) :
@@ -152,6 +154,6 @@ def clean_snotel(df_snotel) :
     df_snotel['month'] = df_snotel['date'].dt.month
     df_snotel['year'] = df_snotel['date'].dt.year
     df_snotel.drop('date', axis=1, inplace=True)
-    
+
     df_snotel= df_snotel.rename(columns={'site':'site_id'})
     return df_snotel
