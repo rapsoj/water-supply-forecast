@@ -23,10 +23,11 @@ def run_pipeline(gt_col: str = 'volume', test_years: tuple = tuple(np.arange(200
 
     # todo implement global models
     site_ids = processed_data.site_id.unique()
+    non_feat_cols = ['date', 'site_id', 'forecast_year']
     for site_id in site_ids:
-        train_site = train[train.site_id == site_id]
-        val_site = val[val.site_id == site_id]
-        test_site = test[test.site_id == site_id]
+        train_site = train[train.site_id == site_id].drop(columns=non_feat_cols)
+        val_site = val[val.site_id == site_id].drop(columns=non_feat_cols)
+        test_site = test[test.site_id == site_id].drop(columns=non_feat_cols)
 
         train_gt = train_site[gt_col]
         train_site = train_site.drop(columns=gt_col)
