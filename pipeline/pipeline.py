@@ -26,11 +26,16 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2003, 2024, 2)),
     non_feat_cols = ['date', 'site_id', 'forecast_year']
     for site_id in site_ids:
         print(f'Fitting to site {site_id}')
-        train_site = train_features[train_features.site_id == site_id].drop(columns=non_feat_cols)
-        val_site = val_features[val_features.site_id == site_id].drop(columns=non_feat_cols)
+        train_site = train_features[train_features.site_id == site_id]
+
+        # set-list in case non feature columns have NaNs
+        drop_cols = list(set(non_feat_cols + train_site.columns[train_site.isna().any()].to_list()))
+
+        train_site = train_site.drop(columns=drop_cols)
+        val_site = val_features[val_features.site_id == site_id].drop(columns=drop_cols)
         test_site = test_features[test_features.site_id == site_id]
         test_dates = test_site.date
-        test_site = test_site.drop(columns=non_feat_cols)
+        test_site = test_site.drop(columns=drop_cols, errors='ignore')
 
         train_pred, val_pred, test_pred = gen_basin_preds(train_site, train_gt, val_site, val_gt, test_site)
 

@@ -32,7 +32,10 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
     site_id = df.name
     df = df.groupby('date')[list(site_feat_cols)].agg(lambda x: x.dropna().mean()).reset_index()
 
-    # re-add global data into specific df todo use new data, currently this explods because of bad joins in the existing dataset
+    # drop irrelevant columns, especially relevant for california data that's missing some features
+    df = df.drop(columns=df.columns[df.isna().all()])
+
+    # re-add global data into specific df
     df = df.merge(mjo_data, on='date', how='outer') \
         .merge(nino_data.drop_duplicates(), on='date', how='outer') \
         .merge(oni_data.drop_duplicates(), on='date', how='outer') \
@@ -45,7 +48,7 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
     feat_dates_vals = (feat_dates - start_date).dt.days
 
     # split into columns you interpolate and those you take the closest preceding value
-    interp_cols = global_oni_cols + ['volume']
+    interp_cols = list(set(global_oni_cols + ['volume']) & set(df.columns))
     interp_df = df[interp_cols].apply(lambda x: np.interp(feat_dates_vals, orig_dates_vals[~x.isna()],
                                                           x.dropna())).reset_index(drop=True)
     other_cols = list(set(df.columns) - set(interp_cols) - {'date'})
@@ -129,6 +132,7 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
     data['oni_month'] = data[oni_temporal_cols] \
         .idxmax(axis='columns') \
         .apply(month_conversion_dictionary.get)
+    data = data.drop(columns=list(month_conversion_dictionary.keys()))
 
     # todo finish oni date conversion/check that it works properly
 
@@ -158,13 +162,8 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
 
     # Removing sites with no snotel data
     # todo process this data separately
-    california_sites = ['american_river_folsom_lake',
-                        'merced_river_yosemite_at_pohono_bridge',
-                        'san_joaquin_river_millerton_reservoir']
-    missing_snotel_site_mask = data.site_id.isin(california_sites)
-    processed_data = data[~missing_snotel_site_mask].groupby('site_id').apply(process_features, mjo_data=mjo_data,
-                                                                              nino_data=nino_data, oni_data=oni_data,
-                                                                              misc_data=misc_data) \
+    processed_data = data.groupby('site_id').apply(process_features, mjo_data=mjo_data, nino_data=nino_data,
+                                                   oni_data=oni_data, misc_data=misc_data) \
         .reset_index(drop=True)
 
     processed_data.to_csv(output_file_path, index=False)
