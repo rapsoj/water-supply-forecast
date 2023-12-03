@@ -15,7 +15,7 @@ def run_pipeline(gt_col: str = 'volume', test_years: tuple = tuple(np.arange(200
 
     # todo add explicit forecasting functionality, split train/test for forecasting earlier.
     #  currently everything is processed together. unsure if necessary
-    processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache)
+    processed_data, processed_ground_truth = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache)
 
     # Get training, validation and test sets
     train, val, test = train_val_test_split(processed_data, test_years, validation_years)
