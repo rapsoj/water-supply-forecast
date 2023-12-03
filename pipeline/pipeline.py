@@ -8,13 +8,13 @@ from preprocessing.pre_ml_processing import ml_preprocess_data
 
 
 def run_pipeline(gt_col: str = 'volume', test_years: tuple = tuple(np.arange(2003, 2024, 2)),
-                 validation_years: tuple = tuple(np.arange(1984, 2023, 8)), load_from_cache: bool = True):
+                 validation_years: tuple = tuple(np.arange(1984, 2023, 8)), load_from_cache: bool = False):
     # todo add output_csv paths to preprocessing, especially the ml preprocessing
     basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache)
 
     # todo add explicit forecasting functionality, split train/test for forecasting earlier.
     #  currently everything is processed together. unsure if necessary
-    processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache)
+    processed_data, processed_ground_truth = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache)
 
     # Get training, validation and test sets
     train, val, test = train_val_test_split(processed_data, test_years, validation_years)
@@ -46,11 +46,10 @@ def train_val_test_split(df: pd.DataFrame, test_years: list, validation_years: l
     df = df.copy()
     test_mask = df.forecast_year.isin(test_years)
     test_df = df[test_mask].drop(columns='volume').reset_index(drop=True)
-    df = df.drop(test_df.index)
 
     validation_mask = df.forecast_year.isin(validation_years)
     val_df = df[validation_mask].reset_index(drop=True)
-    train_df = df.drop(val_df.index).reset_index(drop=True)
+    train_df = df[~validation_mask&~test_mask]
 
     assert train_df.date.isin(val_df.date).sum() == 0 and \
            train_df.date.isin(test_df.date).sum() == 0 and \

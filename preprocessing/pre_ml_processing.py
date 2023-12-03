@@ -20,7 +20,6 @@ date_cols = ['year', 'month', 'day']
 
 def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.DataFrame, oni_data: pd.DataFrame,
                      misc_data: pd.DataFrame, N_DAYS_DELTA: int = 7) -> pd.DataFrame:
-    # Create features for a site_id
 
     # Generate a df with rows for every prediction date, then gather data accordingly up until that point
     start_date = df.date.min()
@@ -131,6 +130,7 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
     data['oni_month'] = data[oni_temporal_cols] \
         .idxmax(axis='columns') \
         .apply(month_conversion_dictionary.get)
+
     # todo finish oni date conversion/check that it works properly
 
     data.month[data.month == -1] = data.oni_month[data.month == -1]
@@ -169,6 +169,20 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
                                                                               misc_data=misc_data) \
         .reset_index(drop=True)
 
+
+
     processed_data.to_csv(output_file_path, index=False)
 
-    return processed_data
+    processed_ground_truth = pd.DataFrame()
+    processed_ground_truth['gt'] = data.volume.dropna()
+
+
+    processed_ground_truth['date'] = data[~data.volume.isna()].date
+    processed_ground_truth['site_id'] = data.site_id
+    processed_ground_truth['forecast_year'] = data.date.dt.year
+    return processed_data, processed_ground_truth
+
+def ml_preprocess_ground_truth(data: pd.DataFrame, output_file_path: str = 'ml_processed_gt.csv',
+                       load_from_cache: bool = False) -> pd.DataFrame:
+    data = data.copy()
+
