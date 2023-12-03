@@ -176,7 +176,8 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
     non_test_mask = ~data.forecast_year.isin(test_years)
     non_test_df = data[non_test_mask].drop(columns='volume').reset_index(drop=True)
 
-    seasonal_mask = [(non_test_df.date.year) > 1982 & (non_test_df.date.month >= 4) & (non_test_df.date.month <= 7)]
+    months = non_test_df.date.apply(lambda x: x.month)
+    seasonal_mask = (non_test_df.date.apply(lambda x: x.year) > 1982) & (months >= 4) & (months <= 7)
     seasonal_data = non_test_df[seasonal_mask]
 
     # now only pick the relevant
