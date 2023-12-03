@@ -17,6 +17,8 @@ class StreamflowModel:
         self.loss = average_quantile_loss if isinstance(self.model, dict) else mean_squared_error
 
     def __call__(self, X):
+        assert (X.dtypes == float).all(), 'Error - wrong dtypes!'
+
         if isinstance(self.model, dict):
             pred = pd.DataFrame({q: q_model(X) for q, q_model in self.model.items()})
         else:
@@ -45,17 +47,13 @@ def general_pcr_fitter(X, y, val_X, val_y, quantile: bool = True, max_n_pcs: int
 
 def pcr_fitter(X, y, pc, quantile: bool = True,
                solver="highs" if sp_version >= parse_version("1.6.0") else "inferior-point"):
+    assert (X.dtypes == float).all(), 'Error - wrong dtypes!'
+
     # Instantiate the PCA object
     pca = PCA()
 
-    #  Preprocessing first derivative
-    d1X = savgol_filter(X, 25, polyorder=5, deriv=1)
-
-    # Standardize features removing the mean
-    Xstd = StandardScaler().fit_transform(d1X[:, :])
-
     # Run PCA
-    Xreg = pca.fit_transform(Xstd)[:, :pc]
+    Xreg = pca.fit_transform(X)[:, :pc]
 
     if not quantile:
         # Instantiate linear regression object

@@ -33,7 +33,7 @@ def run_pipeline(gt_col: str = 'volume', test_years: tuple = tuple(np.arange(200
         val_gt = val_site[gt_col]
         val_site = val_site.drop(columns=gt_col)
 
-        train_pred, val_pred, test_pred = gen_basin_preds(train_site, train_gt, val_site, test_site)
+        train_pred, val_pred, test_pred = gen_basin_preds(train_site, train_gt, val_site, val_gt, test_site)
 
         results_id = f'{site_id}'
         train_pred, val_pred, test_pred = benchmark_results(train_pred, train_gt, val_pred, val_gt, test_pred,
