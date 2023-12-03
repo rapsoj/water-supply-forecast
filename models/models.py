@@ -3,18 +3,18 @@ import pandas as pd
 from scipy.signal import savgol_filter
 from sklearn import linear_model
 from sklearn.decomposition import PCA
-from sklearn.metrics import mean_pinball_loss
-from sklearn.metrics import mean_squared_error, r2_score
-from sklearn.model_selection import cross_val_predict
+from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils.fixes import parse_version, sp_version
 
+from benchmark.benchmark_results import average_quantile_loss
 from consts import DEF_QUANTILES
 
 
 class StreamflowModel:
     def __init__(self, model):
         self.model = model
+        self.loss = average_quantile_loss if isinstance(self.model, dict) else mean_squared_error
 
     def __call__(self, X):
         if isinstance(self.model, dict):
@@ -25,7 +25,8 @@ class StreamflowModel:
         return pred
 
     def loss(self, X, y):
-        raise NotImplementedError
+        pred = self.model(X)
+        return self.loss(y, pred)
 
 
 def general_pcr_fitter(X, y, val_X, val_y, quantile: bool = True, max_n_pcs: int = 30):

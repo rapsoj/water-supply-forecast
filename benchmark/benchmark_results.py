@@ -27,15 +27,24 @@ def cache_preds(site_id: str, pred_dates: pd.Series, pred: pd.DataFrame, cache_i
     pred_df.to_csv(f'{cache_id}_pred.csv')
 
 
+def calc_quantile_loss(gt: pd.Series, preds: pd.DataFrame, quantile: float) -> float:
+    return mean_pinball_loss(gt, preds[quantile], alpha=quantile)
+
+
+def average_quantile_loss(preds: pd.DataFrame, gt: pd.Series, quantiles: list) -> float:
+    return np.mean([calc_quantile_loss(preds, gt, q) for q in quantiles])
+
+
 def calc_losses(train_pred: [pd.Series, pd.DataFrame], train_gt: pd.Series, val_pred: [pd.Series, pd.DataFrame],
                 val_gt: pd.Series) -> tuple[dict]:
     min_q = min(DEF_QUANTILES)
     max_q = max(DEF_QUANTILES)
     perc_in_interval = {'train': (train_pred[min_q] <= train_gt) & (train_gt <= train_pred[max_q]),
                         'val': (val_pred[min_q] <= val_gt) & (val_gt <= val_pred[max_q])}
-    quantile_losses = {'train': {q: mean_pinball_loss(train_gt, train_pred[q]) for q in DEF_QUANTILES},
-                       'val': {q: mean_pinball_loss(val_gt, val_gt[q]) for q in DEF_QUANTILES}}
-    avg_q_losses = {dataset_name: np.mean(losses.values()) for dataset_name, losses in quantile_losses.items()}
+    quantile_losses = {'train': {q: calc_quantile_loss(train_gt, train_pred, q) for q in DEF_QUANTILES},
+                       'val': {q: mean_pinball_loss(val_gt, val_pred, q) for q in DEF_QUANTILES}}
+    avg_q_losses = {'train': average_quantile_loss(train_gt, train_pred, DEF_QUANTILES),
+                    'val': average_quantile_loss(val_gt, val_pred, DEF_QUANTILES)}
 
     return perc_in_interval, quantile_losses, avg_q_losses
 
