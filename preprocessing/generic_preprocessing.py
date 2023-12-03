@@ -68,6 +68,9 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv') -> pd.
 
     # Feature engineering from features.py
 
+    # mark unknown measurement days explicitly
+    df_merged.day[df_merged.day.isna()] = -1
+
     # Perform preprocessing on columns except day, month, year
     trans_vars = scaling.preprocess_dataframe(df_merged)
 
