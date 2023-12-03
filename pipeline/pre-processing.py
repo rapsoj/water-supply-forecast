@@ -65,7 +65,7 @@ data_frames = [df_mjo, df_merged]
 df_merged = merge.merge_day(data_frames)
 
 # Merge on month
-data_frames = [df_soi1, df_soi2, df_pdo, df_nino, df_merged]
+data_frames = [df_soi1, df_soi2, df_pna, df_pdo, df_nino, df_merged]
 df_merged = merge.merge_mon(data_frames)
 
 # Merge on year
