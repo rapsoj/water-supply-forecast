@@ -27,9 +27,9 @@ def run_pipeline(gt_col: str = 'volume', test_years: tuple = tuple(np.arange(200
     non_feat_cols = ['date', 'site_id', 'forecast_year']
     for site_id in site_ids:
         print(f'Fitting to site {site_id}')
-        train_site = train[train.site_id == site_id].drop(columns=non_feat_cols)
-        val_site = val[val.site_id == site_id].drop(columns=non_feat_cols)
-        test_site = test[test.site_id == site_id]
+        train_site = train_features[train_features.site_id == site_id].drop(columns=non_feat_cols)
+        val_site = train_features[val_features.site_id == site_id].drop(columns=non_feat_cols)
+        test_site = test_features[test_features.site_id == site_id]
         test_dates = test_site.date
         test_site = test_site.drop(columns=non_feat_cols)
 
