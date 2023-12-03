@@ -15,12 +15,17 @@ def run_pipeline(gt_col: str = 'volume', test_years: tuple = tuple(np.arange(200
 
     # todo add explicit forecasting functionality, split train/test for forecasting earlier.
     #  currently everything is processed together. unsure if necessary
-    processed_data, processed_ground_truth = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache)
+    processed_data, processed_ground_truth = ml_preprocess_data(basic_preprocessed_df, test_years=test_years,
+                                                                load_from_cache=load_from_cache)
 
     # Get training, validation and test sets
-    train, val, test = train_val_test_split(processed_data, test_years, validation_years)
+    train_features, val_features, test_features, train_gt, val_gt, train_gt = train_val_test_split(processed_data,
+                                                                                                   processed_ground_truth,
+                                                                                                   test_years,
+                                                                                                   validation_years)
 
-    assert gt_col not in test.columns, 'Error - test should not have a ground truth!'
+    assert [test_year not in processed_ground_truth.forecast_year for test_year in
+            test_years].all(), 'Error - test should not have a ground truth!'
 
     # todo implement global models
     site_ids = processed_data.site_id.unique()
@@ -33,11 +38,6 @@ def run_pipeline(gt_col: str = 'volume', test_years: tuple = tuple(np.arange(200
         test_dates = test_site.date
         test_site = test_site.drop(columns=non_feat_cols)
 
-        train_gt = train_site[gt_col]
-        train_site = train_site.drop(columns=gt_col)
-        val_gt = val_site[gt_col]
-        val_site = val_site.drop(columns=gt_col)
-
         train_pred, val_pred, test_pred = gen_basin_preds(train_site, train_gt, val_site, val_gt, test_site)
 
         results_id = f'{site_id}'
@@ -47,21 +47,31 @@ def run_pipeline(gt_col: str = 'volume', test_years: tuple = tuple(np.arange(200
         cache_preds(pred=test_pred, cache_id=results_id, site_id=site_id, pred_dates=test_dates)
 
 
-def train_val_test_split(df: pd.DataFrame, test_years: list, validation_years: list):
-    df = df.copy()
-    test_mask = df.forecast_year.isin(test_years)
-    test_df = df[test_mask].drop(columns='volume')
-    df = df.drop(test_df.index)
+def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_years: tuple, validation_years: tuple):
+    feature_df = feature_df.copy()
+    gt_df = gt_df.copy()
 
-    validation_mask = df.forecast_year.isin(validation_years)
-    val_df = df[validation_mask]
-    train_df = df.drop(val_df.index)
+    test_feature_mask = feature_df.forecast_year.isin(test_years)
+    test_gt_mask = gt_df.forecast_year.isin(test_years)
 
-    assert train_df.date.isin(val_df.date).sum() == 0 and \
-           train_df.date.isin(test_df.date).sum() == 0 and \
-           val_df.date.isin(test_df.date).sum() == 0, "Dates are overlapping between train, val, and test sets"
+    test_feature_df = feature_df[test_feature_mask].drop(columns='volume').reset_index(drop=True)
+    test_gt_df = gt_df[test_gt_mask].drop(columns='volume').reset_index(drop=True)
 
-    return train_df.reset_index(drop=True), val_df.reset_index(drop=True), test_df.reset_index(drop=True)
+    validation_feature_mask = feature_df.forecast_year.isin(validation_years)
+    validation_gt_mask = feature_df.forecast_year.isin(validation_years)
+
+    val_feature_df = feature_df[validation_feature_mask].reset_index(drop=True)
+    val_gt_df = gt_df[validation_gt_mask].reset_index(drop=True)
+
+    train_feature_df = feature_df[~validation_feature_mask & ~test_feature_mask]
+    train_gt_df = gt_df[~validation_gt_mask & ~test_gt_mask]
+
+    assert train_feature_df.date.isin(val_feature_df.date).sum() == 0 and \
+           train_feature_df.date.isin(test_feature_df.date).sum() == 0 and \
+           val_feature_df.date.isin(
+               test_feature_df.date).sum() == 0, "Dates are overlapping between train, val, and test sets"
+
+    return train_feature_df, val_feature_df, test_feature_df, train_gt_df, val_gt_df, test_gt_df
 
 
 if __name__ == '__main__':
