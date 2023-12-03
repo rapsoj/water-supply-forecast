@@ -7,6 +7,9 @@ from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
 
 
+
+
+
 def run_pipeline(gt_col: str = 'volume', test_years: tuple = tuple(np.arange(2003, 2024, 2)),
                  validation_years: tuple = tuple(np.arange(1984, 2023, 8)), load_from_cache: bool = True):
     print('Loading data')
@@ -20,7 +23,7 @@ def run_pipeline(gt_col: str = 'volume', test_years: tuple = tuple(np.arange(200
     # Get training, validation and test sets
     train_features, val_features, test_features, train_gt, val_gt, train_gt = train_val_test_split(processed_data, processed_ground_truth, test_years, validation_years)
 
-    assert [test_year not in processed_ground_truth.forecast_year for test_year in test_years].all(), 'Error - test should not have a ground truth!'
+    assert all([test_year not in processed_ground_truth.forecast_year for test_year in test_years]), 'Error - test should not have a ground truth!'
 
     # todo implement global models
     site_ids = processed_data.site_id.unique()
@@ -33,7 +36,7 @@ def run_pipeline(gt_col: str = 'volume', test_years: tuple = tuple(np.arange(200
         test_dates = test_site.date
         test_site = test_site.drop(columns=non_feat_cols)
 
-
+        pcr_train_gt, pcr_val_gt = pcr_ground_truth(train_gt, val_gt)
 
         train_pred, val_pred, test_pred = gen_basin_preds(train_site, train_gt, val_site, val_gt, test_site)
 
@@ -42,6 +45,22 @@ def run_pipeline(gt_col: str = 'volume', test_years: tuple = tuple(np.arange(200
         train_pred, val_pred, test_pred = benchmark_results(train_pred, train_gt, val_pred, val_gt, test_pred,
                                                             benchmark_id=results_id)
         cache_preds(pred=test_pred, cache_id=results_id, site_id=site_id, pred_dates=test_dates)
+
+def pcr_ground_truth(train_gt, val_gt):
+    # take "raw" train and validation gt dfs and sum over them seasonally and connect to the corresponding feature rows
+    # (just multiply b a given number, because the labels are all the same atm)
+    pcr_train_gt = pd.DataFrame()
+    pcr_val_gt = pd.DataFrame()
+
+    pcr_train_gt = train_gt.groupby('forecast_year') \
+        .volume.apply(lambda x: sum(x), axis='columns')
+
+    pcr_val_gt = val_gt.groupby('forecast_year') \
+        .volume.apply(lambda x: sum(x), axis='columns')
+
+    return pcr_val_gt, pcr_train_gt
+
+
 
 
 def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_years: tuple, validation_years: tuple):
