@@ -8,15 +8,14 @@ from preprocessing.pre_ml_processing import ml_preprocess_data
 
 
 def run_pipeline(test_years: tuple = tuple(np.arange(2003, 2024, 2)),
-                 validation_years: tuple = tuple(np.arange(1984, 2023, 8)), load_from_cache: bool = True):
+                 validation_years: tuple = tuple(np.arange(1984, 2023, 8)), load_from_cache: bool = False):
     print('Loading data')
     # todo add output_csv paths to preprocessing, especially the ml preprocessing
     basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache)
 
     # todo add explicit forecasting functionality, split train/test for forecasting earlier.
     #  currently everything is processed together. unsure if necessary
-    processed_data, processed_ground_truth = ml_preprocess_data(basic_preprocessed_df, test_years=test_years,
-                                                                load_from_cache=load_from_cache)
+    processed_data, processed_ground_truth = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache)
 
     # Get training, validation and test sets
     train_features, val_features, test_features, train_gt, val_gt, train_gt = \
@@ -66,8 +65,8 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
 
     assert train_feature_df.date.isin(val_feature_df.date).sum() == 0 and \
            train_feature_df.date.isin(test_feature_df.date).sum() == 0 and \
-           val_feature_df.date.isin(
-               test_feature_df.date).sum() == 0, "Dates are overlapping between train, val, and test sets"
+           val_feature_df.date.isin(test_feature_df.date).sum() == 0, \
+        "Dates are overlapping between train, val, and test sets"
 
     return train_feature_df, val_feature_df, test_feature_df, train_gt_df, val_gt_df, test_gt_df
 

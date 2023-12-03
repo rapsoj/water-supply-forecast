@@ -69,8 +69,7 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
 
 
 def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed_data.csv',
-                       gt_file_path: str = 'ml_processed_gt_data.csv',
-                       test_years: tuple = tuple(np.arange(2003, 2024, 2)), load_from_cache: bool = False) -> tuple:
+                       gt_file_path: str = 'ml_processed_gt_data.csv', load_from_cache: bool = False) -> tuple:
     if load_from_cache and os.path.exists(output_file_path) and os.path.exists(gt_file_path):
         return pd.read_csv(output_file_path), pd.read_csv(gt_file_path)
 
@@ -171,14 +170,11 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
     processed_data.to_csv(output_file_path, index=False)
 
     processed_ground_truth = pd.DataFrame()
-    processed_ground_truth['gt'] = data.volume.dropna()
+    processed_ground_truth['volume'] = data.volume.dropna()
 
-    non_test_mask = ~data.forecast_year.isin(test_years)
-    non_test_df = data[non_test_mask].drop(columns='volume').reset_index(drop=True)
-
-    months = non_test_df.date.apply(lambda x: x.month)
-    seasonal_mask = (non_test_df.date.apply(lambda x: x.year) > 1982) & (months >= 4) & (months <= 7)
-    seasonal_data = non_test_df[seasonal_mask]
+    months = data.date.apply(lambda x: x.month)
+    seasonal_mask = (data.date.apply(lambda x: x.year) > 1982) & (months >= 4) & (months <= 7)
+    seasonal_data = data[seasonal_mask]
 
     # now only pick the relevant
     processed_ground_truth['date'] = seasonal_data.date
