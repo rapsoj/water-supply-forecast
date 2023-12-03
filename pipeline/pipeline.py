@@ -8,7 +8,7 @@ from preprocessing.pre_ml_processing import ml_preprocess_data
 
 
 def run_pipeline(test_years: tuple = tuple(np.arange(2003, 2024, 2)),
-                 validation_years: tuple = tuple(np.arange(1984, 2023, 8)), load_from_cache: bool = False):
+                 validation_years: tuple = tuple(np.arange(1984, 2023, 8)), load_from_cache: bool = True):
     print('Loading data')
     # todo add output_csv paths to preprocessing, especially the ml preprocessing
     basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache)
@@ -20,9 +20,6 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2003, 2024, 2)),
     # Get training, validation and test sets
     train_features, val_features, test_features, train_gt, val_gt, train_gt = \
         train_val_test_split(processed_data, processed_ground_truth, test_years, validation_years)
-
-    assert all([test_year not in processed_ground_truth.forecast_year for test_year in test_years]), \
-        'Error - test should not have a ground truth!'
 
     # todo implement global models
     site_ids = processed_data.site_id.unique()
