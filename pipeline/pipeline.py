@@ -20,7 +20,7 @@ def run_pipeline(gt_col: str = 'gt', test_years: list = list(np.arange(2003, 202
     assert gt_col not in test.columns, 'Error - test should not have a ground truth!'
 
     # todo implement global models
-    site_ids = NotImplemented
+    site_ids = processed_data.site_id.unique() # Get site id
     for site_id in site_ids:
         train_site = train[train.site_id == site_id]
         val_site = val[val.site_id == site_id]
@@ -33,7 +33,7 @@ def run_pipeline(gt_col: str = 'gt', test_years: list = list(np.arange(2003, 202
 
         train_pred, val_pred, test_pred = gen_basin_preds(train_site, val_site, test_site)
 
-        results_id = f'{test_year}_{site_id}'
+        results_id = f'{site_id}'
         train_pred, val_pred, test_pred = benchmark_results(train_pred, train_gt, val_pred, val_gt, test_pred,
                                                             benchmark_id=results_id)
         # todo make sure that `dates` is the dates column

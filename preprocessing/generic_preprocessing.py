@@ -79,6 +79,5 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv') -> pd.
 
     return trans_vars
 
-
 if __name__ == '__main__':
     get_processed_dataset()

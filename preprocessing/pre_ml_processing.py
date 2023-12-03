@@ -28,7 +28,7 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
     feat_dates = pd.date_range(start=start_date, end=end_date, freq=f'{N_DAYS_DELTA}D')
     # todo we're throwing away data that we have here, can/should we use it eg for training?
     feat_dates = feat_dates[(feat_dates.month < 4) | (feat_dates.month > 9)].to_series()
-
+    
     site_feat_cols = set(df.columns) - ({'site_id', 'date', 'forecast_year', 'station'} | set(date_cols))
 
     # average over data from different stations in the same day, todo - deal with this properly by using lat/lon data or something groovier
@@ -61,6 +61,7 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
 
     site_df = interp_df.join(other_cols_df)
     site_df['date'] = feat_dates.reset_index(drop=True)
+    site_df['forecast_year'] = df.forecast_year.reset_index(drop=True)
 
     # todo make sure this is after the train/test split, don't want leakage
     assert not site_df.isna().any().any(), 'Error - we have nans!'
@@ -166,6 +167,7 @@ def ml_preprocess_data(data: pd.DataFrame) -> pd.DataFrame:
                                                                               nino_data=nino_data, oni_data=oni_data,
                                                                               misc_data=misc_data) \
         .reset_index(drop=True)
+    
 
     return processed_data
 
