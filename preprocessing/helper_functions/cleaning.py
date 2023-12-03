@@ -115,7 +115,6 @@ def import_flow(current_dir) :
     # Import flows training dataset
     folder_path = os.path.join(current_dir, '..','assets', 'data')
     df_flow = pd.read_csv(os.path.join(folder_path,"train_monthly_naturalized_flow.csv"))
-    df_flow['day']=-1
 
     return df_flow
 
