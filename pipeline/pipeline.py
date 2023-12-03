@@ -7,7 +7,7 @@ from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
 
 
-def run_pipeline(gt_col: str = 'volume', test_years: tuple = tuple(np.arange(2003, 2024, 2)),
+def run_pipeline(test_years: tuple = tuple(np.arange(2003, 2024, 2)),
                  validation_years: tuple = tuple(np.arange(1984, 2023, 8)), load_from_cache: bool = True):
     print('Loading data')
     # todo add output_csv paths to preprocessing, especially the ml preprocessing
@@ -19,10 +19,8 @@ def run_pipeline(gt_col: str = 'volume', test_years: tuple = tuple(np.arange(200
                                                                 load_from_cache=load_from_cache)
 
     # Get training, validation and test sets
-    train_features, val_features, test_features, train_gt, val_gt, train_gt = train_val_test_split(processed_data,
-                                                                                                   processed_ground_truth,
-                                                                                                   test_years,
-                                                                                                   validation_years)
+    train_features, val_features, test_features, train_gt, val_gt, train_gt = \
+        train_val_test_split(processed_data, processed_ground_truth, test_years, validation_years)
 
     assert [test_year not in processed_ground_truth.forecast_year for test_year in
             test_years].all(), 'Error - test should not have a ground truth!'
@@ -32,9 +30,9 @@ def run_pipeline(gt_col: str = 'volume', test_years: tuple = tuple(np.arange(200
     non_feat_cols = ['date', 'site_id', 'forecast_year']
     for site_id in site_ids:
         print(f'Fitting to site {site_id}')
-        train_site = train[train.site_id == site_id].drop(columns=non_feat_cols)
-        val_site = val[val.site_id == site_id].drop(columns=non_feat_cols)
-        test_site = test[test.site_id == site_id]
+        train_site = train_features[train_features.site_id == site_id].drop(columns=non_feat_cols)
+        val_site = val_features[val_features.site_id == site_id].drop(columns=non_feat_cols)
+        test_site = test_features[test_features.site_id == site_id]
         test_dates = test_site.date
         test_site = test_site.drop(columns=non_feat_cols)
 
