@@ -7,13 +7,13 @@ from preprocessing.pre_ml_processing import train_val_test_split
 
 
 def run_pipeline(gt_col: str = 'volume', test_years: tuple = tuple(np.arange(2003, 2024, 2)),
-                 validation_years: tuple = tuple(np.arange(1984, 2023, 8))):
+                 validation_years: tuple = tuple(np.arange(1984, 2023, 8)), load_from_cache: bool = True):
     # todo add output_csv paths to preprocessing, especially the ml preprocessing
-    basic_preprocessed_df = get_processed_dataset()
+    basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache)
 
     # todo add explicit forecasting functionality, split train/test for forecasting earlier.
     #  currently everything is processed together. unsure if necessary
-    processed_data = ml_preprocess_data(basic_preprocessed_df)
+    processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache)
 
     # Get training, validation and test sets
     train, val, test = train_val_test_split(processed_data, test_years, validation_years)
@@ -21,7 +21,7 @@ def run_pipeline(gt_col: str = 'volume', test_years: tuple = tuple(np.arange(200
     assert gt_col not in test.columns, 'Error - test should not have a ground truth!'
 
     # todo implement global models
-    site_ids = processed_data.site_id.unique()  # Get site id
+    site_ids = processed_data.site_id.unique()
     for site_id in site_ids:
         train_site = train[train.site_id == site_id]
         val_site = val[val.site_id == site_id]
