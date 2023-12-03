@@ -42,7 +42,7 @@ def calc_losses(train_pred: [pd.Series, pd.DataFrame], train_gt: pd.Series, val_
     perc_in_interval = {'train': (train_pred[min_q] <= train_gt) & (train_gt <= train_pred[max_q]),
                         'val': (val_pred[min_q] <= val_gt) & (val_gt <= val_pred[max_q])}
     quantile_losses = {'train': {q: calc_quantile_loss(train_gt, train_pred, q) for q in DEF_QUANTILES},
-                       'val': {q: mean_pinball_loss(val_gt, val_pred, q) for q in DEF_QUANTILES}}
+                       'val': {q: calc_quantile_loss(val_gt, val_pred, q) for q in DEF_QUANTILES}}
     avg_q_losses = {'train': average_quantile_loss(train_gt, train_pred, DEF_QUANTILES),
                     'val': average_quantile_loss(val_gt, val_pred, DEF_QUANTILES)}
 
@@ -53,12 +53,14 @@ def benchmark_results(train_pred: [pd.Series, pd.DataFrame], train_gt: pd.Series
                       val_gt: pd.Series, test_pred: [pd.Series, pd.DataFrame], benchmark_id: str = None,
                       verbose: bool = False) \
         -> tuple[pd.DataFrame]:
+    train_gt = train_gt.reset_index(drop=True)
+    val_gt = val_gt.reset_index(drop=True)
     if isinstance(train_pred, pd.DataFrame):
         assert isinstance(val_pred, pd.DataFrame) and isinstance(test_pred, pd.DataFrame), \
             'Error - some of the predictions are for quantiles (as they are dataframes) while others are ' \
             'single predictions!'
         for preds in (train_pred, val_pred, test_pred):
-            assert set(preds.cols) == set(DEF_QUANTILES), "Error - pred cols aren't quantiles!"
+            assert set(preds.columns) == set(DEF_QUANTILES), "Error - pred cols aren't quantiles!"
     else:
         assert isinstance(val_pred, pd.Series) and isinstance(test_pred, pd.Series), \
             'Error - some of the predictions are single predictions (as they are series) while others are ' \
