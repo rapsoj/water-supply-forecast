@@ -33,6 +33,8 @@ class StreamflowModel:
 
 
 def general_pcr_fitter(X, y, val_X, val_y, quantile: bool = True, max_n_pcs: int = 30):
+    pcr_train_gt, pcr_val_gt = pcr_ground_truth(y, val_y, 16)
+
     min_v_loss = np.inf
     best_model = None
     for pc in range(1, max_n_pcs):
@@ -45,6 +47,26 @@ def general_pcr_fitter(X, y, val_X, val_y, quantile: bool = True, max_n_pcs: int
 
     return best_model
 
+# To do implement this function to generate the ground truth
+def pcr_ground_truth(train_gt: pd.DataFrame, val_gt: pd.DataFrame, num_predictions: int):
+    # take "raw" train and validation gt dfs and sum over them seasonally and connect to the corresponding feature rows
+    # (just multiply b a given number, because the labels are all the same atm)
+    pcr_train_gt = pd.DataFrame()
+    pcr_val_gt = pd.DataFrame()
+
+    pcr_train_gt = train_gt.groupby('forecast_year', as_index=False) \
+        .volume.sum()
+
+    pcr_train_gt = pcr_train_gt.loc[pcr_train_gt.index.repeat(num_predictions)]
+
+    pcr_val_gt = val_gt.groupby('forecast_year') \
+        .volume.sum()
+
+    pcr_val_gt = pcr_val_gt.loc[pcr_train_gt.index.repeat(num_predictions)]
+
+    # To do: Implement this completely, multiply the rows to the appropriate number and return
+
+    return pcr_val_gt, pcr_train_gt
 
 def pcr_fitter(X, y, pc, quantile: bool = True,
                solver="highs" if sp_version >= parse_version("1.6.0") else "inferior-point"):
