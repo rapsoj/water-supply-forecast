@@ -8,7 +8,7 @@ from preprocessing.pre_ml_processing import ml_preprocess_data
 
 
 def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
-                 validation_years: tuple = tuple(np.arange(1984, 2023, 8)), load_from_cache: bool = True):
+                 validation_years: tuple = tuple(np.arange(1984, 2023, 8)), load_from_cache: bool = False):
     print('Loading data')
     # todo add output_csv paths to preprocessing, especially the ml preprocessing
     basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache)
@@ -95,4 +95,4 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
 
 
 if __name__ == '__main__':
-    run_pipeline(load_from_cache=False)
+    run_pipeline()

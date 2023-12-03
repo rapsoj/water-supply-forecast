@@ -168,17 +168,12 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
 
     processed_data.to_csv(output_file_path, index=False)
 
-    processed_ground_truth = pd.DataFrame()
-    processed_ground_truth['volume'] = data.volume.dropna()
-
     months = data.date.apply(lambda x: x.month)
     seasonal_mask = (data.date.apply(lambda x: x.year) > 1982) & (months >= 4) & (months <= 7)
     seasonal_data = data[seasonal_mask]
 
-    # now only pick the relevant
-    processed_ground_truth['date'] = seasonal_data.date
-    processed_ground_truth['site_id'] = seasonal_data.site_id
-    processed_ground_truth['forecast_year'] = seasonal_data.date.dt.year
+    # todo deal with nan volumes
+    processed_ground_truth = seasonal_data[['date', 'site_id', 'forecast_year', 'volume']].dropna()
 
     processed_ground_truth.to_csv(gt_file_path, index=False)
 
