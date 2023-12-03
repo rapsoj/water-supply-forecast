@@ -37,10 +37,6 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
         test_dates = test_site.date
         test_site = test_site.drop(columns=drop_cols, errors='ignore')
 
-        num_predictions = train_site.groupby('forecast_year').size()
-
-        pcr_train_gt, pcr_val_gt = pcr_ground_truth(train_gt, val_gt, 30)
-
         train_pred, val_pred, test_pred = gen_basin_preds(train_site, train_gt, val_site, val_gt, test_site)
 
         results_id = f'{site_id}'
@@ -48,6 +44,7 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
         train_pred, val_pred, test_pred = benchmark_results(train_pred, train_gt, val_pred, val_gt, test_pred,
                                                             benchmark_id=results_id)
         cache_preds(pred=test_pred, cache_id=results_id, site_id=site_id, pred_dates=test_dates)
+
 
 def pcr_ground_truth(train_gt: pd.DataFrame, val_gt: pd.DataFrame, num_predictions: int):
     # take "raw" train and validation gt dfs and sum over them seasonally and connect to the corresponding feature rows
@@ -68,8 +65,6 @@ def pcr_ground_truth(train_gt: pd.DataFrame, val_gt: pd.DataFrame, num_predictio
     # To do: Implement this completely, multiply the rows to the appropriate number and return
 
     return pcr_val_gt, pcr_train_gt
-
-
 
 
 def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_years: tuple, validation_years: tuple):
