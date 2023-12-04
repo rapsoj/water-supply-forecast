@@ -29,9 +29,9 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
 
     end_date = df.date.max()
     feat_dates1 = pd.date_range(start=start_date1, end=end_date1, freq=f'{1}MS')
-    feat_dates2 = pd.date_range(start=start_date1, end=end_date1, freq=f'{1}MS').shift(7, freq="D")
-    feat_dates3 = pd.date_range(start=start_date1, end=end_date1, freq=f'{1}MS').shift(14, freq="D")
-    feat_dates4 = pd.date_range(start=start_date1, end=end_date1, freq=f'{1}MS').shift(21, freq="D")
+    feat_dates2 = feat_dates1.shift(7, freq="D")
+    feat_dates3 = feat_dates1.shift(14, freq="D")
+    feat_dates4 = feat_dates1.shift(21, freq="D")
     feat_dates = pd.Series(np.sort(np.concatenate((np.array(feat_dates1),np.array(feat_dates2),np.array(feat_dates3),np.array(feat_dates4)))))
 
     # todo we're throwing away data that we have here, can/should we use it eg for training?
