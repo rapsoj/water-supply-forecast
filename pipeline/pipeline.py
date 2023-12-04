@@ -3,7 +3,7 @@ import pandas as pd
 import os
 
 from benchmark.benchmark_results import benchmark_results, cache_preds
-from consts import JULY, FIRST_FULL_GT_YEAR
+from consts import JULY, FIRST_FULL_GT_YEAR, N_PREDS_PER_MONTH, N_PRED_MONTHS
 from models.fit_to_data import gen_basin_preds
 from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
@@ -19,13 +19,13 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
     # todo add explicit forecasting functionality, split train/test for forecasting earlier.
     #  currently everything is processed together. unsure if necessary
-    processed_data, processed_ground_truth = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache)
+    processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache)
 
     # todo don't circumvent the pipeline!
-    loaded_ground_truth = load_ground_truth(num_predictions=28)
+    ground_truth = load_ground_truth(num_predictions=N_PRED_MONTHS * N_PREDS_PER_MONTH)
     # Get training, validation and test sets
     train_features, val_features, test_features, train_gt, val_gt, test_gt = \
-        train_val_test_split(processed_data, loaded_ground_truth, test_years, validation_years)
+        train_val_test_split(processed_data, ground_truth, test_years, validation_years)
 
     # todo implement global models
     site_ids = processed_data.site_id.unique()

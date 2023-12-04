@@ -23,19 +23,19 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
                      misc_data: pd.DataFrame, N_DAYS_DELTA: int = 7) -> pd.DataFrame:
     # Generate a df with rows for every prediction date, then gather data accordingly up until that point
     start_date1 = pd.to_datetime(f"{df.date.dt.year.min()}0101", format="%Y%m%d")
-    #start_time = time.strptime(start_date1)
+    # start_time = time.strptime(start_date1)
     end_date1 = pd.to_datetime(f"{df.date.dt.year.max()}0701", format="%Y%m%d")
-
 
     end_date = df.date.max()
     feat_dates1 = pd.date_range(start=start_date1, end=end_date1, freq=f'{1}MS')
     feat_dates2 = feat_dates1.shift(7, freq="D")
     feat_dates3 = feat_dates1.shift(14, freq="D")
     feat_dates4 = feat_dates1.shift(21, freq="D")
-    feat_dates = pd.Series(np.sort(np.concatenate((np.array(feat_dates1),np.array(feat_dates2),np.array(feat_dates3),np.array(feat_dates4)))))
+    feat_dates = pd.Series(np.sort(
+        np.concatenate((np.array(feat_dates1), np.array(feat_dates2), np.array(feat_dates3), np.array(feat_dates4)))))
 
     # todo we're throwing away data that we have here, can/should we use it eg for training?
-    #feat_dates = feat_dates[(feat_dates.month >= 4) | (feat_dates.month <=  9)].to_series()
+    # feat_dates = feat_dates[(feat_dates.month >= 4) | (feat_dates.month <=  9)].to_series()
     site_feat_cols = set(df.columns) - ({'site_id', 'date', 'forecast_year', 'station'} | set(date_cols))
 
     # average over data from different stations in the same day, todo - deal with this properly by using lat/lon data or something groovier
@@ -71,7 +71,7 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
 
     site_df = interp_df.join(other_cols_df)
     site_df['date'] = feat_dates.reset_index(drop=True)
-    site_df['forecast_year'] = feat_dates.apply(lambda x: x.year + (x.month >=10)).reset_index(
+    site_df['forecast_year'] = feat_dates.apply(lambda x: x.year + (x.month >= 10)).reset_index(
         drop=True)  # set value as +1 for all
 
     # todo make sure this is after the train/test split, don't want leakage
@@ -82,9 +82,9 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
 
 
 def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed_data.csv',
-                       gt_file_path: str = 'ml_processed_gt_data.csv', load_from_cache: bool = False) -> tuple:
-    if load_from_cache and os.path.exists(output_file_path) and os.path.exists(gt_file_path):
-        return pd.read_csv(output_file_path, parse_dates=['date']), pd.read_csv(gt_file_path, parse_dates=['date'])
+                       load_from_cache: bool = False) -> tuple:
+    if load_from_cache and os.path.exists(output_file_path):
+        return pd.read_csv(output_file_path, parse_dates=['date'])
 
     data = data.copy()
 
@@ -171,15 +171,6 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
     data = data.drop(columns=global_mjo_cols + global_nino_cols + global_oni_cols + global_misc_cols)
 
     # Removing sites with no snotel data
-    months = data.date.apply(lambda x: x.month)
-    seasonal_mask = (data.date.apply(lambda x: x.year) > 1984) & (months >= 4) & (months <= 7)
-    seasonal_data = data[seasonal_mask].reset_index(drop=True)
-    # todo deal with nan volumes
-    processed_ground_truth = seasonal_data[['date', 'site_id', 'forecast_year', 'volume']].dropna().drop_duplicates() # todo figure out why there are on average 36 duplicates per row (not a site issue, even for individaul sites)
-
-
-    processed_ground_truth.to_csv(gt_file_path, index=False)
-
     # todo process this data separately
     processed_data = data.groupby('site_id').apply(process_features, mjo_data=mjo_data, nino_data=nino_data,
                                                    oni_data=oni_data, misc_data=misc_data) \
@@ -187,6 +178,4 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
 
     processed_data.to_csv(output_file_path, index=False)
 
-
-
-    return processed_data, processed_ground_truth
+    return processed_data
