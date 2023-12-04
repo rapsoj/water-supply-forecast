@@ -17,7 +17,7 @@ class StreamflowModel:
         self._loss = average_quantile_loss if isinstance(self.model, dict) else mean_squared_error
 
     def __call__(self, X: pd.DataFrame):
-        X = self.adapter(X.copy())
+        X = self.adapter(X)
         assert (X.dtypes == float).all(), 'Error - wrong dtypes!'
 
         if isinstance(self.model, dict):
@@ -28,15 +28,7 @@ class StreamflowModel:
         return pred
 
     def adapter(self, X: pd.DataFrame):
-        train_mask = X.date.dt.month <= 7
-        #val_mask = val_X.date.dt.month <= 7
-        #test_mask = test_X.date.dt.month <= 7
-
-        pcr_X = X[train_mask].drop(columns=['date', 'forecast_year'])
-        #pcr_val_X = val_X[val_mask].drop(columns=['date', 'forecast_year'])
-        #pcr_test_X = test_X[test_mask]
-        #pcr_test_X = pcr_test_X.drop(columns=['date', 'forecast_year'])
-        return pcr_X
+        return X[X.date.dt.month <= JULY].drop(columns=['date', 'forecast_year'])
 
     def loss(self, X, y):
         pred = self(X)
