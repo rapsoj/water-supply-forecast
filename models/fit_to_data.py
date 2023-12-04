@@ -56,7 +56,7 @@ def fit_basins(fitter: callable, quantile: bool, data: pd.DataFrame, site_ids: l
             df = pd.DataFrame({"pred": pred})
         df.to_csv(site_path, index=False)
 
-# todo change pcr fitter internal format
+
 def gen_basin_preds(train_site: pd.DataFrame, train_gt: pd.DataFrame, val_site: pd.DataFrame, val_gt: pd.DataFrame,
                     test: pd.DataFrame, model_fitters=(general_pcr_fitter,)) -> tuple:
     if len(model_fitters) != 1:

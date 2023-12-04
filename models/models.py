@@ -9,7 +9,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.utils.fixes import parse_version, sp_version
 
 from benchmark.benchmark_results import average_quantile_loss
-from consts import DEF_QUANTILES
+from consts import DEF_QUANTILES, JULY
 
 
 class StreamflowModel:
@@ -29,6 +29,8 @@ class StreamflowModel:
 
     def loss(self, X, y):
         pred = self(X)
+        assert pred.shape == y.shape, 'Error - predictions/ground truth mismatch!'
+
         return self._loss(y, pred)
 
 
@@ -49,7 +51,6 @@ def general_pcr_fitter(X, y, val_X, val_y, test_X, quantile: bool = True, max_n_
 
 
 def adapt_features(X, val_X, test_X):
-    JULY = 7
     train_mask = X.date.dt.month <= JULY
     val_mask = val_X.date.dt.month <= JULY
     test_mask = test_X.date.dt.month <= JULY
