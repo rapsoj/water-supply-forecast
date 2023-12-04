@@ -3,7 +3,7 @@ import pandas as pd
 import os
 
 from benchmark.benchmark_results import benchmark_results, cache_preds
-from consts import JULY
+from consts import JULY, FIRST_FULL_GT_YEAR
 from models.fit_to_data import gen_basin_preds
 from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
@@ -12,7 +12,7 @@ path = os.getcwd()
 
 
 def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
-                 validation_years: tuple = tuple(np.arange(1986, 2023, 8)), gt_col: str = 'volume',
+                 validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)), gt_col: str = 'volume',
                  load_from_cache: bool = True):
     print('Loading data')
     basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache)
@@ -50,14 +50,6 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
             print(f'No ground truth data for site {site_id}')
             continue
 
-        train_pred, val_pred, test_pred, test_dates = gen_basin_preds(train_site, train_site_gt[gt_col], val_site,
-                                                                      val_site_gt[gt_col], test_site)
-        #train_site_gt, val_site_gt = ground_truth(train_site_gt, val_site_gt, num_predictions=28)
-        # extract the test dates, or rather the dates at which predictions are made
-        test_mask = test_site.date.dt.month <= 7 # todo fix moving these test dates
-        test_vals = test_site[test_mask]
-        test_dates = test_vals.date.reset_index(drop=True)
-
         train_pred, val_pred, test_pred = gen_basin_preds(train_site, train_site_gt[gt_col], val_site,
                                                           val_site_gt[gt_col], test_site)
 
@@ -88,7 +80,7 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 def load_ground_truth(num_predictions: int):
     ground_truth_df = pd.read_csv(os.path.join("..", "assets/data/", "train.csv"))
     # todo improve how we retrieve data for different sites, retrieving as much data as we can for each
-    year_mask = (ground_truth_df.year >= 1986)
+    year_mask = (ground_truth_df.year >= FIRST_FULL_GT_YEAR)
     ground_truth_df = ground_truth_df[year_mask].reset_index(drop=True)
     ground_truth_df = ground_truth_df.loc[ground_truth_df.index.repeat(num_predictions)]
     ground_truth_df['forecast_year'] = ground_truth_df.year
@@ -106,7 +98,8 @@ def ground_truth(train_gt: pd.DataFrame, val_gt: pd.DataFrame, num_predictions: 
     seasonal_mask_train = (train_gt.date.dt.month >= 4) & (train_gt.date.dt.month <= 8)
     seasonal_train = train_gt[seasonal_mask_train]
     pcr_train_gt = seasonal_train.groupby('forecast_year', as_index=False) \
-        .volume.sum().reset_index(drop=True)  # (Temporary measure) To offset 16 interpolated weeks on 4 months, approximate 4x multiplier
+        .volume.sum().reset_index(
+        drop=True)  # (Temporary measure) To offset 16 interpolated weeks on 4 months, approximate 4x multiplier
 
     pcr_train_gt = pcr_train_gt.loc[pcr_train_gt.index.repeat(num_predictions)].reset_index(drop=True)
 
@@ -133,18 +126,18 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
     test_feature_df = feature_df[test_feature_mask].reset_index(drop=True)
     test_gt_df = gt_df[test_gt_mask].reset_index(drop=True)
 
-    validation_feature_mask = feature_df.forecast_year.isin(validation_years)
-    validation_gt_mask = gt_df.forecast_year.isin(validation_years)
+    val_mask = feature_df.forecast_year.isin(validation_years)
+    val_gt_mask = gt_df.forecast_year.isin(validation_years)
 
-    val_feature_df = feature_df[validation_feature_mask].reset_index(drop=True)
-    val_gt_df = gt_df[validation_gt_mask].reset_index(drop=True)
+    val_feature_df = feature_df[val_mask].reset_index(drop=True)
+    val_gt_df = gt_df[val_gt_mask].reset_index(drop=True)
 
     # todo decide where to input the start date 1983/1986 year
-    train_feature_mask = ~validation_feature_mask & ~test_feature_mask & (feature_df.forecast_year >= 1986)
-    train_gt_mask = ~validation_gt_mask & ~test_gt_mask & (gt_df.forecast_year >= 1986)
+    train_mask = ~val_mask & ~test_feature_mask & (feature_df.forecast_year >= FIRST_FULL_GT_YEAR)
+    train_gt_mask = ~val_gt_mask & ~test_gt_mask & (gt_df.forecast_year >= FIRST_FULL_GT_YEAR)
 
     # todo filter this in a more dynamic way, getting the minimum year
-    train_feature_df = feature_df[train_feature_mask]#.groupby('site_id').filter(lambda g: g.forecast_year >= g.forecast_year[g.isna])
+    train_feature_df = feature_df[train_mask]
     train_gt_df = gt_df[train_gt_mask]
 
     assert train_feature_df.date.isin(val_feature_df.date).sum() == 0 and \
