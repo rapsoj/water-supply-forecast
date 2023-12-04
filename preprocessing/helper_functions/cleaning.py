@@ -77,7 +77,6 @@ def clean_oni(df_oni):
         'NDJ': 12,
     }
     df_oni['month'] = df_oni.oniSEAS.map(month_conversion_dictionary.get)
-    df_oni['day'] = np.nan
 
     return df_oni.drop(columns='oniSEAS')
 

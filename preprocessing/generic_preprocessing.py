@@ -1,6 +1,7 @@
 ## Read in libraries
 import os
 
+import numpy as np
 import pandas as pd
 
 from preprocessing.helper_functions import cleaning, scaling, merge
@@ -47,24 +48,15 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
 
     # Merging dataframes
     # Merge on site id, day
-    data_frames = [df_grace, df_snotel]
-    df_merged = merge.merge_site_id_day(data_frames)
-
-    # Merge on site id, month
-    data_frames = [df_flow, df_merged]
-    df_merged = merge.merge_site_id_mon(data_frames)
+    dataframes = [df_grace, df_snotel, df_flow]
+    df_merged = merge.merge_site_id_day(dataframes)
 
     # Merge on day
-    data_frames = [df_mjo, df_merged]
-    df_merged = merge.merge_day(data_frames)
-
-    # Merge on month
-    data_frames = [df_pna, df_soi1, df_soi2, df_pdo, df_nino, df_merged]
-    df_merged = merge.merge_mon(data_frames)
-
-    # Merge on year
-    data_frames = [df_oni, df_merged]
-    df_merged = merge.merge_day(data_frames)
+    dataframes = [df_mjo, df_pna, df_soi1, df_soi2, df_pdo, df_nino, df_oni, df_merged]
+    for df in dataframes:
+        assert 'day' not in df.columns
+        df['day'] = np.nan
+    df_merged = merge.merge_day(dataframes)
 
     # Outlier cleaning todo
 

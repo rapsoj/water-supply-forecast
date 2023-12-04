@@ -64,7 +64,6 @@ def gen_basin_preds(train_site: pd.DataFrame, train_gt: pd.DataFrame, val_site: 
 
     fitter = model_fitters[0]
 
-    # todo change these to have the fitter+model itself transform the data
     model = fitter(train_site, train_gt, val_site, val_gt)
     train_pred = model(train_site)
     val_pred = model(val_site)
