@@ -3,6 +3,7 @@ import pandas as pd
 from scipy.stats import norm
 from sklearn.metrics import mean_pinball_loss
 import os
+from consts import JULY, DETROIT
 
 from consts import DEF_QUANTILES
 
@@ -28,7 +29,25 @@ def cache_preds(site_id: str, pred_dates: pd.Series, pred: pd.DataFrame, cache_i
     return pred_df
 
 
-# def generate_submission_file(site_ids: list):
+def generate_submission_file(ordered_site_ids):
+    # Get the correct order, sort in the way competition wants it
+    final_submission_df = pd.DataFrame()
+    for idx, site_id in enumerate(ordered_site_ids):
+
+        site_submission = pd.read_csv(f'{site_id}_pred.csv')
+        site_submission.issue_date = site_submission.issue_date.astype('datetime64[ns]')
+        if site_id == DETROIT:
+            site_submission = site_submission[site_submission.issue_date.dt.month != JULY]
+        final_submission_df = pd.concat([final_submission_df, site_submission])
+
+    final_submission_df.site_id = final_submission_df.site_id.astype("category")
+    final_submission_df.site_id = final_submission_df.site_id.cat.set_categories(ordered_site_ids)
+    final_submission_df = final_submission_df.groupby(final_submission_df.issue_date.dt.year) \
+        .apply(lambda x: x.sort_values(['site_id', 'issue_date']))
+
+    final_submission_df.to_csv('final_pred.csv', index=False)
+    return final_submission_df
+
 
 def calc_quantile_loss(gt: pd.Series, preds: pd.DataFrame, quantile: float) -> float:
     return mean_pinball_loss(gt, preds[quantile], alpha=quantile)

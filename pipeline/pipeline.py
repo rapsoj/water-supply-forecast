@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import os
 
-from benchmark.benchmark_results import benchmark_results, cache_preds
+from benchmark.benchmark_results import benchmark_results, cache_preds, generate_submission_file
 from consts import JULY, FIRST_FULL_GT_YEAR, N_PREDS_PER_MONTH, N_PRED_MONTHS
 from models.fit_to_data import gen_basin_preds
 from preprocessing.generic_preprocessing import get_processed_dataset
@@ -30,7 +30,8 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     site_ids = processed_data.site_id.unique()
     # todo add the date in as a feature of some sort (perhaps just the month?, or datetime to int mod year (might already exist built-in)))
     non_feat_cols = ['site_id']
-    final_submission_df = pd.DataFrame()
+
+
     for site_id in site_ids:
         print(f'Fitting to site {site_id}')
         train_site = train_features[train_features.site_id == site_id]
@@ -52,6 +53,10 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
         train_pred, val_pred, test_pred = gen_basin_preds(train_site, train_site_gt[gt_col], val_site,
                                                           val_site_gt[gt_col], test_site)
 
+        test_mask = test_site.date.dt.month <= JULY  # todo fix moving these test dates
+        test_vals = test_site[test_mask]
+        test_dates = test_vals.date.reset_index(drop=True)
+
         results_id = f'{site_id}'
         print(f'Benchmarking results for site {site_id}')
 
@@ -67,21 +72,11 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
                                                             val_site_gt[gt_col], test_pred, benchmark_id=results_id)
 
         site_submission = cache_preds(pred=test_pred, cache_id=results_id, site_id=site_id, pred_dates=test_dates)
-        # todo figure out if there is a better way in which we wish to do this
-        # Remove July values for detroit lake
-        if site_id == "detroit_lake_inflow":
-            site_submission = site_submission[site_submission.issue_date.dt.month != JULY]
 
-        final_submission_df = pd.concat([final_submission_df, site_submission])
-
-    # Get the correct order, sort in the way competition wants it
     ordered_site_ids = train_gt.site_id.unique()
-    final_submission_df.site_id = final_submission_df.site_id.astype("category")
-    final_submission_df.site_id = final_submission_df.site_id.cat.set_categories(ordered_site_ids)
-    final_submission_df = final_submission_df.groupby(final_submission_df.issue_date.dt.year) \
-        .apply(lambda x: x.sort_values(['site_id', 'issue_date']))
+    print('Generating final submission file...')
+    final_submission_df = generate_submission_file(ordered_site_ids=ordered_site_ids)
 
-    final_submission_df.to_csv('final_pred.csv', index=False)
 
 
 # todo implement this function to generate the ground truth (YG: it's here, isn't this checked off?)
