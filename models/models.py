@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn import linear_model
 from sklearn.decomposition import PCA
+from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.metrics import mean_squared_error
 from sklearn.pipeline import Pipeline
 from sklearn.utils.fixes import parse_version, sp_version
@@ -10,8 +11,12 @@ from benchmark.benchmark_results import average_quantile_loss
 from consts import DEF_QUANTILES, JULY
 
 
+def base_feature_adapter(X):
+    return X[X.date.dt.month <= JULY].drop(columns=['date', 'forecast_year'])
+
+
 class StreamflowModel:
-    def __init__(self, model, adapter=lambda x: x):
+    def __init__(self, model, adapter=base_feature_adapter):
         self.model = model
         self.adapter = adapter
         self._loss = average_quantile_loss if isinstance(self.model, dict) else mean_squared_error
@@ -38,9 +43,21 @@ class StreamflowModel:
         return loss
 
 
+def xgboost_fitter(X, y, *args):
+    X = base_feature_adapter(X)
+    q_models = {}
+    for q in DEF_QUANTILES:
+        model = GradientBoostingRegressor(loss='quantile', alpha=q)
+        model.fit(X, y)
+
+        q_models[q] = model
+
+    return StreamflowModel(q_models)
+
+
 def general_pcr_fitter(X, y, val_X, val_y, quantile: bool = True, MAX_N_PCS: int = 30):
-    pcr_X = pcr_adapt_features(X)
-    pcr_val_X = pcr_adapt_features(val_X)
+    pcr_X = base_feature_adapter(X)
+    pcr_val_X = base_feature_adapter(val_X)
 
     MAX_N_PCS = min(MAX_N_PCS, *pcr_X.shape)
 
@@ -57,10 +74,6 @@ def general_pcr_fitter(X, y, val_X, val_y, quantile: bool = True, MAX_N_PCS: int
     return best_model
 
 
-def pcr_adapt_features(X):
-    return X[X.date.dt.month <= JULY].drop(columns=['date', 'forecast_year'])
-
-
 def pcr_fitter(X, y, pc, quantile: bool = True, solver="highs"):
     assert (X.dtypes == float).all(), 'Error - wrong dtypes!'
 
@@ -74,7 +87,7 @@ def pcr_fitter(X, y, pc, quantile: bool = True, solver="highs"):
 
         model.fit(X, y)
 
-        predictor = StreamflowModel(model, adapter=pcr_adapt_features)
+        predictor = StreamflowModel(model, adapter=base_feature_adapter)
     else:
         regressors = {}
         for q in DEF_QUANTILES:
@@ -84,6 +97,6 @@ def pcr_fitter(X, y, pc, quantile: bool = True, solver="highs"):
 
             regressors[q] = model
 
-        predictor = StreamflowModel(regressors, adapter=pcr_adapt_features)
+        predictor = StreamflowModel(regressors)
 
     return predictor

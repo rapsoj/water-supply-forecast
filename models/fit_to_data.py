@@ -1,12 +1,10 @@
 import os
-from typing import Tuple
 
 import numpy as np
 import pandas as pd
-from pandas import DataFrame, Series
 
 from consts import DEF_QUANTILES
-from models.models import pcr_fitter, general_pcr_fitter
+from models.models import pcr_fitter, xgboost_fitter
 
 
 def fit_basins(fitter: callable, quantile: bool, data: pd.DataFrame, site_ids: list,
@@ -58,7 +56,7 @@ def fit_basins(fitter: callable, quantile: bool, data: pd.DataFrame, site_ids: l
 
 
 def gen_basin_preds(train_site: pd.DataFrame, train_gt: pd.DataFrame, val_site: pd.DataFrame, val_gt: pd.DataFrame,
-                    test: pd.DataFrame, model_fitters=(general_pcr_fitter,)) -> tuple:
+                    test: pd.DataFrame, model_fitters=(xgboost_fitter,)) -> tuple:
     if len(model_fitters) != 1:
         raise NotImplementedError('Error - not implemented yet for ensembles!')
 
