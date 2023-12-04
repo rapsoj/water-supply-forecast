@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 import os
 
-from benchmark.benchmark_results import benchmark_results, cache_preds, generate_submission_file
-from consts import JULY, FIRST_FULL_GT_YEAR, N_PREDS_PER_MONTH, N_PRED_MONTHS
+from benchmark.benchmark_results import benchmark_results, cache_preds, generate_submission_file, quantilise_preds
+from consts import JULY, FIRST_FULL_GT_YEAR, N_PREDS_PER_MONTH, N_PRED_MONTHS, DEF_QUANTILES
 from models.fit_to_data import gen_basin_preds
 from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
@@ -66,9 +66,13 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
         train_site_gt[gt_col] = train_site_gt[gt_col] * gt_std + gt_mean
         val_site_gt[gt_col] = val_site_gt[gt_col] * gt_std + gt_mean
+        train_site_gt = train_site_gt.reset_index(drop=True)
+        val_site_gt = val_site_gt.reset_index(drop=True)
 
-        train_pred, val_pred, test_pred = benchmark_results(train_pred, train_site_gt[gt_col], val_pred,
-                                                            val_site_gt[gt_col], test_pred, benchmark_id=results_id)
+        train_pred, val_pred, test_pred = quantilise_preds(train_pred, val_pred, test_pred, train_site_gt[gt_col])
+
+        benchmark_results(train_pred, train_site_gt[gt_col], val_pred,
+                          val_site_gt[gt_col], test_pred, benchmark_id=results_id)
 
         cache_preds(pred=test_pred, cache_id=results_id, site_id=site_id, pred_dates=test_dates)
 

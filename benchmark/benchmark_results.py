@@ -71,12 +71,7 @@ def calc_losses(train_pred: [pd.Series, pd.DataFrame], train_gt: pd.Series, val_
     return perc_in_interval, quantile_losses, avg_q_losses
 
 
-def benchmark_results(train_pred: [pd.Series, pd.DataFrame], train_gt: pd.Series, val_pred: [pd.Series, pd.DataFrame],
-                      val_gt: pd.Series, test_pred: [pd.Series, pd.DataFrame], benchmark_id: str = None,
-                      verbose: bool = False) \
-        -> tuple[pd.DataFrame]:
-    train_gt = train_gt.reset_index(drop=True)
-    val_gt = val_gt.reset_index(drop=True)
+def quantilise_preds(train_pred, val_pred, test_pred, train_gt):
     if isinstance(train_pred, pd.DataFrame):
         assert isinstance(val_pred, pd.DataFrame) and isinstance(test_pred, pd.DataFrame), \
             'Error - some of the predictions are for quantiles (as they are dataframes) while others are ' \
@@ -94,6 +89,13 @@ def benchmark_results(train_pred: [pd.Series, pd.DataFrame], train_gt: pd.Series
         val_pred = pd.DataFrame({q: gen_predictive_quantile(val_pred, std, q) for q in DEF_QUANTILES})
         test_pred = pd.DataFrame({q: gen_predictive_quantile(test_pred, std, q) for q in DEF_QUANTILES})
 
+    return train_pred, val_pred, test_pred
+
+
+def benchmark_results(train_pred: [pd.Series, pd.DataFrame], train_gt: pd.Series, val_pred: [pd.Series, pd.DataFrame],
+                      val_gt: pd.Series, test_pred: [pd.Series, pd.DataFrame], benchmark_id: str = None,
+                      verbose: bool = False) \
+        -> tuple[pd.DataFrame]:
     assert (train_pred >= 0).all().all() and (val_pred >= 0).all().all() and (test_pred >= 0).all().all(), \
         'Error - negative predictions!'
     assert (train_gt >= 0).all() and (val_gt >= 0).all(), 'Error - negative ground truths!'
@@ -118,5 +120,3 @@ def benchmark_results(train_pred: [pd.Series, pd.DataFrame], train_gt: pd.Series
                   f' {perc_in_interval}\n'
                   f'Quantile losses: {quantile_losses}\n'
                   f'Average quantile loss:{avg_q_losses}')
-
-    return train_pred, val_pred, test_pred
