@@ -53,8 +53,8 @@ def calc_quantile_loss(gt: pd.Series, preds: pd.DataFrame, quantile: float) -> f
     return mean_pinball_loss(gt, preds[quantile], alpha=quantile)
 
 
-def average_quantile_loss(preds: pd.DataFrame, gt: pd.Series, quantiles: list = DEF_QUANTILES) -> float:
-    return np.mean([calc_quantile_loss(preds, gt, q) for q in quantiles])
+def average_quantile_loss(gt: pd.Series, preds: pd.DataFrame, quantiles: list = DEF_QUANTILES) -> float:
+    return np.mean([calc_quantile_loss(gt, preds, q) for q in quantiles])
 
 
 def calc_losses(train_pred: [pd.Series, pd.DataFrame], train_gt: pd.Series, val_pred: [pd.Series, pd.DataFrame],
