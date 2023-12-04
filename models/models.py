@@ -1,15 +1,13 @@
 import numpy as np
 import pandas as pd
-from scipy.signal import savgol_filter
 from sklearn import linear_model
 from sklearn.decomposition import PCA
 from sklearn.metrics import mean_squared_error
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
 from sklearn.utils.fixes import parse_version, sp_version
 
 from benchmark.benchmark_results import average_quantile_loss
-from consts import DEF_QUANTILES
+from consts import DEF_QUANTILES, JULY
 
 
 class StreamflowModel:
@@ -42,10 +40,9 @@ class StreamflowModel:
 
     def loss(self, X, y):
         pred = self(X)
+        assert pred.shape == y.shape, 'Error - predictions/ground truth mismatch!'
+
         return self._loss(y, pred)
-
-
-
 
 
 def general_pcr_fitter(X, y, val_X, val_y, test_X, quantile: bool = True, max_n_pcs: int = 30):
@@ -65,16 +62,16 @@ def general_pcr_fitter(X, y, val_X, val_y, test_X, quantile: bool = True, max_n_
 
 
 def adapt_features(X, val_X, test_X):
-
-    train_mask = X.date.dt.month <= 7
-    val_mask = val_X.date.dt.month <= 7
-    test_mask = test_X.date.dt.month <= 7
+    train_mask = X.date.dt.month <= JULY
+    val_mask = val_X.date.dt.month <= JULY
+    test_mask = test_X.date.dt.month <= JULY
 
     pcr_X = X[train_mask].drop(columns=['date', 'forecast_year'])
     pcr_val_X = val_X[val_mask].drop(columns=['date', 'forecast_year'])
     pcr_test_X = test_X[test_mask]
     pcr_test_X = pcr_test_X.drop(columns=['date', 'forecast_year'])
     return pcr_X, pcr_val_X, pcr_test_X
+
 
 def pcr_fitter(X, y, pc, quantile: bool = True,
                solver="highs" if sp_version >= parse_version("1.6.0") else "inferior-point"):
