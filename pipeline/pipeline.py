@@ -88,30 +88,6 @@ def load_ground_truth(num_predictions: int):
     return ground_truth_df
 
 
-def ground_truth(train_gt: pd.DataFrame, val_gt: pd.DataFrame, num_predictions: int):
-    # take "raw" train and validation gt dfs and sum over them seasonally and connect to the corresponding feature rows
-    # (just multiply b a given number, because the labels are all the same atm)
-    # todo fix ground truth data generation
-    seasonal_mask_train = (train_gt.date.dt.month >= 4) & (train_gt.date.dt.month <= 8)
-    seasonal_train = train_gt[seasonal_mask_train]
-    pcr_train_gt = seasonal_train.groupby('forecast_year', as_index=False) \
-        .volume.sum().reset_index(
-        drop=True)  # (Temporary measure) To offset 16 interpolated weeks on 4 months, approximate 4x multiplier
-
-    pcr_train_gt = pcr_train_gt.loc[pcr_train_gt.index.repeat(num_predictions)].reset_index(drop=True)
-
-    seasonal_mask_val = (val_gt.date.dt.month >= 4) & (val_gt.date.dt.month <= 8)
-    seasonal_val = val_gt[seasonal_mask_val]
-    pcr_val_gt = seasonal_val.groupby('forecast_year', as_index=False) \
-        .volume.sum()  # (Temporary measure) To offset the 16 interpolated weeks on 4 months, approximate 4x multiplier
-
-    pcr_val_gt = pcr_val_gt.loc[pcr_val_gt.index.repeat(num_predictions)]
-
-    # To do: Implement this completely, multiply the rows to the appropriate number and return
-
-    return pcr_train_gt, pcr_val_gt
-
-
 def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_years: tuple, validation_years: tuple):
     feature_df = feature_df.copy()
     gt_df = gt_df.copy()
