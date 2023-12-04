@@ -3,7 +3,7 @@ import pandas as pd
 import os
 
 from benchmark.benchmark_results import benchmark_results, cache_preds, generate_submission_file
-from consts import JULY, FIRST_FULL_GT_YEAR
+from consts import JULY, FIRST_FULL_GT_YEAR, N_PREDS_PER_MONTH, N_PRED_MONTHS
 from models.fit_to_data import gen_basin_preds
 from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
@@ -19,19 +19,19 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
     # todo add explicit forecasting functionality, split train/test for forecasting earlier.
     #  currently everything is processed together. unsure if necessary
-    processed_data, processed_ground_truth = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache)
+    processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache)
 
-    # todo don't circumvent the pipeline!
-    loaded_ground_truth = load_ground_truth(num_predictions=28)
+    ground_truth = load_ground_truth(num_predictions=N_PRED_MONTHS * N_PREDS_PER_MONTH)
     # Get training, validation and test sets
     train_features, val_features, test_features, train_gt, val_gt, test_gt = \
-        train_val_test_split(processed_data, loaded_ground_truth, test_years, validation_years)
+        train_val_test_split(processed_data, ground_truth, test_years, validation_years)
 
     # todo implement global models
     site_ids = processed_data.site_id.unique()
     # todo add the date in as a feature of some sort (perhaps just the month?, or datetime to int mod year (might already exist built-in)))
     non_feat_cols = ['site_id']
-    final_submission_df = pd.DataFrame()
+
+
     for site_id in site_ids:
         print(f'Fitting to site {site_id}')
         train_site = train_features[train_features.site_id == site_id]
@@ -52,6 +52,10 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
         train_pred, val_pred, test_pred = gen_basin_preds(train_site, train_site_gt[gt_col], val_site,
                                                           val_site_gt[gt_col], test_site)
+
+        test_mask = test_site.date.dt.month <= JULY  # todo fix moving these test dates
+        test_vals = test_site[test_mask]
+        test_dates = test_vals.date.reset_index(drop=True)
 
         results_id = f'{site_id}'
         print(f'Benchmarking results for site {site_id}')
@@ -76,33 +80,6 @@ def load_ground_truth(num_predictions: int):
     ground_truth_df['forecast_year'] = ground_truth_df.year
     ground_truth_df = ground_truth_df.drop(columns=['year'])
     return ground_truth_df
-
-
-def ground_truth(train_gt: pd.DataFrame, val_gt: pd.DataFrame, num_predictions: int):
-    # take "raw" train and validation gt dfs and sum over them seasonally and connect to the corresponding feature rows
-    # (just multiply b a given number, because the labels are all the same atm)
-    pcr_train_gt = pd.DataFrame()
-    pcr_val_gt = pd.DataFrame()
-
-    # todo fix ground truth data generation
-    seasonal_mask_train = (train_gt.date.dt.month >= 4) & (train_gt.date.dt.month <= 8)
-    seasonal_train = train_gt[seasonal_mask_train]
-    pcr_train_gt = seasonal_train.groupby('forecast_year', as_index=False) \
-        .volume.sum().reset_index(
-        drop=True)  # (Temporary measure) To offset 16 interpolated weeks on 4 months, approximate 4x multiplier
-
-    pcr_train_gt = pcr_train_gt.loc[pcr_train_gt.index.repeat(num_predictions)].reset_index(drop=True)
-
-    seasonal_mask_val = (val_gt.date.dt.month >= 4) & (val_gt.date.dt.month <= 8)
-    seasonal_val = val_gt[seasonal_mask_val]
-    pcr_val_gt = seasonal_val.groupby('forecast_year', as_index=False) \
-        .volume.sum()  # (Temporary measure) To offset the 16 interpolated weeks on 4 months, approximate 4x multiplier
-
-    pcr_val_gt = pcr_val_gt.loc[pcr_val_gt.index.repeat(num_predictions)]
-
-    # To do: Implement this completely, multiply the rows to the appropriate number and return
-
-    return pcr_train_gt, pcr_val_gt
 
 
 def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_years: tuple, validation_years: tuple):

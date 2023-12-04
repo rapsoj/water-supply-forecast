@@ -34,12 +34,11 @@ def generate_submission_file(ordered_site_ids):
     final_submission_df = pd.DataFrame()
     for idx, site_id in enumerate(ordered_site_ids):
 
-        site_submission = pd.read_csv(os.path.join('..', f'{site_id}_pred.csv'))
-
+        site_submission = pd.read_csv(f'{site_id}_pred.csv')
+        site_submission.issue_date = site_submission.issue_date.astype('datetime64[ns]')
         if site_id == DETROIT:
             site_submission = site_submission[site_submission.issue_date.dt.month != JULY]
-        if idx == 0:
-            final_submission_df = pd.concat([final_submission_df, site_submission])
+        final_submission_df = pd.concat([final_submission_df, site_submission])
 
     final_submission_df.site_id = final_submission_df.site_id.astype("category")
     final_submission_df.site_id = final_submission_df.site_id.cat.set_categories(ordered_site_ids)
