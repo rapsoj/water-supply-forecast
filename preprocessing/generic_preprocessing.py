@@ -64,7 +64,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
 
     # Merge on year
     data_frames = [df_oni, df_merged]
-    df_merged = merge.merge_year(data_frames)
+    df_merged = merge.merge_day(data_frames)
 
     # Outlier cleaning todo
 
