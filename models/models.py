@@ -36,9 +36,11 @@ class StreamflowModel:
         return self._loss(y, pred)
 
 
-def general_pcr_fitter(X, y, val_X, val_y, quantile: bool = True, MAX_N_PCS: int = 29):
+def general_pcr_fitter(X, y, val_X, val_y, quantile: bool = True, MAX_N_PCS: int = 30):
     pcr_X = pcr_adapt_features(X)
     pcr_val_X = pcr_adapt_features(val_X)
+
+    MAX_N_PCS = min(MAX_N_PCS, *pcr_X.shape)
 
     min_v_loss = np.inf
     best_model = None
