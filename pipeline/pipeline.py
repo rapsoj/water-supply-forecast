@@ -50,8 +50,12 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
             continue
 
         #train_site_gt, val_site_gt = ground_truth(train_site_gt, val_site_gt, num_predictions=28)
+        # extract the test dates, or rather the dates at which predictions are made
+        test_mask = test_site.date.dt.month <= 7 # todo fix moving these test dates
+        test_vals = test_site[test_mask]
+        test_dates = test_vals.date.reset_index(drop=True)
 
-        train_pred, val_pred, test_pred, test_dates = gen_basin_preds(train_site, train_site_gt[gt_col], val_site,
+        train_pred, val_pred, test_pred = gen_basin_preds(train_site, train_site_gt[gt_col], val_site,
                                                           val_site_gt[gt_col], test_site)
 
         results_id = f'{site_id}'
@@ -87,6 +91,7 @@ def load_ground_truth(num_predictions: int):
     ground_truth_df['forecast_year'] = ground_truth_df.year
     ground_truth_df = ground_truth_df.drop(columns=['year'])
     return ground_truth_df
+
 def ground_truth(train_gt: pd.DataFrame, val_gt: pd.DataFrame, num_predictions: int):
     # take "raw" train and validation gt dfs and sum over them seasonally and connect to the corresponding feature rows
     # (just multiply b a given number, because the labels are all the same atm)
@@ -133,7 +138,8 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
     train_feature_mask = ~validation_feature_mask & ~test_feature_mask & (feature_df.forecast_year >= 1986)
     train_gt_mask = ~validation_gt_mask & ~test_gt_mask & (gt_df.forecast_year >= 1986)
 
-    train_feature_df = feature_df[train_feature_mask]
+    # todo filter this in a more dynamic way, getting the minimum year
+    train_feature_df = feature_df[train_feature_mask]#.groupby('site_id').filter(lambda g: g.forecast_year >= g.forecast_year[g.isna])
     train_gt_df = gt_df[train_gt_mask]
 
     assert train_feature_df.date.isin(val_feature_df.date).sum() == 0 and \

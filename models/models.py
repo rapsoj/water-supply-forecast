@@ -35,8 +35,8 @@ class StreamflowModel:
 
 
 
-def general_pcr_fitter(X, y, val_X, val_y, test_X, quantile: bool = True, max_n_pcs: int = 29):
-    pcr_X, pcr_val_X, pcr_test_X, test_dates = adapt_features(X, val_X, test_X)
+def general_pcr_fitter(X, y, val_X, val_y, test_X, quantile: bool = True, max_n_pcs: int = 30):
+    pcr_X, pcr_val_X, pcr_test_X = adapt_features(X, val_X, test_X)
 
     min_v_loss = np.inf
     best_model = None
@@ -48,7 +48,7 @@ def general_pcr_fitter(X, y, val_X, val_y, test_X, quantile: bool = True, max_n_
             min_v_loss = loss
             best_model = model
 
-    return best_model, pcr_X, pcr_val_X, pcr_test_X, test_dates
+    return best_model, pcr_X, pcr_val_X, pcr_test_X
 
 
 def adapt_features(X, val_X, test_X):
@@ -60,9 +60,8 @@ def adapt_features(X, val_X, test_X):
     pcr_X = X[train_mask].drop(columns=['date', 'forecast_year'])
     pcr_val_X = val_X[val_mask].drop(columns=['date', 'forecast_year'])
     pcr_test_X = test_X[test_mask]
-    test_dates = pcr_test_X.date.reset_index(drop=True)
     pcr_test_X = pcr_test_X.drop(columns=['date', 'forecast_year'])
-    return pcr_X, pcr_val_X, pcr_test_X, test_dates
+    return pcr_X, pcr_val_X, pcr_test_X
 
 def pcr_fitter(X, y, pc, quantile: bool = True,
                solver="highs" if sp_version >= parse_version("1.6.0") else "inferior-point"):
