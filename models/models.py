@@ -28,9 +28,7 @@ class StreamflowModel:
         return pred
 
     def adapter(self, X: pd.DataFrame):
-        train_mask = X.date.dt.month <= 7
-        #val_mask = val_X.date.dt.month <= 7
-        #test_mask = test_X.date.dt.month <= 7
+        train_mask = X.date.dt.month <= JULY
 
         pcr_X = X[train_mask].drop(columns=['date', 'forecast_year'])
         #pcr_val_X = val_X[val_mask].drop(columns=['date', 'forecast_year'])
