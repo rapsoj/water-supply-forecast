@@ -5,7 +5,6 @@ from sklearn.metrics import mean_pinball_loss
 import os
 from consts import JULY, DETROIT
 
-
 from consts import DEF_QUANTILES
 
 os.chdir("../exploration")
@@ -29,6 +28,7 @@ def cache_preds(site_id: str, pred_dates: pd.Series, pred: pd.DataFrame, cache_i
     pred_df.to_csv(f'{cache_id}_pred.csv', index=False)
     return pred_df
 
+
 def generate_submission_file(ordered_site_ids):
     # Get the correct order, sort in the way competition wants it
     final_submission_df = pd.DataFrame()
@@ -47,6 +47,8 @@ def generate_submission_file(ordered_site_ids):
 
     final_submission_df.to_csv('final_pred.csv', index=False)
     return final_submission_df
+
+
 def calc_quantile_loss(gt: pd.Series, preds: pd.DataFrame, quantile: float) -> float:
     return mean_pinball_loss(gt, preds[quantile], alpha=quantile)
 
@@ -91,6 +93,14 @@ def benchmark_results(train_pred: [pd.Series, pd.DataFrame], train_gt: pd.Series
         train_pred = pd.DataFrame({q: gen_predictive_quantile(train_pred, std, q) for q in DEF_QUANTILES})
         val_pred = pd.DataFrame({q: gen_predictive_quantile(val_pred, std, q) for q in DEF_QUANTILES})
         test_pred = pd.DataFrame({q: gen_predictive_quantile(test_pred, std, q) for q in DEF_QUANTILES})
+
+    assert (train_pred >= 0).all().all() and (val_pred >= 0).all().all() and (test_pred >= 0).all().all(), \
+        'Error - negative predictions!'
+    assert (train_gt >= 0).all() and (val_gt >= 0).all(), 'Error - negative ground truths!'
+
+    for data in (train_pred, val_pred, test_pred):
+        assert all((data[DEF_QUANTILES[i]] <= data[DEF_QUANTILES[i + 1]]).all()
+                   for i in range(len(DEF_QUANTILES) - 1)), 'Error - quantiles are not ordered!'
 
     perc_in_interval, quantile_losses, avg_q_losses = calc_losses(train_pred, train_gt, val_pred, val_gt)
 

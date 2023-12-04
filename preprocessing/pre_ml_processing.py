@@ -88,65 +88,8 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
 
     data = data.copy()
 
-    # Read data
-    other_cols = ["oniSEAS_AMJ", "oniSEAS_ASO", "oniSEAS_DJF",
-                  "oniSEAS_FMA", "oniSEAS_JAS", "oniSEAS_JFM", "oniSEAS_JJA", "oniSEAS_MAM",
-                  "oniSEAS_MJJ", "oniSEAS_NDJ", "oniSEAS_OND", "oniSEAS_SON", "site_id_american_river_folsom_lake",
-                  "site_id_animas_r_at_durango", "site_id_boise_r_nr_boise", "site_id_boysen_reservoir_inflow",
-                  "site_id_colville_r_at_kettle_falls",
-                  "site_id_detroit_lake_inflow", "site_id_dillon_reservoir_inflow",
-                  "site_id_fontenelle_reservoir_inflow",
-                  "site_id_green_r_bl_howard_a_hanson_dam", "site_id_hungry_horse_reservoir_inflow",
-                  "site_id_libby_reservoir_inflow",
-                  "site_id_merced_river_yosemite_at_pohono_bridge", "site_id_missouri_r_at_toston",
-                  "site_id_owyhee_r_bl_owyhee_dam",
-                  "site_id_pecos_r_nr_pecos", "site_id_pueblo_reservoir_inflow", "site_id_ruedi_reservoir_inflow",
-                  "site_id_san_joaquin_river_millerton_reservoir", "site_id_skagit_ross_reservoir",
-                  "site_id_snake_r_nr_heise",
-                  "site_id_stehekin_r_at_stehekin", "site_id_sweetwater_r_nr_alcova",
-                  "site_id_taylor_park_reservoir_inflow",
-                  "site_id_virgin_r_at_virtin", "site_id_weber_r_nr_oakley", "site_id_yampa_r_nr_maybell"]
-    col2dtype = {"mjo20E": float, "mjo70E": float, "mjo80E": float, "mjo100E": float, "mjo120E": float,
-                 "mjo140E": float, "mjo160E": float, "mjo120W": float, "mjo40W": float, "mjo10W": float,
-                 "year": int, "month": int, "day": float, "ninoNINO1+2": float, "ninoANOM": float,
-                 "ninoNINO3": float, "ninoANOM.1": float, "ninoNINO4": float, "ninoANOM.2": float,
-                 "ninoNINO3.4": float, "ninoANOM.3": float, "oniTOTAL": float,
-                 "oniANOM": float, "pdo": float, "pna": float, "soi_anom": float, "soi_sd": float,
-                 "forecast_year": float, "volume": float, "mean_gws_inst": float, "mean_rtzsm_inst": float,
-                 "mean_sfsm_inst": float, "station": float, "PREC_DAILY": float, "WTEQ_DAILY": float,
-                 "TAVG_DAILY": float,
-                 "TMAX_DAILY": float, "TMIN_DAILY": float, "SNWD_DAILY": float}
-
-    for col in other_cols:
-        col2dtype[col] = bool
-
     # monthly measurements are approx at the middle
     data.day[data.day == -1] = 15
-
-    # Reformulate ONIXXX from one hot encoding to date
-    oni_temporal_cols = [col for col in data.columns if 'oniSEAS' in col]
-    month_conversion_dictionary = {
-        'oniSEAS_AMJ': 5,
-        'oniSEAS_ASO': 9,
-        'oniSEAS_DJF': 1,
-        'oniSEAS_FMA': 3,
-        'oniSEAS_JAS': 8,
-        'oniSEAS_JFM': 2,
-        'oniSEAS_JJA': 7,
-        'oniSEAS_MAM': 4,
-        'oniSEAS_MJJ': 6,
-        'oniSEAS_NDJ': 12,
-        'oniSEAS_OND': 11,
-        'oniSEAS_SON': 10
-    }
-    data['oni_month'] = data[oni_temporal_cols] \
-        .idxmax(axis='columns') \
-        .apply(month_conversion_dictionary.get)
-    data = data.drop(columns=list(month_conversion_dictionary.keys()))
-
-    # todo finish oni date conversion/check that it works properly
-
-    data.month[data.month == -1] = data.oni_month[data.month == -1]
 
     # Create integer dates to work with
     data["date"] = pd.to_datetime(data[date_cols].map(int))

@@ -10,7 +10,7 @@ def preprocess_column(df, column_name):
     # Check the data type of the column
     column_dtype = df[column_name].dtype
 
-    if column_dtype == 'object':
+    if column_dtype == 'object' and column_name != 'oniSEAS':
         # If it's a categorical variable, perform one-hot encoding
         df = pd.get_dummies(df, columns=[column_name], prefix=[column_name])
     elif column_dtype in ['int64', 'float64']:

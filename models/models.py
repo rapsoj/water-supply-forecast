@@ -33,12 +33,16 @@ class StreamflowModel:
         pred = self(X, adapt_feats=adapt_feats)
         assert pred.shape[0] == y.shape[0], 'Error - predictions/ground truth mismatch!'
 
-        return self._loss(y, pred)
+        loss = self._loss(y, pred)
+        assert loss is not None and loss is not np.nan, 'Error - loss is None!'
+        return loss
 
 
-def general_pcr_fitter(X, y, val_X, val_y, quantile: bool = True, MAX_N_PCS: int = 29):
+def general_pcr_fitter(X, y, val_X, val_y, quantile: bool = True, MAX_N_PCS: int = 30):
     pcr_X = pcr_adapt_features(X)
     pcr_val_X = pcr_adapt_features(val_X)
+
+    MAX_N_PCS = min(MAX_N_PCS, *pcr_X.shape)
 
     min_v_loss = np.inf
     best_model = None
