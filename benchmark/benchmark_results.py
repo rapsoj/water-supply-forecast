@@ -98,6 +98,10 @@ def benchmark_results(train_pred: [pd.Series, pd.DataFrame], train_gt: pd.Series
         'Error - negative predictions!'
     assert (train_gt >= 0).all() and (val_gt >= 0).all(), 'Error - negative ground truths!'
 
+    for data in (train_pred, val_pred, test_pred):
+        assert all((data[DEF_QUANTILES[i]] <= data[DEF_QUANTILES[i + 1]]).all()
+                   for i in range(len(DEF_QUANTILES) - 1)), 'Error - quantiles are not ordered!'
+
     perc_in_interval, quantile_losses, avg_q_losses = calc_losses(train_pred, train_gt, val_pred, val_gt)
 
     if benchmark_id is not None:

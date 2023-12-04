@@ -31,7 +31,6 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     # todo add the date in as a feature of some sort (perhaps just the month?, or datetime to int mod year (might already exist built-in)))
     non_feat_cols = ['site_id']
 
-
     for site_id in site_ids:
         print(f'Fitting to site {site_id}')
         train_site = train_features[train_features.site_id == site_id]
@@ -71,12 +70,11 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
         train_pred, val_pred, test_pred = benchmark_results(train_pred, train_site_gt[gt_col], val_pred,
                                                             val_site_gt[gt_col], test_pred, benchmark_id=results_id)
 
-        site_submission = cache_preds(pred=test_pred, cache_id=results_id, site_id=site_id, pred_dates=test_dates)
+        cache_preds(pred=test_pred, cache_id=results_id, site_id=site_id, pred_dates=test_dates)
 
-    ordered_site_ids = train_gt.site_id.unique()
+    ordered_site_ids = train_gt.site_id.drop_duplicates().tolist()
     print('Generating final submission file...')
-    final_submission_df = generate_submission_file(ordered_site_ids=ordered_site_ids)
-
+    generate_submission_file(ordered_site_ids=ordered_site_ids)
 
 
 # todo implement this function to generate the ground truth (YG: it's here, isn't this checked off?)
