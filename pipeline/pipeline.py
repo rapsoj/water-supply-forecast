@@ -52,6 +52,14 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
         train_pred, val_pred, test_pred, test_dates = gen_basin_preds(train_site, train_site_gt[gt_col], val_site,
                                                                       val_site_gt[gt_col], test_site)
+        #train_site_gt, val_site_gt = ground_truth(train_site_gt, val_site_gt, num_predictions=28)
+        # extract the test dates, or rather the dates at which predictions are made
+        test_mask = test_site.date.dt.month <= 7 # todo fix moving these test dates
+        test_vals = test_site[test_mask]
+        test_dates = test_vals.date.reset_index(drop=True)
+
+        train_pred, val_pred, test_pred = gen_basin_preds(train_site, train_site_gt[gt_col], val_site,
+                                                          val_site_gt[gt_col], test_site)
 
         results_id = f'{site_id}'
         print(f'Benchmarking results for site {site_id}')
@@ -98,8 +106,7 @@ def ground_truth(train_gt: pd.DataFrame, val_gt: pd.DataFrame, num_predictions: 
     seasonal_mask_train = (train_gt.date.dt.month >= 4) & (train_gt.date.dt.month <= 8)
     seasonal_train = train_gt[seasonal_mask_train]
     pcr_train_gt = seasonal_train.groupby('forecast_year', as_index=False) \
-        .volume.sum().reset_index(
-        drop=True)  # (Temporary measure) To offset 16 interpolated weeks on 4 months, approximate 4x multiplier
+        .volume.sum().reset_index(drop=True)  # (Temporary measure) To offset 16 interpolated weeks on 4 months, approximate 4x multiplier
 
     pcr_train_gt = pcr_train_gt.loc[pcr_train_gt.index.repeat(num_predictions)].reset_index(drop=True)
 
@@ -136,7 +143,8 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
     train_feature_mask = ~validation_feature_mask & ~test_feature_mask & (feature_df.forecast_year >= 1986)
     train_gt_mask = ~validation_gt_mask & ~test_gt_mask & (gt_df.forecast_year >= 1986)
 
-    train_feature_df = feature_df[train_feature_mask]
+    # todo filter this in a more dynamic way, getting the minimum year
+    train_feature_df = feature_df[train_feature_mask]#.groupby('site_id').filter(lambda g: g.forecast_year >= g.forecast_year[g.isna])
     train_gt_df = gt_df[train_gt_mask]
 
     assert train_feature_df.date.isin(val_feature_df.date).sum() == 0 and \

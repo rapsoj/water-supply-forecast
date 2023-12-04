@@ -27,6 +27,7 @@ def cache_preds(site_id: str, pred_dates: pd.Series, pred: pd.DataFrame, cache_i
     pred_df.to_csv(f'{cache_id}_pred.csv', index=False)
     return pred_df
 
+#def generate_submission_file(site_ids: list):
 
 def calc_quantile_loss(gt: pd.Series, preds: pd.DataFrame, quantile: float) -> float:
     return mean_pinball_loss(gt, preds[quantile], alpha=quantile)
