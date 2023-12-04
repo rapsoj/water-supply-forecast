@@ -13,7 +13,7 @@ path = os.getcwd()
 
 def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
                  validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)), gt_col: str = 'volume',
-                 load_from_cache: bool = False):
+                 load_from_cache: bool = True):
     print('Loading data')
     basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache)
 

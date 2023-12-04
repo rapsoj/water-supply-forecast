@@ -33,7 +33,9 @@ class StreamflowModel:
         pred = self(X, adapt_feats=adapt_feats)
         assert pred.shape[0] == y.shape[0], 'Error - predictions/ground truth mismatch!'
 
-        return self._loss(y, pred)
+        loss = self._loss(y, pred)
+        assert loss is not None and loss is not np.nan, 'Error - loss is None!'
+        return loss
 
 
 def general_pcr_fitter(X, y, val_X, val_y, quantile: bool = True, MAX_N_PCS: int = 30):
