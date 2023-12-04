@@ -149,7 +149,7 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
     data.month[data.month == -1] = data.oni_month[data.month == -1]
 
     # Create integer dates to work with
-    data["date"] = pd.to_datetime(data[date_cols].applymap(int))
+    data["date"] = pd.to_datetime(data[date_cols].map(int))
     data = data.sort_values('date')
 
     # Get site ids
