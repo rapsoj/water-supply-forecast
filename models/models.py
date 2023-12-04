@@ -13,11 +13,13 @@ from consts import DEF_QUANTILES
 
 
 class StreamflowModel:
-    def __init__(self, model):
+    def __init__(self, model, adapter=lambda x: x):
         self.model = model
+        self.adapter = adapter
         self._loss = average_quantile_loss if isinstance(self.model, dict) else mean_squared_error
 
-    def __call__(self, X):
+    def __call__(self, X: pd.DataFrame):
+        X = self.adapter(X.copy())
         assert (X.dtypes == float).all(), 'Error - wrong dtypes!'
 
         if isinstance(self.model, dict):
@@ -26,6 +28,17 @@ class StreamflowModel:
             pred = pd.Series(self.model.predict(X))
 
         return pred
+
+    def adapter(self, X: pd.DataFrame):
+        train_mask = X.date.dt.month <= 7
+        #val_mask = val_X.date.dt.month <= 7
+        #test_mask = test_X.date.dt.month <= 7
+
+        pcr_X = X[train_mask].drop(columns=['date', 'forecast_year'])
+        #pcr_val_X = val_X[val_mask].drop(columns=['date', 'forecast_year'])
+        #pcr_test_X = test_X[test_mask]
+        #pcr_test_X = pcr_test_X.drop(columns=['date', 'forecast_year'])
+        return pcr_X
 
     def loss(self, X, y):
         pred = self(X)
@@ -48,7 +61,7 @@ def general_pcr_fitter(X, y, val_X, val_y, test_X, quantile: bool = True, max_n_
             min_v_loss = loss
             best_model = model
 
-    return best_model, pcr_X, pcr_val_X, pcr_test_X
+    return best_model
 
 
 def adapt_features(X, val_X, test_X):

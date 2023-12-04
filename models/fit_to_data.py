@@ -63,6 +63,8 @@ def gen_basin_preds(train_site: pd.DataFrame, train_gt: pd.DataFrame, val_site: 
         raise NotImplementedError('Error - not implemented yet for ensembles!')
 
     fitter = model_fitters[0]
+
+    # todo change these to have the fitter+model itself transform the data
     model, adapted_train, adapted_val, adapted_test = fitter(train_site, train_gt, val_site, val_gt, test)
     train_pred = model(adapted_train)
     val_pred = model(adapted_val)
