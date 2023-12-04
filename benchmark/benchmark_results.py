@@ -94,6 +94,16 @@ def benchmark_results(train_pred: [pd.Series, pd.DataFrame], train_gt: pd.Series
 
     perc_in_interval, quantile_losses, avg_q_losses = calc_losses(train_pred, train_gt, val_pred, val_gt)
 
+    # Extract and write to csvs to do sanity checks
+    avg_q_losses = pd.DataFrame(avg_q_losses, index=np.arange(0,1))
+    quantile_losses = pd.DataFrame(quantile_losses)
+
+    perc_in_interval = pd.DataFrame(perc_in_interval)
+    perc_in_interval = perc_in_interval.mean(axis='rows')
+    avg_q_losses.to_csv(f'{benchmark_id}_avg_q_losses.csv', index=False)
+    quantile_losses.to_csv(f'{benchmark_id}_all_q_losses.csv', index=False)
+    perc_in_interval.to_csv(f'{benchmark_id}_perc_in_interval.csv', index=False)
+
     if benchmark_id is not None:
         benchmark_res_path = f'benchmark_res_{benchmark_id}.txt'
         with open(benchmark_res_path, 'w') as f:
