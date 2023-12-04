@@ -43,7 +43,7 @@ class StreamflowModel:
         return loss
 
 
-def xgboost_fitter(X, y, *args, quantile: bool = False):
+def xgboost_fitter(X, y, *args, quantile: bool = True):
     X = base_feature_adapter(X)
 
     if quantile:

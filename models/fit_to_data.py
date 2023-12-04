@@ -1,10 +1,6 @@
-import os
-
-import numpy as np
 import pandas as pd
 
-from consts import DEF_QUANTILES
-from models.models import pcr_fitter, xgboost_fitter
+from models.models import xgboost_fitter
 
 
 def gen_basin_preds(train_site: pd.DataFrame, train_gt: pd.DataFrame, val_site: pd.DataFrame, val_gt: pd.DataFrame,
