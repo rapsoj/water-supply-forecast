@@ -77,13 +77,14 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
 # todo implement this function to generate the ground truth (YG: it's here, isn't this checked off?)
 def load_ground_truth(num_predictions: int):
-    ground_truth_df = pd.read_csv(os.path.join("..", "assets/data/", "train.csv"))
+    ground_truth_df = pd.read_csv(os.path.join("..", "assets", "data", "train.csv"))
     # todo improve how we retrieve data for different sites, retrieving as much data as we can for each
     year_mask = (ground_truth_df.year >= FIRST_FULL_GT_YEAR)
     ground_truth_df = ground_truth_df[year_mask].reset_index(drop=True)
     ground_truth_df = ground_truth_df.loc[ground_truth_df.index.repeat(num_predictions)]
     ground_truth_df['forecast_year'] = ground_truth_df.year
     ground_truth_df = ground_truth_df.drop(columns=['year'])
+
     return ground_truth_df
 
 
