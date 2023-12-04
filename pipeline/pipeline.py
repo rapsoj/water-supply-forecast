@@ -91,9 +91,6 @@ def load_ground_truth(num_predictions: int):
 def ground_truth(train_gt: pd.DataFrame, val_gt: pd.DataFrame, num_predictions: int):
     # take "raw" train and validation gt dfs and sum over them seasonally and connect to the corresponding feature rows
     # (just multiply b a given number, because the labels are all the same atm)
-    pcr_train_gt = pd.DataFrame()
-    pcr_val_gt = pd.DataFrame()
-
     # todo fix ground truth data generation
     seasonal_mask_train = (train_gt.date.dt.month >= 4) & (train_gt.date.dt.month <= 8)
     seasonal_train = train_gt[seasonal_mask_train]
