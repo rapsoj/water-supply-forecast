@@ -1,11 +1,9 @@
 import numpy as np
 import pandas as pd
-from scipy.signal import savgol_filter
 from sklearn import linear_model
 from sklearn.decomposition import PCA
 from sklearn.metrics import mean_squared_error
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
 from sklearn.utils.fixes import parse_version, sp_version
 
 from benchmark.benchmark_results import average_quantile_loss
