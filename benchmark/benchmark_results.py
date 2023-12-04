@@ -25,6 +25,7 @@ def cache_preds(site_id: str, pred_dates: pd.Series, pred: pd.DataFrame, cache_i
                            {f'volume_{int(q * 100)}': pred[q] for q in DEF_QUANTILES})[col_order]
 
     pred_df.to_csv(f'{cache_id}_pred.csv', index=False)
+    return pred_df
 
 
 def calc_quantile_loss(gt: pd.Series, preds: pd.DataFrame, quantile: float) -> float:

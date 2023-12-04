@@ -32,41 +32,37 @@ class StreamflowModel:
         return self._loss(y, pred)
 
 
-def general_pcr_fitter(X, y, val_X, val_y, quantile: bool = True, max_n_pcs: int = 30):
-    pcr_train_gt, pcr_val_gt = pcr_ground_truth(y, val_y, 16)
+
+
+
+def general_pcr_fitter(X, y, val_X, val_y, test_X, quantile: bool = True, max_n_pcs: int = 29):
+    pcr_X, pcr_val_X, pcr_test_X, test_dates = adapt_features(X, val_X, test_X)
 
     min_v_loss = np.inf
     best_model = None
     for pc in range(1, max_n_pcs):
-        model = pcr_fitter(X, y, pc=pc, quantile=quantile)
+        model = pcr_fitter(pcr_X, y, pc=pc, quantile=quantile)
 
-        loss = model.loss(val_X, val_y)
+        loss = model.loss(pcr_val_X, val_y)
         if min_v_loss > loss:
             min_v_loss = loss
             best_model = model
 
-    return best_model
+    return best_model, pcr_X, pcr_val_X, pcr_test_X, test_dates
 
-# To do implement this function to generate the ground truth
-def pcr_ground_truth(train_gt: pd.DataFrame, val_gt: pd.DataFrame, num_predictions: int):
-    # take "raw" train and validation gt dfs and sum over them seasonally and connect to the corresponding feature rows
-    # (just multiply b a given number, because the labels are all the same atm)
-    pcr_train_gt = pd.DataFrame()
-    pcr_val_gt = pd.DataFrame()
 
-    pcr_train_gt = train_gt.groupby('forecast_year', as_index=False) \
-        .volume.sum()
+def adapt_features(X, val_X, test_X):
 
-    pcr_train_gt = pcr_train_gt.loc[pcr_train_gt.index.repeat(num_predictions)]
+    train_mask = X.date.dt.month <= 7
+    val_mask = val_X.date.dt.month <= 7
+    test_mask = test_X.date.dt.month <= 7
 
-    pcr_val_gt = val_gt.groupby('forecast_year') \
-        .volume.sum()
-
-    pcr_val_gt = pcr_val_gt.loc[pcr_train_gt.index.repeat(num_predictions)]
-
-    # To do: Implement this completely, multiply the rows to the appropriate number and return
-
-    return pcr_val_gt, pcr_train_gt
+    pcr_X = X[train_mask].drop(columns=['date', 'forecast_year'])
+    pcr_val_X = val_X[val_mask].drop(columns=['date', 'forecast_year'])
+    pcr_test_X = test_X[test_mask]
+    test_dates = pcr_test_X.date.reset_index(drop=True)
+    pcr_test_X = pcr_test_X.drop(columns=['date', 'forecast_year'])
+    return pcr_X, pcr_val_X, pcr_test_X, test_dates
 
 def pcr_fitter(X, y, pc, quantile: bool = True,
                solver="highs" if sp_version >= parse_version("1.6.0") else "inferior-point"):

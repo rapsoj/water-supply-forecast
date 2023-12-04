@@ -56,20 +56,19 @@ def fit_basins(fitter: callable, quantile: bool, data: pd.DataFrame, site_ids: l
             df = pd.DataFrame({"pred": pred})
         df.to_csv(site_path, index=False)
 
-
 # todo change pcr fitter internal format
-def gen_basin_preds(train_site: pd.DataFrame, train_gt: pd.Series, val_site: pd.DataFrame, val_gt: pd.Series,
+def gen_basin_preds(train_site: pd.DataFrame, train_gt: pd.DataFrame, val_site: pd.DataFrame, val_gt: pd.DataFrame,
                     test: pd.DataFrame, model_fitters=(general_pcr_fitter,)) -> tuple:
     if len(model_fitters) != 1:
         raise NotImplementedError('Error - not implemented yet for ensembles!')
 
     fitter = model_fitters[0]
-    model = fitter(train_site, train_gt, val_site, val_gt)
-    train_pred = model(train_site)
-    val_pred = model(val_site)
-    test_pred = model(test)
+    model, adapted_train, adapted_val, adapted_test, test_dates = fitter(train_site, train_gt, val_site, val_gt, test)
+    train_pred = model(adapted_train)
+    val_pred = model(adapted_val)
+    test_pred = model(adapted_test)
 
-    return train_pred, val_pred, test_pred
+    return train_pred, val_pred, test_pred, test_dates
 
 
 def main():

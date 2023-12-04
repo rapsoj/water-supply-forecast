@@ -3,6 +3,7 @@ import os
 
 import numpy as np
 import pandas as pd
+import time
 
 path = os.getcwd()
 
@@ -21,18 +22,30 @@ date_cols = ['year', 'month', 'day']
 def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.DataFrame, oni_data: pd.DataFrame,
                      misc_data: pd.DataFrame, N_DAYS_DELTA: int = 7) -> pd.DataFrame:
     # Generate a df with rows for every prediction date, then gather data accordingly up until that point
-    start_date = df.date.min()
+    start_date1 = pd.to_datetime(f"{df.date.dt.year.min()}0101", format="%Y%m%d")
+    #start_time = time.strptime(start_date1)
+    end_date1 = pd.to_datetime(f"{df.date.dt.year.max()}0701", format="%Y%m%d")
+
+
     end_date = df.date.max()
-    feat_dates = pd.date_range(start=start_date, end=end_date, freq=f'{N_DAYS_DELTA}D')
+    feat_dates1 = pd.date_range(start=start_date1, end=end_date1, freq=f'{1}MS')
+    feat_dates2 = pd.date_range(start=start_date1, end=end_date1, freq=f'{1}MS').shift(7, freq="D")
+    feat_dates3 = pd.date_range(start=start_date1, end=end_date1, freq=f'{1}MS').shift(14, freq="D")
+    feat_dates4 = pd.date_range(start=start_date1, end=end_date1, freq=f'{1}MS').shift(21, freq="D")
+    feat_dates = pd.Series(np.sort(np.concatenate((np.array(feat_dates1),np.array(feat_dates2),np.array(feat_dates3),np.array(feat_dates4)))))
+
     # todo we're throwing away data that we have here, can/should we use it eg for training?
-    feat_dates = feat_dates[(feat_dates.month < 4) | (feat_dates.month > 9)].to_series()
+    #feat_dates = feat_dates[(feat_dates.month >= 4) | (feat_dates.month <=  9)].to_series()
     site_feat_cols = set(df.columns) - ({'site_id', 'date', 'forecast_year', 'station'} | set(date_cols))
 
     # average over data from different stations in the same day, todo - deal with this properly by using lat/lon data or something groovier
     site_id = df.name
     df = df.groupby('date')[list(site_feat_cols)].agg(lambda x: x.dropna().mean()).reset_index()
 
-    # re-add global data into specific df todo use new data, currently this explods because of bad joins in the existing dataset
+    # drop irrelevant columns, especially relevant for california data that's missing some features
+    df = df.drop(columns=df.columns[df.isna().all()])
+
+    # re-add global data into specific df
     df = df.merge(mjo_data, on='date', how='outer') \
         .merge(nino_data.drop_duplicates(), on='date', how='outer') \
         .merge(oni_data.drop_duplicates(), on='date', how='outer') \
@@ -41,11 +54,11 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
         .reset_index(drop=True)
 
     # Get associated dates
-    orig_dates_vals = (df.date - start_date).dt.days
-    feat_dates_vals = (feat_dates - start_date).dt.days
+    orig_dates_vals = (df.date - start_date1).dt.days
+    feat_dates_vals = (feat_dates - start_date1).dt.days
 
     # split into columns you interpolate and those you take the closest preceding value
-    interp_cols = global_oni_cols + ['volume']
+    interp_cols = list(set(global_oni_cols + ['volume']) & set(df.columns))
     interp_df = df[interp_cols].apply(lambda x: np.interp(feat_dates_vals, orig_dates_vals[~x.isna()],
                                                           x.dropna())).reset_index(drop=True)
     other_cols = list(set(df.columns) - set(interp_cols) - {'date'})
@@ -58,7 +71,7 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
 
     site_df = interp_df.join(other_cols_df)
     site_df['date'] = feat_dates.reset_index(drop=True)
-    site_df['forecast_year'] = feat_dates.apply(lambda x: x.year + (x.month > 4)).reset_index(
+    site_df['forecast_year'] = feat_dates.apply(lambda x: x.year + (x.month >=10)).reset_index(
         drop=True)  # set value as +1 for all
 
     # todo make sure this is after the train/test split, don't want leakage
@@ -71,7 +84,7 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
 def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed_data.csv',
                        gt_file_path: str = 'ml_processed_gt_data.csv', load_from_cache: bool = False) -> tuple:
     if load_from_cache and os.path.exists(output_file_path) and os.path.exists(gt_file_path):
-        return pd.read_csv(output_file_path), pd.read_csv(gt_file_path)
+        return pd.read_csv(output_file_path, parse_dates=['date']), pd.read_csv(gt_file_path, parse_dates=['date'])
 
     data = data.copy()
 
@@ -129,6 +142,7 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
     data['oni_month'] = data[oni_temporal_cols] \
         .idxmax(axis='columns') \
         .apply(month_conversion_dictionary.get)
+    data = data.drop(columns=list(month_conversion_dictionary.keys()))
 
     # todo finish oni date conversion/check that it works properly
 
@@ -157,28 +171,22 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
     data = data.drop(columns=global_mjo_cols + global_nino_cols + global_oni_cols + global_misc_cols)
 
     # Removing sites with no snotel data
+    months = data.date.apply(lambda x: x.month)
+    seasonal_mask = (data.date.apply(lambda x: x.year) > 1984) & (months >= 4) & (months <= 7)
+    seasonal_data = data[seasonal_mask].reset_index(drop=True)
+    # todo deal with nan volumes
+    processed_ground_truth = seasonal_data[['date', 'site_id', 'forecast_year', 'volume']].dropna().drop_duplicates() # todo figure out why there are on average 36 duplicates per row (not a site issue, even for individaul sites)
+
+
+    processed_ground_truth.to_csv(gt_file_path, index=False)
+
     # todo process this data separately
-    california_sites = ['american_river_folsom_lake',
-                        'merced_river_yosemite_at_pohono_bridge',
-                        'san_joaquin_river_millerton_reservoir']
-    missing_snotel_site_mask = data.site_id.isin(california_sites)
-    processed_data = data[~missing_snotel_site_mask].groupby('site_id').apply(process_features, mjo_data=mjo_data,
-                                                                              nino_data=nino_data, oni_data=oni_data,
-                                                                              misc_data=misc_data) \
+    processed_data = data.groupby('site_id').apply(process_features, mjo_data=mjo_data, nino_data=nino_data,
+                                                   oni_data=oni_data, misc_data=misc_data) \
         .reset_index(drop=True)
 
     processed_data.to_csv(output_file_path, index=False)
 
-    processed_ground_truth = pd.DataFrame()
-    processed_ground_truth['volume']
 
-    months = data.date.apply(lambda x: x.month)
-    seasonal_mask = (data.date.apply(lambda x: x.year) > 1982) & (months >= 4) & (months <= 7)
-    seasonal_data = data[seasonal_mask]
-
-    # now only pick the relevant
-    processed_ground_truth['date'] = seasonal_data[]
-
-    processed_ground_truth.to_csv(gt_file_path, index=False)
 
     return processed_data, processed_ground_truth
