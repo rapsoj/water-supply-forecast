@@ -16,8 +16,10 @@ class StreamflowModel:
         self.adapter = adapter
         self._loss = average_quantile_loss if isinstance(self.model, dict) else mean_squared_error
 
-    def __call__(self, X: pd.DataFrame):
-        X = self.adapter(X)
+    def __call__(self, X: pd.DataFrame, adapt_feats: bool = True):
+        if adapt_feats:
+            X = self.adapter(X)
+
         assert (X.dtypes == float).all(), 'Error - wrong dtypes!'
 
         if isinstance(self.model, dict):
@@ -27,25 +29,23 @@ class StreamflowModel:
 
         return pred
 
-    def adapter(self, X: pd.DataFrame):
-        return X[X.date.dt.month <= JULY].drop(columns=['date', 'forecast_year'])
-
-    def loss(self, X, y):
-        pred = self(X)
+    def loss(self, X, y, adapt_feats: bool = True):
+        pred = self(X, adapt_feats=adapt_feats)
         assert pred.shape[0] == y.shape[0], 'Error - predictions/ground truth mismatch!'
 
         return self._loss(y, pred)
 
 
-def general_pcr_fitter(X, y, val_X, val_y, test_X, quantile: bool = True, max_n_pcs: int = 29):
-    pcr_X, pcr_val_X, pcr_test_X = adapt_features(X, val_X, test_X)
+def general_pcr_fitter(X, y, val_X, val_y, quantile: bool = True, MAX_N_PCS: int = 29):
+    pcr_X = pcr_adapt_features(X)
+    pcr_val_X = pcr_adapt_features(val_X)
 
     min_v_loss = np.inf
     best_model = None
-    for pc in range(1, max_n_pcs):
+    for pc in range(1, MAX_N_PCS):
         model = pcr_fitter(pcr_X, y, pc=pc, quantile=quantile)
 
-        loss = model.loss(pcr_val_X, val_y)
+        loss = model.loss(pcr_val_X, val_y, adapt_feats=False)
         if min_v_loss > loss:
             min_v_loss = loss
             best_model = model
@@ -53,16 +53,8 @@ def general_pcr_fitter(X, y, val_X, val_y, test_X, quantile: bool = True, max_n_
     return best_model
 
 
-def adapt_features(X, val_X, test_X):
-    train_mask = X.date.dt.month <= JULY
-    val_mask = val_X.date.dt.month <= JULY
-    test_mask = test_X.date.dt.month <= JULY
-
-    pcr_X = X[train_mask].drop(columns=['date', 'forecast_year'])
-    pcr_val_X = val_X[val_mask].drop(columns=['date', 'forecast_year'])
-    pcr_test_X = test_X[test_mask]
-    pcr_test_X = pcr_test_X.drop(columns=['date', 'forecast_year'])
-    return pcr_X, pcr_val_X, pcr_test_X
+def pcr_adapt_features(X):
+    return X[X.date.dt.month <= JULY].drop(columns=['date', 'forecast_year'])
 
 
 def pcr_fitter(X, y, pc, quantile: bool = True,
@@ -79,7 +71,7 @@ def pcr_fitter(X, y, pc, quantile: bool = True,
 
         model.fit(X, y)
 
-        predictor = StreamflowModel(model)
+        predictor = StreamflowModel(model, adapter=pcr_adapt_features)
     else:
         regressors = {}
         for q in DEF_QUANTILES:
@@ -89,6 +81,6 @@ def pcr_fitter(X, y, pc, quantile: bool = True,
 
             regressors[q] = model
 
-        predictor = StreamflowModel(regressors)
+        predictor = StreamflowModel(regressors, adapter=pcr_adapt_features)
 
     return predictor
