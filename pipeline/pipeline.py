@@ -59,17 +59,16 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
         results_id = f'{site_id}'
         print(f'Benchmarking results for site {site_id}')
 
-        # rescaling data
-        train_pred = train_pred * gt_std + gt_mean
-        val_pred = val_pred * gt_std + gt_mean
-        test_pred = test_pred * gt_std + gt_mean
+        # rescaling data+retransforming, nice side effect - model cannot have negative outputs
+        train_pred, val_pred, test_pred = quantilise_preds(train_pred, val_pred, test_pred, train_site_gt[gt_col])
+        train_pred = np.exp(train_pred * gt_std + gt_mean)
+        val_pred = np.exp(val_pred * gt_std + gt_mean)
+        test_pred = np.exp(test_pred * gt_std + gt_mean)
 
-        train_site_gt[gt_col] = train_site_gt[gt_col] * gt_std + gt_mean
-        val_site_gt[gt_col] = val_site_gt[gt_col] * gt_std + gt_mean
+        train_site_gt[gt_col] = np.exp(train_site_gt[gt_col] * gt_std + gt_mean)
+        val_site_gt[gt_col] = np.exp(val_site_gt[gt_col] * gt_std + gt_mean)
         train_site_gt = train_site_gt.reset_index(drop=True)
         val_site_gt = val_site_gt.reset_index(drop=True)
-
-        train_pred, val_pred, test_pred = quantilise_preds(train_pred, val_pred, test_pred, train_site_gt[gt_col])
 
         benchmark_results(train_pred, train_site_gt[gt_col], val_pred,
                           val_site_gt[gt_col], test_pred, benchmark_id=results_id)
@@ -118,6 +117,10 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
     # todo filter this in a more dynamic way, getting the minimum year
     train_feature_df = feature_df[train_mask]
     train_gt_df = gt_df[train_gt_mask]
+
+    train_gt_df.volume = np.log(train_gt_df.volume)
+    val_gt_df.volume = np.log(val_gt_df.volume)
+    test_gt_df.volume = np.log(test_gt_df.volume)
 
     gt_mean, gt_std = train_gt_df.volume.mean(), train_gt_df.volume.std()
     train_gt_df.volume = (train_gt_df.volume - gt_mean) / gt_std

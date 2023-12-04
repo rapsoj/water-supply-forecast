@@ -11,9 +11,8 @@ os.chdir("../exploration")
 
 
 # todo be smarter than using an error threshold
-def calc_predictive_std(gt: pd.Series, preds: pd.Series, error_thresh: float = 300.) -> float:
+def calc_predictive_std(gt: pd.Series, preds: pd.Series) -> float:
     errs = gt - preds
-    errs = np.clip(errs, -error_thresh, error_thresh)
     return errs.std()
 
 
