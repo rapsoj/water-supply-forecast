@@ -23,7 +23,7 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
     ground_truth = load_ground_truth(num_predictions=N_PRED_MONTHS * N_PREDS_PER_MONTH)
     # Get training, validation and test sets
-    train_features, val_features, test_features, train_gt, val_gt, test_gt = \
+    train_features, val_features, test_features, train_gt, val_gt, test_gt, (gt_mean, gt_std) = \
         train_val_test_split(processed_data, ground_truth, test_years, validation_years)
 
     # todo implement global models
@@ -54,6 +54,15 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
         results_id = f'{site_id}'
         print(f'Benchmarking results for site {site_id}')
+
+        # rescaling data
+        train_pred = train_pred * gt_std + gt_mean
+        val_pred = val_pred * gt_std + gt_mean
+        test_pred = test_pred * gt_std + gt_mean
+
+        train_site_gt[gt_col] = train_site_gt[gt_col] * gt_std + gt_mean
+        val_site_gt[gt_col] = val_site_gt[gt_col] * gt_std + gt_mean
+
         train_pred, val_pred, test_pred = benchmark_results(train_pred, train_site_gt[gt_col], val_pred,
                                                             val_site_gt[gt_col], test_pred, benchmark_id=results_id)
 
@@ -113,13 +122,18 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
     train_feature_df = feature_df[train_mask]
     train_gt_df = gt_df[train_gt_mask]
 
+    gt_mean, gt_std = train_gt_df.volume.mean(), train_gt_df.volume.std()
+    train_gt_df.volume = (train_gt_df.volume - gt_mean) / gt_std
+    val_gt_df.volume = (val_gt_df.volume - gt_mean) / gt_std
+    test_gt_df.volume = (test_gt_df.volume - gt_mean) / gt_std
+
     assert train_feature_df.date.isin(val_feature_df.date).sum() == 0 and \
            train_feature_df.date.isin(test_feature_df.date).sum() == 0 and \
            val_feature_df.date.isin(test_feature_df.date).sum() == 0, \
         "Dates are overlapping between train, val, and test sets"
 
     # todo figure out why some things are empty here, e.g. test_gt_df
-    return train_feature_df, val_feature_df, test_feature_df, train_gt_df, val_gt_df, test_gt_df
+    return train_feature_df, val_feature_df, test_feature_df, train_gt_df, val_gt_df, test_gt_df, (gt_mean, gt_std)
 
 
 if __name__ == '__main__':

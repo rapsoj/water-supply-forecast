@@ -27,7 +27,8 @@ def cache_preds(site_id: str, pred_dates: pd.Series, pred: pd.DataFrame, cache_i
     pred_df.to_csv(f'{cache_id}_pred.csv', index=False)
     return pred_df
 
-#def generate_submission_file(site_ids: list):
+
+# def generate_submission_file(site_ids: list):
 
 def calc_quantile_loss(gt: pd.Series, preds: pd.DataFrame, quantile: float) -> float:
     return mean_pinball_loss(gt, preds[quantile], alpha=quantile)
@@ -73,6 +74,10 @@ def benchmark_results(train_pred: [pd.Series, pd.DataFrame], train_gt: pd.Series
         train_pred = pd.DataFrame({q: gen_predictive_quantile(train_pred, std, q) for q in DEF_QUANTILES})
         val_pred = pd.DataFrame({q: gen_predictive_quantile(val_pred, std, q) for q in DEF_QUANTILES})
         test_pred = pd.DataFrame({q: gen_predictive_quantile(test_pred, std, q) for q in DEF_QUANTILES})
+
+    assert (train_pred >= 0).all().all() and (val_pred >= 0).all().all() and (test_pred >= 0).all().all(), \
+        'Error - negative predictions!'
+    assert (train_gt >= 0).all() and (val_gt >= 0).all(), 'Error - negative ground truths!'
 
     perc_in_interval, quantile_losses, avg_q_losses = calc_losses(train_pred, train_gt, val_pred, val_gt)
 
