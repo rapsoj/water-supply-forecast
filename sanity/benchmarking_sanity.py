@@ -27,6 +27,7 @@ for site_id in site_ids:
 
 plt.scatter(site_ids, train_intervs, c='b')
 plt.scatter(site_ids, val_intervs, c='r')
+print(np.mean(val_intervs))
 plt.ylabel("Percentage in interval")
 
 plt.figure()

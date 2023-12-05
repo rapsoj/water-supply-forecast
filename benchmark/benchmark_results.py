@@ -97,6 +97,7 @@ def benchmark_results(train_pred: [pd.Series, pd.DataFrame], train_gt: pd.Series
                       val_gt: pd.Series, test_pred: [pd.Series, pd.DataFrame], benchmark_id: str = None,
                       verbose: bool = False) \
         -> tuple[pd.DataFrame]:
+    # todo make sure we can pass this assertion of non-negative predictions
     assert (train_pred >= 0).all().all() and (val_pred >= 0).all().all() and (test_pred >= 0).all().all(), \
         'Error - negative predictions!'
     assert (train_gt >= 0).all() and (val_gt >= 0).all(), 'Error - negative ground truths!'

@@ -3,6 +3,8 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
+
 import time
 
 path = os.getcwd()
@@ -118,6 +120,11 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
                                                    oni_data=oni_data, misc_data=misc_data) \
         .reset_index(drop=True)
 
+    # todo add temporal features
+    processed_data['time'] = (processed_data.date - pd.to_datetime(dict(year=processed_data.date.dt.year, month=1, day=1))).dt.days
+
+    scaler = StandardScaler()
+    processed_data.time = scaler.fit_transform(processed_data[['time']])
     processed_data.to_csv(output_file_path, index=False)
 
     return processed_data

@@ -76,7 +76,6 @@ def general_pcr_fitter(X, y, val_X, val_y, quantile: bool = True, MAX_N_PCS: int
         if min_v_loss >= loss:
             min_v_loss = loss
             best_model = model
-
     return best_model
 
 
