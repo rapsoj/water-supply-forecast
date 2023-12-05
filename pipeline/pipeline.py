@@ -10,8 +10,6 @@ from preprocessing.pre_ml_processing import ml_preprocess_data
 
 path = os.getcwd()
 
-
-
 def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
                  validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)), gt_col: str = 'volume',
                  load_from_cache: bool = True):
@@ -25,10 +23,10 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
 
 
-    # Data sanity check
     # Check types (do we wish to also check that date, forecast_year and site_id are the correct types here?
     assert all([data_type == float for data_type in processed_data.drop(columns=['date', 'forecast_year', 'site_id']).dtypes]),  "All features are not floats"
     assert len(processed_data.site_id[processed_data.volume.isna()].unique()) == 3, "More than 3 sites having NaNs in volume (should only be the California sites)"
+    # todo are all american river folsom values NaN for SNOTEL? What is the state in the original transformed_vars.csv? Why not the other California sites?
     assert len(processed_data.site_id[processed_data.SNWD_DAILY.isna()].unique()) == 1, "More than 1 site has NaNs in SNWD_DAILY (should only be american river folsom)"
 
 
