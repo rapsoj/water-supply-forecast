@@ -1,9 +1,10 @@
-import numpy as np
-import pandas as pd
 import os
 
-from benchmark.benchmark_results import benchmark_results, cache_preds, generate_submission_file, quantilise_preds
-from consts import JULY, FIRST_FULL_GT_YEAR, N_PREDS_PER_MONTH, N_PRED_MONTHS, DEF_QUANTILES
+import numpy as np
+import pandas as pd
+
+from benchmark.benchmark_results import benchmark_results, cache_preds, generate_submission_file
+from consts import JULY, FIRST_FULL_GT_YEAR, N_PREDS_PER_MONTH, N_PRED_MONTHS
 from models.fit_to_data import gen_basin_preds
 from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
@@ -20,6 +21,15 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     # todo add explicit forecasting functionality, split train/test for forecasting earlier.
     #  currently everything is processed together. unsure if necessary
     processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache)
+
+    # Data sanity check
+    # Check types (do we wish to also check that date, forecast_year and site_id are the correct types here?
+    assert all([data_type == float for data_type in processed_data.drop(
+        columns=['date', 'forecast_year', 'site_id']).dtypes]), "All features are not floats"
+    assert len(processed_data.site_id[
+                   processed_data.volume.isna()].unique()) == 3, "More than 3 sites having NaNs in volume (should only be the California sites)"
+    assert len(processed_data.site_id[
+                   processed_data.SNWD_DAILY.isna()].unique()) == 1, "More than 1 site has NaNs in SNWD_DAILY (should only be american river folsom)"
 
     ground_truth = load_ground_truth(num_predictions=N_PRED_MONTHS * N_PREDS_PER_MONTH)
     # Get training, validation and test sets
