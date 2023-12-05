@@ -2,7 +2,6 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-path = os.getcwd()
 os.chdir("../exploration")
 
 ground_truth_df = pd.read_csv(os.path.join("..", "assets/data/", "train.csv"))

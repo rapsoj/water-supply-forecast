@@ -1,6 +1,6 @@
 import datetime as dt
 import os
-
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import time
@@ -34,8 +34,6 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
     feat_dates = pd.Series(np.sort(
         np.concatenate((np.array(feat_dates1), np.array(feat_dates2), np.array(feat_dates3), np.array(feat_dates4)))))
 
-    # todo we're throwing away data that we have here, can/should we use it eg for training?
-    # feat_dates = feat_dates[(feat_dates.month >= 4) | (feat_dates.month <=  9)].to_series()
     site_feat_cols = set(df.columns) - ({'site_id', 'date', 'forecast_year', 'station'} | set(date_cols))
 
     # average over data from different stations in the same day, todo - deal with this properly by using lat/lon data or something groovier
@@ -91,10 +89,11 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
     # monthly measurements are approx at the middle
     data.day[data.day == -1] = 15
 
-    # Create integer dates to work with
+    # Create dates to work with
     data["date"] = pd.to_datetime(data[date_cols].map(int))
     data = data.sort_values('date')
 
+    ini_data = data
     # Get site ids
     site_id_str = 'site_id_'
     site_id_cols = [col for col in data.columns if 'site_id' in col]
@@ -122,3 +121,4 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
     processed_data.to_csv(output_file_path, index=False)
 
     return processed_data
+
