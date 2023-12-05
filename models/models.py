@@ -50,7 +50,7 @@ def general_pcr_fitter(X, y, val_X, val_y, quantile: bool = True, MAX_N_PCS: int
         model = pcr_fitter(pcr_X, y, pc=pc, quantile=quantile)
 
         loss = model.loss(pcr_val_X, val_y, adapt_feats=False)
-        if min_v_loss > loss:
+        if min_v_loss >= loss:
             min_v_loss = loss
             best_model = model
 
@@ -61,8 +61,7 @@ def pcr_adapt_features(X):
     return X[X.date.dt.month <= JULY].drop(columns=['date', 'forecast_year'])
 
 
-def pcr_fitter(X, y, pc, quantile: bool = True,
-               solver="highs" if sp_version >= parse_version("1.6.0") else "inferior-point"):
+def pcr_fitter(X, y, pc, quantile: bool = True, solver="highs"):
     assert (X.dtypes == float).all(), 'Error - wrong dtypes!'
 
     # Instantiate the PCA object
@@ -79,7 +78,7 @@ def pcr_fitter(X, y, pc, quantile: bool = True,
     else:
         regressors = {}
         for q in DEF_QUANTILES:
-            qregr = linear_model.QuantileRegressor(quantile=q, alpha=0.00, solver=solver)
+            qregr = linear_model.QuantileRegressor(quantile=q, solver=solver)
             model = Pipeline([('pca', pca), ('quantile_regression', qregr)])
             model.fit(X, y)
 

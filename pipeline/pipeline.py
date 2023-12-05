@@ -48,11 +48,11 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
         # set-list in case non feature columns have NaNs
         drop_cols = list(set(non_feat_cols + train_site.columns[train_site.isna().any()].to_list()))
 
-        train_site = train_site.drop(columns=drop_cols)
-        train_site_gt = train_gt[train_gt.site_id == site_id]
-        val_site = val_features[val_features.site_id == site_id].drop(columns=drop_cols)
-        val_site_gt = val_gt[val_gt.site_id == site_id]
-        test_site = test_features[test_features.site_id == site_id]
+        train_site = train_site.drop(columns=drop_cols).reset_index(drop=True)
+        train_site_gt = train_gt[train_gt.site_id == site_id].reset_index(drop=True)
+        val_site = val_features[val_features.site_id == site_id].drop(columns=drop_cols).reset_index(drop=True)
+        val_site_gt = val_gt[val_gt.site_id == site_id].reset_index(drop=True)
+        test_site = test_features[test_features.site_id == site_id].reset_index(drop=True)
         test_site = test_site.drop(columns=drop_cols, errors='ignore')
 
         # todo deal with this using a global model
