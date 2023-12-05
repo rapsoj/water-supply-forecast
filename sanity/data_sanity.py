@@ -25,6 +25,7 @@ def sanity_function(ini_data: pd.DataFrame, processed_data: pd.DataFrame, col: s
     # To check global variables, remove the [ini_data.site_id == site_id] in the ini_data scatter plot,
     # for local variables keep it. Site id picked at the discretion of the programmer (YOU).
     site_id = "animas_r_at_durango"
+    #site_id = "american_river_folsom_lake"
     plt.scatter(ini_data.date[~ini_data[col].isna()][ini_data.site_id == site_id],
                 ini_data[col].dropna()[ini_data.site_id == site_id], alpha=0.7, c='b')
     plt.plot(processed_data.date[processed_data.site_id == site_id].iloc[::1],

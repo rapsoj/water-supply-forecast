@@ -51,7 +51,7 @@ def generate_submission_file(ordered_site_ids):
 
 
 def calc_quantile_loss(gt: pd.Series, preds: pd.DataFrame, quantile: float) -> float:
-    return mean_pinball_loss(gt, preds[quantile], alpha=quantile)
+    return 2*mean_pinball_loss(gt, preds[quantile], alpha=quantile) # Factor 2 to match DrivenData
 
 
 def average_quantile_loss(gt: pd.Series, preds: pd.DataFrame, quantiles: list = DEF_QUANTILES) -> float:
