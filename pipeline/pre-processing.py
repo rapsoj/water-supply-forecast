@@ -51,9 +51,28 @@ df_snotel = cleaning.clean_snotel(df_snotel)
 
 # Merging dataframes
 from helper_functions import merge
-data_frames = [df_mjo, df_nino, df_oni, df_pdo, df_pna, df_soi1, 
-                df_soi2, df_flow, df_grace, df_snotel]
-df_merged = merge.merge_dfs(data_frames)
+
+# Merge on site id, day
+data_frames = [df_grace, df_snotel]
+df_merged = merge.merge_site_id_day(data_frames)
+
+# Merge on site id, month
+data_frames = [df_flow, df_merged]
+df_merged = merge.merge_site_id_mon(data_frames)
+
+# Merge on day
+data_frames = [df_mjo, df_merged]
+df_merged = merge.merge_day(data_frames)
+
+# Merge on month
+data_frames = [df_soi1, df_soi2, df_pna, df_pdo, df_nino, df_merged]
+df_merged = merge.merge_mon(data_frames)
+
+# Merge on year
+data_frames = [df_oni, df_merged]
+df_merged = merge.merge_year(data_frames)
+
+
 
 # Outlier cleaning
 

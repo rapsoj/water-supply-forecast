@@ -77,7 +77,7 @@ def main(input_directory, start, end, output):
             for yr in years:
                 data_record_id = data_record.loc[(data_record['ID'] == station_id) & (data_record['YEAR'] == yr)]
                 if data_record_id.shape[0] == 0:
-                    next
+                    next # todo shouldn't this be continue?
                 fn = data_record_id['FILES'].iloc[0]
                 location = os.path.join(snotel_directory, "FY" + str(yr))
                 x = pd.read_csv(os.path.join(location, fn), parse_dates = [0])
