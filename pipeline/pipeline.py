@@ -3,7 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 
-from benchmark.benchmark_results import benchmark_results, cache_preds, generate_submission_file
+from benchmark.benchmark_results import benchmark_results, cache_preds, generate_submission_file, quantilise_preds
 from consts import JULY, FIRST_FULL_GT_YEAR, N_PREDS_PER_MONTH, N_PRED_MONTHS
 from models.fit_to_data import gen_basin_preds
 from preprocessing.generic_preprocessing import get_processed_dataset
@@ -24,12 +24,12 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
     # Data sanity check
     # Check types (do we wish to also check that date, forecast_year and site_id are the correct types here?
-    assert all([data_type == float for data_type in processed_data.drop(
-        columns=['date', 'forecast_year', 'site_id']).dtypes]), "All features are not floats"
-    assert len(processed_data.site_id[
-                   processed_data.volume.isna()].unique()) == 3, "More than 3 sites having NaNs in volume (should only be the California sites)"
-    assert len(processed_data.site_id[
-                   processed_data.SNWD_DAILY.isna()].unique()) == 1, "More than 1 site has NaNs in SNWD_DAILY (should only be american river folsom)"
+    assert all([data_type == float for data_type in processed_data
+               .drop(columns=['date', 'forecast_year', 'site_id']).dtypes]), "All features are not floats"
+    assert len(processed_data.site_id[processed_data.volume.isna()].unique()) == 3, \
+        "More than 3 sites having NaNs in volume (should only be the California sites)"
+    assert len(processed_data.site_id[processed_data.SNWD_DAILY.isna()].unique()) == 1, \
+        "More than 1 site has NaNs in SNWD_DAILY (should only be american river folsom)"
 
     ground_truth = load_ground_truth(num_predictions=N_PRED_MONTHS * N_PREDS_PER_MONTH)
     # Get training, validation and test sets
