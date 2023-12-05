@@ -25,17 +25,14 @@ for site_id in site_ids:
     train_qlosses.append(all_q_losses.train.to_numpy())
     val_qlosses.append(all_q_losses.val)
 
-print(train_intervs)
-print(site_ids)
 plt.scatter(site_ids, train_intervs, c='b')
 plt.scatter(site_ids, val_intervs, c='r')
 plt.ylabel("Percentage in interval")
 
 plt.figure()
 plt.scatter(site_ids, ave_train_q_losses)
-print(site_ids[np.argmin(np.array(ave_train_q_losses))])
 plt.scatter(site_ids, ave_val_q_losses)
-print(site_ids[np.argmin(np.array(ave_train_q_losses))])
+print(np.mean(ave_val_q_losses))
 plt.ylabel("Average quantile loss")
 
 plt.figure()
