@@ -17,7 +17,7 @@ TEST_PERIOD = [y for y in range(2005, 2024)]
 START_YEAR = TEST_PERIOD[-1] - MIN_RECORD_LENGTH + 1
 
 @click.command()
-@click.option('--input-directory', '-d', default='../assets/data', type=click.Path(exists=True), help='Path to the assets data directory')
+@click.option('--input-directory', '-d', default='../../assets/data', type=click.Path(exists=True), help='Path to the assets data directory')
 @click.option('--start', default=1984, help='Start year')
 @click.option('--end', default=2023, help='End year')
 @click.option('--output', '-o', default='snotel.csv', help='Output file with merged SNOTEL data')
