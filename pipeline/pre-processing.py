@@ -72,8 +72,6 @@ df_merged = merge.merge_mon(data_frames)
 data_frames = [df_oni, df_merged]
 df_merged = merge.merge_year(data_frames)
 
-
-
 # Outlier cleaning
 
 # Imputation
