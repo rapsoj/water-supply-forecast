@@ -17,7 +17,7 @@ TEST_PERIOD = [y for y in range(2005, 2024)]
 START_YEAR = TEST_PERIOD[-1] - MIN_RECORD_LENGTH + 1
 
 @click.command()
-@click.option('--input-directory', '-d', default='../assets/data', type=click.Path(exists=True), help='Path to the assets data directory')
+@click.option('--input-directory', '-d', default='../../assets/data', type=click.Path(exists=True), help='Path to the assets data directory')
 @click.option('--start', default=1984, help='Start year')
 @click.option('--end', default=2023, help='End year')
 @click.option('--output', '-o', default='snotel.csv', help='Output file with merged SNOTEL data')
@@ -93,7 +93,8 @@ def main(input_directory, start, end, output):
                 # The only situation in which this would be needed is if data is missing for the 1 April of every year
                 x_reindexed = x_reindexed.interpolate(method='linear')
                 x_reindexed.index.name = 'date'
-                x_reindexed = x_reindexed.loc[(x_reindexed.index.month == 4) & (x_reindexed.index.day == 1)]
+                # x_reindexed = x_reindexed.loc[(x_reindexed.index.month == 4) & (x_reindexed.index.day == 1)]
+                x_reindexed = x_reindexed.loc[(x_reindexed.index.month.isin([1, 2, 3, 4]) & (x_reindexed.index.day.isin([1, 8, 15, 22])))]
                 x_reindexed = x_reindexed.reset_index()
                 x_reindexed['site'] = site_id
                 x_reindexed['station'] = station_id
