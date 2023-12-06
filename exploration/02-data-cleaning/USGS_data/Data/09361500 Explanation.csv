@@ -1,0 +1,21 @@
+,Data provided for site 09361500,Unnamed: 1,Unnamed: 2,Unnamed: 3
+0,ts_id,parameter,statistic,Description
+1,19605,00010,00001,"Temperature, water, degrees Celsius"
+2,19606,00010,00002,"Temperature, water, degrees Celsius"
+3,19607,00010,00003,"Temperature, water, degrees Celsius"
+4,19604,00060,00003,"Discharge, cubic feet per second"
+5,19608,00095,00001,"Specific conductance, water, unfiltered, microsiemens per centimeter at 25 degrees Celsius"
+6,325903,00095,00002,"Specific conductance, water, unfiltered, microsiemens per centimeter at 25 degrees Celsius"
+7,19610,00095,00003,"Specific conductance, water, unfiltered, microsiemens per centimeter at 25 degrees Celsius"
+8,325905,00400,00001,"pH, water, unfiltered, field, standard units"
+9,325904,00400,00002,"pH, water, unfiltered, field, standard units"
+10,325906,00400,00008,"pH, water, unfiltered, field, standard units"
+11,215659,63680,00001,"Turbidity, water, unfiltered, monochrome near infra-red LED light, 780-900 nm, detection angle 90 +-2.5 degrees, formazin nephelometric units (FNU)"
+12,325908,63680,00002,"Turbidity, water, unfiltered, monochrome near infra-red LED light, 780-900 nm, detection angle 90 +-2.5 degrees, formazin nephelometric units (FNU)"
+13,325907,63680,00008,"Turbidity, water, unfiltered, monochrome near infra-red LED light, 780-900 nm, detection angle 90 +-2.5 degrees, formazin nephelometric units (FNU)"
+14,,,,
+15,Data-value qualification codes included in this output:,,,
+16,A,Approved for publication -- Processing and review completed.,,
+17,P,Provisional data subject to revision.,,
+18,[4],Returned when there is no matching qualifier.,,
+19,e,Value has been estimated.,,
