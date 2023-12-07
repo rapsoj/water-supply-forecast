@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import os
 from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
+from sklearn.preprocessing import StandardScaler
+
 os.chdir("../exploration")
 global_mjo_cols = ['mjo20E', 'mjo70E', 'mjo80E', 'mjo100E', 'mjo120E', 'mjo140E', 'mjo160E', 'mjo120W', 'mjo40W',
                    'mjo10W']
@@ -65,6 +67,12 @@ def fix_df(data: pd.DataFrame):
         .merge(misc_data.drop_duplicates(), on='date', how='outer') \
         .sort_values(by='date') \
         .reset_index(drop=True)
+
+    ini_data['time'] = (
+                ini_data.date - pd.to_datetime(dict(year=ini_data.date.dt.year, month=1, day=1))).dt.days
+
+    scaler = StandardScaler()
+    ini_data.time = scaler.fit_transform(ini_data[['time']])
 
     return ini_data
 

@@ -34,6 +34,8 @@ plt.figure()
 plt.scatter(site_ids, ave_train_q_losses)
 plt.scatter(site_ids, ave_val_q_losses)
 print(np.mean(ave_val_q_losses))
+print(np.mean(ave_train_q_losses))
+
 plt.ylabel("Average quantile loss")
 
 plt.figure()

@@ -68,15 +68,23 @@ def general_pcr_fitter(X, y, val_X, val_y, quantile: bool = True, MAX_N_PCS: int
     MAX_N_PCS = min(MAX_N_PCS, *pcr_X.shape)
 
     min_v_loss = np.inf
-    best_model = None
+    hyper_tuned_model = None
+    optimal_pc = 0
     for pc in range(1, MAX_N_PCS):
         model = pcr_fitter(pcr_X, y, pc=pc, quantile=quantile)
 
         loss = model.loss(pcr_val_X, val_y, adapt_feats=False)
         if min_v_loss >= loss:
+            optimal_pc = pc
             min_v_loss = loss
-            best_model = model
-    return best_model
+            hyper_tuned_model = model
+
+    # train hyperparameter tuned model on train+validation set
+    combined_X = pd.concat([pcr_X, pcr_val_X])
+    combined_y = pd.concat([y, val_y])
+
+    best_model = pcr_fitter(combined_X, combined_y, pc=optimal_pc, quantile=quantile)
+    return hyper_tuned_model, best_model
 
 
 def pcr_fitter(X, y, pc, quantile: bool = True, solver="highs"):

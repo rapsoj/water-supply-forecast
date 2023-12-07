@@ -27,6 +27,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
     df_grace = cleaning.import_grace(current_dir)
     df_snotel = cleaning.import_snotel(current_dir)
     #df_cpc_prec = cleaning.import_cpc_prec(current_dir) # todo uncomment+integrate cpc cleaning/merging
+
     ## Pre-merge cleaning steps
 
     # Cleaning at this stage is only adjustments required to allow merging,
@@ -44,7 +45,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
     df_soi2 = cleaning.clean_soi2(df_soi2)
     df_flow = cleaning.clean_flow(df_flow)
     df_grace = cleaning.clean_grace(df_grace)
-    #df_snotel = cleaning.clean_snotel(df_snotel)
+    df_snotel = cleaning.clean_snotel(df_snotel)
     #df_cpc_prec = cleaning.clean_prec(df_cpc_prec)
 
     # Merging dataframes
