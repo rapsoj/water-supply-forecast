@@ -47,7 +47,7 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
 
     # drop forecasts looking more than 7 months (up to july) in the future
     df = df[~(df.LEAD_prec > JULY)]
-    df = df[~(df.LEAD_temp > JULY)]
+    #df = df[~(df.LEAD_temp > JULY)], cpc not implemented yet
 
     # average over data from different stations in the same day,
     # todo - deal with this properly by using lat/lon data or something groovier

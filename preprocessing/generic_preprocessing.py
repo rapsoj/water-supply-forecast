@@ -48,7 +48,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
     df_grace = cleaning.clean_grace(df_grace)
     df_snotel = cleaning.clean_snotel(df_snotel)
     df_cpc_prec = cleaning.clean_cpc_prec(df_cpc_prec)
-    #df_cpc_temp = cleaning.clean_cpc_temp(df_cpc_temp)
+    #df_cpc_temp = cleaning.clean_cpc_temp(df_cpc_temp) # todo integrate cpc temperature dataset (currently lack of site_ids a problem)
 
     # Merging dataframes
     # Merge on site id, day
