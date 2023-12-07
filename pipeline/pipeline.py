@@ -11,7 +11,6 @@ from preprocessing.pre_ml_processing import ml_preprocess_data
 
 path = os.getcwd()
 
-
 def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
                  validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)), gt_col: str = 'volume',
                  load_from_cache: bool = True):
@@ -147,4 +146,4 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
 
 
 if __name__ == '__main__':
-    run_pipeline()
+    run_pipeline(load_from_cache=False)

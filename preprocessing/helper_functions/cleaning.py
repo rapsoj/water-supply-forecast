@@ -193,3 +193,18 @@ def clean_snotel(df_snotel):
 
     df_snotel = df_snotel.rename(columns={'site': 'site_id'})
     return df_snotel
+
+def import_cpc_prec(current_dir):
+    # Import cpc dataset
+    folder_path = os.path.join(current_dir, '..', 'assets', 'data')
+    df_cpc_prec = pd.read_csv(os.path.join(folder_path, "cpc_prec.csv"))
+    return df_cpc_prec
+
+def clean_prec(df_cpc_prec):
+    # Convert labels
+    new_labels = {label:f'{label}_prec' for label in df_cpc_prec.columns}
+    df_cpc_prec = df_cpc_prec.rename(columns=new_labels)
+    df_cpc_prec = df_cpc_prec.rename(columns={'YEAR_prec': 'year', 'MONTH_prec': 'month'})
+    df_cpc_prec['day'] = 15
+    df_cpc_prec['date'] = pd.to_datetime(dict(year=df_cpc_prec.YEAR, month=df_cpc_prec.MONTH, day=df_cpc_prec.day))
+    return df_cpc_prec
