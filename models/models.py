@@ -43,22 +43,25 @@ class StreamflowModel:
         return loss
 
 
-def xgboost_fitter(X, y, *args, quantile: bool = False):
-    X = base_feature_adapter(X)
+def xgboost_fitter(X, y, val_X, val_y, quantile: bool = True):
+    xgb_X = base_feature_adapter(X)
+    xgb_val_X = base_feature_adapter(val_X)
+    combined_X = pd.concat([xgb_X, xgb_val_X])
+    combined_y = pd.concat([y, val_y])
 
     if quantile:
         q_models = {}
         for q in DEF_QUANTILES:
             model = GradientBoostingRegressor(loss='quantile', alpha=q)
-            model.fit(X, y)
+            model.fit(combined_X, combined_y)
 
             q_models[q] = model
 
-        return StreamflowModel(q_models)
+        return StreamflowModel(q_models), StreamflowModel(q_models)
 
     model = GradientBoostingRegressor(loss='quantile', alpha=.5)
     model.fit(X, y)
-    return StreamflowModel(model)
+    return StreamflowModel(model), StreamflowModel(model)
 
 
 def general_pcr_fitter(X, y, val_X, val_y, quantile: bool = True, MAX_N_PCS: int = 30):

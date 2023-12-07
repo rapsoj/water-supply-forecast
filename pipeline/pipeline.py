@@ -14,7 +14,6 @@ path = os.getcwd()
 def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
                  validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)), gt_col: str = 'volume',
                  load_from_cache: bool = True, start_year=FIRST_FULL_GT_YEAR):
-
     print('Loading data')
     basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache)
 
@@ -34,7 +33,7 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     ground_truth = load_ground_truth(num_predictions=N_PRED_MONTHS * N_PREDS_PER_MONTH)
     # Get training, validation and test sets
     train_features, val_features, test_features, train_gt, val_gt, test_gt, (gt_mean, gt_std) = \
-        train_val_test_split(processed_data, ground_truth, test_years, validation_years)
+        train_val_test_split(processed_data, ground_truth, test_years, validation_years, start_year=start_year)
 
     # todo implement global models
     site_ids = processed_data.site_id.unique()
@@ -147,4 +146,4 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
     return train_feature_df, val_feature_df, test_feature_df, train_gt_df, val_gt_df, test_gt_df, (gt_mean, gt_std)
 
 if __name__ == '__main__':
-    run_pipeline()
+    run_pipeline(load_from_cache=False)
