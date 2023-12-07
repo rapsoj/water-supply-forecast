@@ -64,7 +64,7 @@ def xgboost_fitter(X, y, val_X, val_y, quantile: bool = True):
     return StreamflowModel(model), StreamflowModel(model)
 
 
-def general_pcr_fitter(X, y, val_X, val_y, quantile: bool = True, MAX_N_PCS: int = 30):
+def general_pcr_fitter(X, y, val_X, val_y, quantile: bool = True, MAX_N_PCS: int = 50):
     pcr_X = base_feature_adapter(X)
     pcr_val_X = base_feature_adapter(val_X)
 
@@ -81,7 +81,7 @@ def general_pcr_fitter(X, y, val_X, val_y, quantile: bool = True, MAX_N_PCS: int
             optimal_pc = pc
             min_v_loss = loss
             hyper_tuned_model = model
-
+    print(optimal_pc)
     # train hyperparameter tuned model on train+validation set
     combined_X = pd.concat([pcr_X, pcr_val_X])
     combined_y = pd.concat([y, val_y])

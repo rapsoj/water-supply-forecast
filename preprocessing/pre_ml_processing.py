@@ -3,6 +3,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from consts import JULY
 from sklearn.preprocessing import StandardScaler
 
 import time
@@ -38,8 +39,19 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
 
     site_feat_cols = set(df.columns) - ({'site_id', 'date', 'forecast_year', 'station'} | set(date_cols))
 
-    # average over data from different stations in the same day, todo - deal with this properly by using lat/lon data or something groovier
+
+
     site_id = df.name
+    # remove stations which are not present throughout the whole dataseries
+    #if df.groupby('date').station.nunique().nunique() >= 2: # todo deal with sites which have varying number of stations (2 + [0] = 3 different numbers of stations)
+
+    # drop forecasts looking more than 7 months (up to july) in the future
+    df = df[~(df.LEAD_prec > JULY)]
+    df = df[~(df.LEAD_temp > JULY)]
+
+    # average over data from different stations in the same day,
+    # todo - deal with this properly by using lat/lon data or something groovier
+    # todo - do not average over all cpc forecasts with different leads on the same date, deal with it in a smarter/more information preserving manner
     df = df.groupby('date')[list(site_feat_cols)].agg(lambda x: x.dropna().mean()).reset_index()
 
     # drop irrelevant columns, especially relevant for california data that's missing some features

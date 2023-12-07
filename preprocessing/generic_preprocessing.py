@@ -26,7 +26,8 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
     df_flow = cleaning.import_flow(current_dir)
     df_grace = cleaning.import_grace(current_dir)
     df_snotel = cleaning.import_snotel(current_dir)
-    #df_cpc_prec = cleaning.import_cpc_prec(current_dir) # todo uncomment+integrate cpc cleaning/merging
+    df_cpc_prec = cleaning.import_cpc_prec(current_dir)
+    #df_cpc_temp = cleaning.import_cpc_temp(current_dir)
 
     ## Pre-merge cleaning steps
 
@@ -46,11 +47,12 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
     df_flow = cleaning.clean_flow(df_flow)
     df_grace = cleaning.clean_grace(df_grace)
     df_snotel = cleaning.clean_snotel(df_snotel)
-    #df_cpc_prec = cleaning.clean_prec(df_cpc_prec)
+    df_cpc_prec = cleaning.clean_cpc_prec(df_cpc_prec)
+    #df_cpc_temp = cleaning.clean_cpc_temp(df_cpc_temp)
 
     # Merging dataframes
     # Merge on site id, day
-    dataframes = [df_grace, df_snotel, df_flow]
+    dataframes = [df_grace, df_snotel, df_flow, df_cpc_prec]
     df_flow['day'] = np.nan  # input nan when we don't know which day of the month data was measured
     df_merged = merge.merge_site_id_day(dataframes)
 

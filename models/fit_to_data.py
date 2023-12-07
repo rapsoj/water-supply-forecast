@@ -4,7 +4,7 @@ from models.models import xgboost_fitter
 
 
 def gen_basin_preds(train_site: pd.DataFrame, train_gt: pd.DataFrame, val_site: pd.DataFrame, val_gt: pd.DataFrame,
-                    test: pd.DataFrame, model_fitters=(xgboost_fitter,)) -> tuple:
+                    test: pd.DataFrame, model_fitters=(general_pcr_fitter,)) -> tuple:
     if len(model_fitters) != 1:
         raise NotImplementedError('Error - not implemented yet for ensembles!')
 
