@@ -43,14 +43,21 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
 
     site_id = df.name
     # remove stations which are not present throughout the whole dataseries
-    #if df.groupby('date').station.nunique().nunique() >= 2: # todo deal with sites which have varying number of stations (2 + [0] = 3 different numbers of stations)
+    # todo deal with sites which have varying number of stations (2 + [0] = 3 different numbers of stations)
+    '''if df.groupby('date').station.nunique().nunique() > 2: # todo deal with sites which have varying number of stations (2 + [0] = 3 different numbers of stations)
+        dates_per_station = df.groupby('station').date.nunique()
+        min_val = np.min(dates_per_station.unique())
+        min_val_station = dates_per_station.loc[dates_per_station==min_val].index[0]
+        df = df[df.station != min_val_station]'''
+
+
 
     # drop forecasts looking more than 7 months (up to july) in the future
-    df = df[~(df.LEAD_prec > JULY)]
-    #df = df[~(df.LEAD_temp > JULY)], cpc not implemented yet
+    df = df[~(df.LEAD > JULY)]
+
 
     # average over data from different stations in the same day,
-    # todo - deal with this properly by using lat/lon data or something groovier
+    # todo - deal with stations more properly by using lat/lon data or something groovier
     # todo - do not average over all cpc forecasts with different leads on the same date, deal with it in a smarter/more information preserving manner
     df = df.groupby('date')[list(site_feat_cols)].agg(lambda x: x.dropna().mean()).reset_index()
 

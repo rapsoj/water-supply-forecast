@@ -1,0 +1,5 @@
+# Default ignored files
+workspace.xml
+.DS_Store
+assets/.DS_Store
+__pycache__/*

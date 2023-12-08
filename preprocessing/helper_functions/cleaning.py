@@ -196,30 +196,32 @@ def clean_snotel(df_snotel):
 
 def import_cpc_prec(current_dir):
     # Import cpc dataset
-    folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'cpc')
+    folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'cpc_outlooks')
     df_cpc_prec = pd.read_csv(os.path.join(folder_path, "cpc_prec.csv"))
     return df_cpc_prec
 
 def clean_cpc_prec(df_cpc_prec):
     # Convert labels
-    df_cpc_prec = df_cpc_prec.drop(columns=['site_id_y', 'CD'])
+    df_cpc_prec = df_cpc_prec.drop(columns=['CD', 'R', '90', '50', '10'])
     new_labels = {label:f'{label}_prec' for label in df_cpc_prec.columns}
     df_cpc_prec = df_cpc_prec.rename(columns=new_labels)
-    df_cpc_prec = df_cpc_prec.rename(columns={'YEAR_prec': 'year', 'MN_prec': 'month', 'site_id_x_prec': 'site_id'})
+    df_cpc_prec = df_cpc_prec.rename(columns={'YEAR_prec': 'year', 'MN_prec': 'month', 'site_id_prec': 'site_id', 'LEAD_prec': 'LEAD'})
     df_cpc_prec['day'] = 15
+
     return df_cpc_prec
 
 def import_cpc_temp(current_dir):
     # Import cpc dataset
-    folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'cpc')
+    folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'cpc_outlooks')
     df_cpc_prec = pd.read_csv(os.path.join(folder_path, "cpc_temp.csv"))
     return df_cpc_prec
 
 def clean_cpc_temp(df_cpc_temp):
     # Convert labels
-    df_cpc_temp = df_cpc_temp.drop(columns=['site_id_y', 'CD'])
+    df_cpc_temp = df_cpc_temp.drop(columns=['CD', 'R', '90','50','10'])
     new_labels = {label: f'{label}_temp' for label in df_cpc_temp.columns}
     df_cpc_temp = df_cpc_temp.rename(columns=new_labels)
-    df_cpc_temp = df_cpc_temp.rename(columns={'YEAR_prec': 'year', 'MN_prec': 'month', 'site_id_x_prec': 'site_id'})
+    df_cpc_temp = df_cpc_temp.rename(columns={'YEAR_temp': 'year', 'MN_temp': 'month', 'site_id_temp': 'site_id', 'LEAD_temp': 'LEAD'})
     df_cpc_temp['day'] = 15
+
     return df_cpc_temp
