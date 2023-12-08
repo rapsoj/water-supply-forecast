@@ -11,6 +11,7 @@ from preprocessing.pre_ml_processing import ml_preprocess_data
 
 path = os.getcwd()
 
+
 def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
                  validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)), gt_col: str = 'volume',
                  load_from_cache: bool = True, start_year=FIRST_FULL_GT_YEAR):
@@ -69,7 +70,7 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
         print(f'Benchmarking results for site {site_id}')
 
         # rescaling data+retransforming, nice side effect - model cannot have negative outputs
-        #train_pred, val_pred, test_pred = quantilise_preds(train_pred, val_pred, test_pred, train_site_gt[gt_col])
+        # train_pred, val_pred, test_pred = quantilise_preds(train_pred, val_pred, test_pred, train_site_gt[gt_col])
         train_pred = np.exp(train_pred * gt_std + gt_mean)
         val_pred = np.exp(val_pred * gt_std + gt_mean)
         test_pred = np.exp(test_pred * gt_std + gt_mean)
@@ -144,6 +145,7 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
 
     # todo figure out why some things are empty here, e.g. test_gt_df
     return train_feature_df, val_feature_df, test_feature_df, train_gt_df, val_gt_df, test_gt_df, (gt_mean, gt_std)
+
 
 if __name__ == '__main__':
     run_pipeline(load_from_cache=False)
