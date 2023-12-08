@@ -53,7 +53,7 @@ def xgboost_fitter(X, y, val_X, val_y, quantile: bool = True):
         q_models = {}
         for q in DEF_QUANTILES:
             model = GradientBoostingRegressor(loss='quantile', alpha=q)
-            model.fit(combined_X, combined_y)
+            model.fit(xgb_X, y)
 
             q_models[q] = model
 
