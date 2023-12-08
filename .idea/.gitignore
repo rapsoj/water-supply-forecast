@@ -2,5 +2,6 @@
 /shelf/
 /workspace.xml
 .DS_Store
+assets/.DS_Store
 __pycache__/consts.cpython-311.pyc
 
