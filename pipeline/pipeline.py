@@ -146,4 +146,4 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
     return train_feature_df, val_feature_df, test_feature_df, train_gt_df, val_gt_df, test_gt_df, (gt_mean, gt_std)
 
 if __name__ == '__main__':
-    run_pipeline(load_from_cache=False)
+    run_pipeline()
