@@ -33,7 +33,7 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
     ground_truth = load_ground_truth(num_predictions=N_PRED_MONTHS * N_PREDS_PER_MONTH)
     # Get training, validation and test sets
-    train_features, val_features, test_features, train_gt, val_gt, test_gt, (gt_mean, gt_std) = \
+    train_features, val_features, test_features, train_gt, val_gt, test_gt = \
         train_val_test_split(processed_data, ground_truth, test_years, validation_years, start_year=start_year)
 
     # todo implement global models
@@ -49,10 +49,15 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
         train_site = train_site.drop(columns=drop_cols).reset_index(drop=True)
         train_site_gt = train_gt[train_gt.site_id == site_id].reset_index(drop=True)
+        gt_std, gt_mean = train_site_gt[gt_col].std(), train_site_gt[gt_col].mean()
+
         val_site = val_features[val_features.site_id == site_id].drop(columns=drop_cols).reset_index(drop=True)
         val_site_gt = val_gt[val_gt.site_id == site_id].reset_index(drop=True)
         test_site = test_features[test_features.site_id == site_id].reset_index(drop=True)
         test_site = test_site.drop(columns=drop_cols, errors='ignore')
+
+        train_site_gt[gt_col] = (train_site_gt[gt_col] - gt_mean) / gt_std
+        val_site_gt[gt_col] = (val_site_gt[gt_col] - gt_mean) / gt_std
 
         # todo deal with this using a global model
         if train_site_gt.empty or val_site_gt.empty:
@@ -70,13 +75,13 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
         print(f'Benchmarking results for site {site_id}')
 
         # rescaling data+retransforming, nice side effect - model cannot have negative outputs
-        # train_pred, val_pred, test_pred = quantilise_preds(train_pred, val_pred, test_pred, train_site_gt[gt_col])
-        train_pred = np.exp(train_pred * gt_std + gt_mean)
-        val_pred = np.exp(val_pred * gt_std + gt_mean)
-        test_pred = np.exp(test_pred * gt_std + gt_mean)
+        train_pred, val_pred, test_pred = quantilise_preds(train_pred, val_pred, test_pred, train_site_gt[gt_col])
+        train_pred = train_pred * gt_std + gt_mean
+        val_pred = val_pred * gt_std + gt_mean
+        test_pred = test_pred * gt_std + gt_mean
 
-        train_site_gt[gt_col] = np.exp(train_site_gt[gt_col] * gt_std + gt_mean)
-        val_site_gt[gt_col] = np.exp(val_site_gt[gt_col] * gt_std + gt_mean)
+        train_site_gt[gt_col] = train_site_gt[gt_col] * gt_std + gt_mean
+        val_site_gt[gt_col] = val_site_gt[gt_col] * gt_std + gt_mean
         train_site_gt = train_site_gt.reset_index(drop=True)
         val_site_gt = val_site_gt.reset_index(drop=True)
 
@@ -129,22 +134,13 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
     train_feature_df = feature_df[train_mask]
     train_gt_df = gt_df[train_gt_mask]
 
-    train_gt_df.volume = np.log(train_gt_df.volume)
-    val_gt_df.volume = np.log(val_gt_df.volume)
-    test_gt_df.volume = np.log(test_gt_df.volume)
-
-    gt_mean, gt_std = train_gt_df.volume.mean(), train_gt_df.volume.std()
-    train_gt_df.volume = (train_gt_df.volume - gt_mean) / gt_std
-    val_gt_df.volume = (val_gt_df.volume - gt_mean) / gt_std
-    test_gt_df.volume = (test_gt_df.volume - gt_mean) / gt_std
-
     assert train_feature_df.date.isin(val_feature_df.date).sum() == 0 and \
            train_feature_df.date.isin(test_feature_df.date).sum() == 0 and \
            val_feature_df.date.isin(test_feature_df.date).sum() == 0, \
         "Dates are overlapping between train, val, and test sets"
 
     # todo figure out why some things are empty here, e.g. test_gt_df
-    return train_feature_df, val_feature_df, test_feature_df, train_gt_df, val_gt_df, test_gt_df, (gt_mean, gt_std)
+    return train_feature_df, val_feature_df, test_feature_df, train_gt_df, val_gt_df, test_gt_df
 
 
 if __name__ == '__main__':
