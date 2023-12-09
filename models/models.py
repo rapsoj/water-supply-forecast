@@ -63,6 +63,14 @@ def xgboost_fitter(X, y, val_X, val_y, quantile: bool = True):
     model.fit(X, y)
     return StreamflowModel(model), StreamflowModel(model)
 
+def k_nearest_neighbors_fitter(X, y, val_X, val_y):
+    knn_X = base_feature_adapter(X)
+    knn_val_X = base_feature_adapter(val_X)
+    combined_X = pd.concat([knn_X, knn_val_X])
+    combined_y = pd.concat([y, val_y])
+
+    # todo implement k nearest neighbors
+
 
 def general_pcr_fitter(X, y, val_X, val_y, quantile: bool = True, MAX_N_PCS: int = 50):
     pcr_X = base_feature_adapter(X)
