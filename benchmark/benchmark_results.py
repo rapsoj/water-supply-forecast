@@ -30,7 +30,7 @@ def cache_preds(site_id: str, pred_dates: pd.Series, pred: pd.DataFrame, cache_i
     return pred_df
 
 
-def generate_submission_file(ordered_site_ids):
+def generate_submission_file(ordered_site_ids, model_id: str):
     # Get the correct order, sort in the way competition wants it
     final_submission_df = pd.DataFrame()
     for idx, site_id in enumerate(ordered_site_ids):
@@ -46,8 +46,12 @@ def generate_submission_file(ordered_site_ids):
     final_submission_df = final_submission_df.groupby(final_submission_df.issue_date.dt.year) \
         .apply(lambda x: x.sort_values(['site_id', 'issue_date']))
 
-    final_submission_df.to_csv('final_pred.csv', index=False)
+    final_submission_df.to_csv(f'final_pred{model_id}.csv', index=False)
     return final_submission_df
+
+
+def cache_merged_submission_file(df: pd.DataFrame):
+    df.to_csv(f'final_pred.csv', index=False)
 
 
 def calc_quantile_loss(gt: pd.Series, preds: pd.DataFrame, quantile: float) -> float:
