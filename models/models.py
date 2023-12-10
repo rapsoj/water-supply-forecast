@@ -50,17 +50,20 @@ def xgboost_fitter(X, y, val_X, val_y, quantile: bool = True):
     combined_y = pd.concat([y, val_y])
 
     if quantile:
-        q_models = {}
+        hyper_tuned_q_models = {}
+        best_q_models = {}
         for q in DEF_QUANTILES:
-            model = GradientBoostingRegressor(loss='quantile', alpha=q)
-            model.fit(xgb_X, y)
+            h_model = GradientBoostingRegressor(loss='quantile', alpha=q)
+            h_model.fit(xgb_X, y)
+            hyper_tuned_q_models[q] = h_model
+            b_model = GradientBoostingRegressor(loss='quantile', alpha=q)
+            b_model.fit(combined_X, combined_y)
+            best_q_models[q] = b_model
 
-            q_models[q] = model
-
-        return StreamflowModel(q_models), StreamflowModel(q_models)
+        return StreamflowModel(hyper_tuned_q_models), StreamflowModel(best_q_models)
 
     model = GradientBoostingRegressor(loss='quantile', alpha=.5)
-    model.fit(X, y)
+    model.fit(xgb_X, y)
     return StreamflowModel(model), StreamflowModel(model)
 
 def k_nearest_neighbors_fitter(X, y, val_X, val_y):
