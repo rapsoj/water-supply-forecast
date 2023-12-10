@@ -29,7 +29,6 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
     # start_time = time.strptime(start_date1)
     end_date1 = pd.to_datetime(f"{df.date.dt.year.max()}0701", format="%Y%m%d")
 
-    end_date = df.date.max()
     feat_dates1 = pd.date_range(start=start_date1, end=end_date1, freq=f'{1}MS')
     feat_dates2 = feat_dates1.shift(7, freq="D")
     feat_dates3 = feat_dates1.shift(14, freq="D")
@@ -38,8 +37,6 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
         np.concatenate((np.array(feat_dates1), np.array(feat_dates2), np.array(feat_dates3), np.array(feat_dates4)))))
 
     site_feat_cols = set(df.columns) - ({'site_id', 'date', 'forecast_year', 'station'} | set(date_cols))
-
-
 
     site_id = df.name
     # remove stations which are not present throughout the whole dataseries
@@ -50,11 +47,8 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
         min_val_station = dates_per_station.loc[dates_per_station==min_val].index[0]
         df = df[df.station != min_val_station]'''
 
-
-
     # drop forecasts looking more than 7 months (up to july) in the future
     df = df[~(df.LEAD > JULY)]
-
 
     # average over data from different stations in the same day,
     # todo - deal with stations more properly by using lat/lon data or something groovier
@@ -111,10 +105,9 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
     data.day[data.day == -1] = 15
 
     # Create dates to work with
-    data["date"] = pd.to_datetime(data[date_cols].map(int))
+    data["date"] = pd.to_datetime(data[date_cols].applymap(int))
     data = data.sort_values('date')
 
-    ini_data = data
     # Get site ids
     site_id_str = 'site_id_'
     site_id_cols = [col for col in data.columns if 'site_id' in col]
@@ -133,18 +126,16 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
     # Keeping only SNOTEL data
     data = data.drop(columns=global_mjo_cols + global_nino_cols + global_oni_cols + global_misc_cols)
 
-    # Removing sites with no snotel data
-    # todo process this data separately
     processed_data = data.groupby('site_id').apply(process_features, mjo_data=mjo_data, nino_data=nino_data,
                                                    oni_data=oni_data, misc_data=misc_data) \
         .reset_index(drop=True)
 
-    # todo add temporal features
-    processed_data['time'] = (processed_data.date - pd.to_datetime(dict(year=processed_data.date.dt.year, month=1, day=1))).dt.days
+    # adding temporal feature
+    processed_data['time'] = (processed_data.date -
+                              pd.to_datetime(dict(year=processed_data.date.dt.year, month=1, day=1))).dt.days
 
     scaler = StandardScaler()
     processed_data.time = scaler.fit_transform(processed_data[['time']])
     processed_data.to_csv(output_file_path, index=False)
 
     return processed_data
-

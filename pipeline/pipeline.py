@@ -3,7 +3,8 @@ import os
 import numpy as np
 import pandas as pd
 
-from benchmark.benchmark_results import benchmark_results, cache_preds, generate_submission_file, quantilise_preds, cache_merged_submission_file
+from benchmark.benchmark_results import benchmark_results, cache_preds, generate_submission_file, quantilise_preds, \
+    cache_merged_submission_file
 from consts import JULY, FIRST_FULL_GT_YEAR, N_PREDS_PER_MONTH, N_PRED_MONTHS
 from models.fit_to_data import gen_basin_preds
 from preprocessing.generic_preprocessing import get_processed_dataset
@@ -15,7 +16,7 @@ path = os.getcwd()
 
 def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
                  validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)), gt_col: str = 'volume',
-                 load_from_cache: bool = True, start_year=FIRST_FULL_GT_YEAR):
+                 load_from_cache: bool = False, start_year=FIRST_FULL_GT_YEAR):
     print('Loading data')
     basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache)
 
@@ -39,7 +40,6 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
     # todo implement global models
     site_ids = processed_data.site_id.unique()
-
 
     global_df = run_global_models(train_features, val_features, test_features, \
                                   train_gt, val_gt, gt_col, site_ids)
@@ -102,11 +102,10 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
 
         cache_preds(pred=test_pred, cache_id=results_id, site_id=site_id, pred_dates=test_dates)
 
-
-
     ordered_site_ids = train_gt.site_id.drop_duplicates().tolist()
     print('Generating local model submission file...')
     return generate_submission_file(ordered_site_ids=ordered_site_ids, model_id='local')
+
 
 def run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids):
     drop_cols = ['site_id']
@@ -136,7 +135,7 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
     test_dates = test_vals.date.reset_index(drop=True)
 
     # rescaling data+retransforming, nice side effect - model cannot have negative outputs
-    #train_pred, val_pred, test_pred = quantilise_preds(train_pred, val_pred, test_pred, train_gt[gt_col])
+    # train_pred, val_pred, test_pred = quantilise_preds(train_pred, val_pred, test_pred, train_gt[gt_col])
     train_pred = train_pred * gt_std + gt_mean
     val_pred = val_pred * gt_std + gt_mean
     test_pred = test_pred * gt_std + gt_mean
@@ -186,7 +185,7 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
 
     # todo check if dropping volume here is okay (should be ok I think because this volume is only used as features, not labels, and so gradually "unlocking" it over time should be alright, I think, although maybe this data is not available at test time)
     test_feature_df = feature_df[test_feature_mask].reset_index(drop=True)
-    #test_gt_df = gt_df[test_gt_mask].reset_index(drop=True)
+    # test_gt_df = gt_df[test_gt_mask].reset_index(drop=True)
 
     val_mask = feature_df.forecast_year.isin(validation_years)
     val_gt_mask = gt_df.forecast_year.isin(validation_years)

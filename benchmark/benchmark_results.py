@@ -2,12 +2,9 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 from sklearn.metrics import mean_pinball_loss
-import os
-from consts import JULY, DETROIT
 
 from consts import DEF_QUANTILES
-
-os.chdir("../exploration")
+from consts import JULY, DETROIT
 
 
 # todo be smarter than using an error threshold
@@ -55,7 +52,7 @@ def cache_merged_submission_file(df: pd.DataFrame):
 
 
 def calc_quantile_loss(gt: pd.Series, preds: pd.DataFrame, quantile: float) -> float:
-    return 2*mean_pinball_loss(gt, preds[quantile], alpha=quantile) # Factor 2 to match DrivenData
+    return 2 * mean_pinball_loss(gt, preds[quantile], alpha=quantile)  # Factor 2 to match DrivenData
 
 
 def average_quantile_loss(gt: pd.Series, preds: pd.DataFrame, quantiles: list = DEF_QUANTILES) -> float:
@@ -106,14 +103,14 @@ def benchmark_results(train_pred: [pd.Series, pd.DataFrame], train_gt: pd.Series
     #     'Error - negative predictions!'
     # assert (train_gt >= 0).all() and (val_gt >= 0).all(), 'Error - negative ground truths!'
 
-    #for data in (train_pred, val_pred, test_pred):
+    # for data in (train_pred, val_pred, test_pred):
     #    assert all((data[DEF_QUANTILES[i]] <= data[DEF_QUANTILES[i + 1]]).all()
     #               for i in range(len(DEF_QUANTILES) - 1)), 'Error - quantiles are not ordered!'
 
     perc_in_interval, quantile_losses, avg_q_losses = calc_losses(train_pred, train_gt, val_pred, val_gt)
 
     # Extract and write to csvs to do sanity checks
-    avg_q_losses = pd.DataFrame(avg_q_losses, index=np.arange(0,1))
+    avg_q_losses = pd.DataFrame(avg_q_losses, index=np.arange(0, 1))
     quantile_losses = pd.DataFrame(quantile_losses)
 
     perc_in_interval = pd.DataFrame(perc_in_interval)
