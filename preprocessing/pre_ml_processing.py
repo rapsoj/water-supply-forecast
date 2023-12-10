@@ -23,7 +23,7 @@ date_cols = ['year', 'month', 'day']
 
 
 def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.DataFrame, oni_data: pd.DataFrame,
-                     misc_data: pd.DataFrame, N_DAYS_DELTA: int = 7) -> pd.DataFrame:
+                     misc_data: pd.DataFrame) -> pd.DataFrame:
     # Generate a df with rows for every prediction date, then gather data accordingly up until that point
     start_date1 = pd.to_datetime(f"{df.date.dt.year.min()}0101", format="%Y%m%d")
     # start_time = time.strptime(start_date1)
