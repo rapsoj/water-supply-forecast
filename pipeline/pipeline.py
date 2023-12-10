@@ -97,8 +97,7 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
         train_site_gt = train_site_gt.reset_index(drop=True)
         val_site_gt = val_site_gt.reset_index(drop=True)
 
-        benchmark_results(train_pred, train_site_gt[gt_col], val_pred,
-                          val_site_gt[gt_col], test_pred, benchmark_id=results_id)
+        benchmark_results(train_pred, train_site_gt[gt_col], val_pred, val_site_gt[gt_col], benchmark_id=results_id)
 
         cache_preds(pred=test_pred, cache_id=results_id, site_id=site_id, pred_dates=test_dates)
 
@@ -148,8 +147,7 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
 
     results_id = f'global'
 
-    benchmark_results(train_pred, train_gt[gt_col], val_pred,
-                      val_gt[gt_col], test_pred, benchmark_id=results_id)
+    benchmark_results(train_pred, train_gt[gt_col], val_pred, val_gt[gt_col], benchmark_id=results_id)
 
     test_pred['site_id'] = test_site_id_col
 
