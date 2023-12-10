@@ -1,15 +1,16 @@
 import pandas as pd
 from models.models import general_pcr_fitter, xgboost_fitter, k_nearest_neighbors_fitter
 from enum import Enum
+
+
 class Ensemble_Type(Enum):
     AVERAGE = 0
     BEST_PREDICTION = 1
 
-def gen_basin_preds(train_site: pd.DataFrame, train_gt: pd.DataFrame, val_site: pd.DataFrame, val_gt: pd.DataFrame,
-                    test: pd.DataFrame, model_fitters=(general_pcr_fitter, xgboost_fitter,), ensemble_type: Ensemble_Type=Ensemble_Type.AVERAGE) -> tuple:
-    #if len(model_fitters) != 1:
-    #    raise NotImplementedError('Error - not implemented yet for ensembles!')
 
+def gen_basin_preds(train_site: pd.DataFrame, train_gt: pd.DataFrame, val_site: pd.DataFrame, val_gt: pd.DataFrame,
+                    test: pd.DataFrame, model_fitters=(general_pcr_fitter, xgboost_fitter, k_nearest_neighbors_fitter),
+                    ensemble_type: Ensemble_Type = Ensemble_Type.AVERAGE) -> tuple:
     # todo reimplement ensembling so it happens elsewhere, so you can still store the individual model predictions
     # todo implement a "smarter" ensemble model, for now just implement one that averages
     # Ensemble model
@@ -18,7 +19,6 @@ def gen_basin_preds(train_site: pd.DataFrame, train_gt: pd.DataFrame, val_site: 
         sum_val_pred = pd.DataFrame()
         sum_test_pred = pd.DataFrame()
         for fitter in model_fitters:
-
             hyper_tuned_model, model = fitter(train_site, train_gt, val_site, val_gt)
             train_pred = model(train_site)
             val_pred = hyper_tuned_model(val_site)
@@ -33,10 +33,10 @@ def gen_basin_preds(train_site: pd.DataFrame, train_gt: pd.DataFrame, val_site: 
 
     return ave_train_pred, ave_val_pred, ave_test_pred
 
-def merge_global_local_models(global_pred: pd.DataFrame, local_pred: pd.DataFrame,
-                              ensemble_type:  Ensemble_Type = Ensemble_Type.AVERAGE):
-    if ensemble_type == Ensemble_Type.AVERAGE:
 
+def merge_global_local_models(global_pred: pd.DataFrame, local_pred: pd.DataFrame,
+                              ensemble_type: Ensemble_Type = Ensemble_Type.AVERAGE):
+    if ensemble_type == Ensemble_Type.AVERAGE:
         assert (global_pred.size == local_pred.size), \
             'Sizes of local and global prediction dfs dont match!'
         assert (global_pred.site_id == local_pred.site_id).all(), \

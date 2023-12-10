@@ -3,7 +3,9 @@ import pandas as pd
 from sklearn import linear_model
 from sklearn.decomposition import PCA
 from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, mean_pinball_loss, make_scorer
+from sklearn.model_selection import GridSearchCV
+from sklearn.neighbors import KNeighborsRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.utils.fixes import parse_version, sp_version
 
@@ -63,13 +65,34 @@ def xgboost_fitter(X, y, val_X, val_y, quantile: bool = True):
     model.fit(X, y)
     return StreamflowModel(model), StreamflowModel(model)
 
-def k_nearest_neighbors_fitter(X, y, val_X, val_y):
+
+def k_nearest_neighbors_fitter(X, y, val_X, val_y, quantile: bool = True):
+    assert quantile
+
     knn_X = base_feature_adapter(X)
     knn_val_X = base_feature_adapter(val_X)
     combined_X = pd.concat([knn_X, knn_val_X])
     combined_y = pd.concat([y, val_y])
 
-    # todo implement k nearest neighbors
+    knn = KNeighborsRegressor()
+
+    param_grid = {
+        'n_neighbors': np.arange(1, 11),
+    }
+
+    models = {}
+    for q in DEF_QUANTILES:
+        custom_scorer = make_scorer(mean_pinball_loss, greater_is_better=False, alpha=q)
+
+        # Define the grid search
+        grid_search = GridSearchCV(knn, param_grid, scoring=custom_scorer)
+
+        # Fit the grid search
+        grid_search.fit(combined_X, combined_y)
+
+        models[q] = grid_search.best_estimator_
+
+    return models
 
 
 def general_pcr_fitter(X, y, val_X, val_y, quantile: bool = True, MAX_N_PCS: int = 50):
