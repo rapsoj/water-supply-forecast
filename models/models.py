@@ -81,6 +81,7 @@ def k_nearest_neighbors_fitter(X, y, val_X, val_y, quantile: bool = True):
     }
 
     models = {}
+    noval_data_models = {}
     for q in DEF_QUANTILES:
         custom_scorer = make_scorer(mean_pinball_loss, greater_is_better=False, alpha=q)
 
@@ -92,7 +93,11 @@ def k_nearest_neighbors_fitter(X, y, val_X, val_y, quantile: bool = True):
 
         models[q] = grid_search.best_estimator_
 
-    return models
+        noval_model = KNeighborsRegressor(n_neighbors=grid_search.best_params_['n_neighbors'])
+        noval_model.fit(knn_X, y)
+        noval_data_models[q] = noval_model
+
+    return StreamflowModel(noval_data_models), StreamflowModel(models)
 
 
 def general_pcr_fitter(X, y, val_X, val_y, quantile: bool = True, MAX_N_PCS: int = 50):
