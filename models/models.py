@@ -80,7 +80,7 @@ def k_nearest_neighbors_fitter(X, y, val_X, val_y, quantile: bool = True):
     knn = KNeighborsRegressor()
 
     param_grid = {
-        'n_neighbors': np.arange(1, 500, 50),
+        'n_neighbors': np.arange(1, 2500, 250),
     }
 
     models = {}
