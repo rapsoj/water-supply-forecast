@@ -21,6 +21,8 @@ val_qlosses = []
 ave_gts = []
 
 final_pred = pd.read_csv(os.path.join("..", "exploration", "final_pred.csv"))
+final_pred_local = pd.read_csv(os.path.join("..", "exploration", "final_predlocal.csv"))
+
 pred_sids = final_pred.site_id.unique()
 
 

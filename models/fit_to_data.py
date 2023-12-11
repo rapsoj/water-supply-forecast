@@ -26,11 +26,14 @@ def gen_basin_preds(train_site: pd.DataFrame, train_gt: pd.DataFrame, val_site: 
 def ensemble_models(preds: dict, ensemble_name: str, ensemble_type:  Ensemble_Type = Ensemble_Type.BEST_PREDICTION):
     # todo make these asserts work for dictionary
     pred_keys = list(preds.keys())
+
     assert all([preds[pred_keys[i]].size == preds[pred_keys[i + 1]].size for i in range(0, len(pred_keys) - 1)]), \
         'Sizes of local and global prediction dfs dont match!'
 
     assert all([(preds[pred_keys[i]].site_id == preds[pred_keys[i + 1]].site_id).all() for i in range(0, len(pred_keys) - 1)]), \
         'Mismatch between local and global site columns!'
+
+    ordered_site_ids = preds[pred_keys[0]].site_id.drop_duplicates().tolist()
 
     if ensemble_type == Ensemble_Type.AVERAGE:
         final_pred = pd.DataFrame()
@@ -69,5 +72,9 @@ def ensemble_models(preds: dict, ensemble_name: str, ensemble_type:  Ensemble_Ty
 
             final_pred = pd.concat((final_pred, best_pred))
             print(site_keys[best_site_idx])
-    # todo implement other ensemble types of models
+
+    final_pred = final_pred.reset_index(drop=True)
+
+    final_pred = final_pred.groupby(final_pred.issue_date.dt.year) \
+        .apply(lambda x: x.sort_values(['site_id', 'issue_date']))    # todo implement other ensemble types of models
     return {f'{ensemble_name}': final_pred}
