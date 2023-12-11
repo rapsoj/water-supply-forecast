@@ -59,7 +59,7 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
 
 def run_local_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids,
-                     fitters=(general_pcr_fitter, xgboost_fitter,)
+                     fitters=(general_pcr_fitter, xgboost_fitter, k_nearest_neighbors_fitter)
                      ):
     non_feat_cols = ['site_id']
     dfs = []
@@ -136,7 +136,7 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
 
 
 def run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids,
-                      fitters=(xgboost_fitter,)):
+                      fitters=(xgboost_fitter, k_nearest_neighbors_fitter)):
     drop_cols = ['site_id']
     train_site_id_col = train_features.site_id.reset_index(drop=True)
     train_features = train_features.drop(columns=drop_cols).reset_index(drop=True)
@@ -176,8 +176,7 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
             val_pred = hyper_tuned_model(val_site)
             test_pred = model(test_site)
 
-            # rescaling data+retransforming, nice side effect - model cannot have negative outputs
-            # train_pred, val_pred, test_pred = quantilise_preds(train_pred, val_pred, test_pred, train_gt[gt_col])
+            # rescaling data+retransforming
             train_pred = train_pred * gt_std + gt_mean
             val_pred = val_pred * gt_std + gt_mean
             test_pred = test_pred * gt_std + gt_mean

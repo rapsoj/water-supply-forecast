@@ -3,14 +3,14 @@ from models.models import general_pcr_fitter, xgboost_fitter, k_nearest_neighbor
 from enum import Enum
 
 
-
 class Ensemble_Type(Enum):
     AVERAGE = 0
     BEST_PREDICTION = 1
 
 
 def gen_basin_preds(train_site: pd.DataFrame, train_gt: pd.DataFrame, val_site: pd.DataFrame, val_gt: pd.DataFrame,
-                    test: pd.DataFrame, fitter=xgboost_fitter) -> tuple: # todo reimplement ensembling so it happens elsewhere, so you can still store the individual model predictions
+                    test: pd.DataFrame,
+                    fitter=xgboost_fitter) -> tuple:  # todo reimplement ensembling so it happens elsewhere, so you can still store the individual model predictions
     # todo implement a "smarter" ensemble model, for now just implement one that averages
 
     # Ensemble model
@@ -21,7 +21,8 @@ def gen_basin_preds(train_site: pd.DataFrame, train_gt: pd.DataFrame, val_site: 
 
     return train_pred, val_pred, test_pred
 
-def ensemble_models(preds: [pd.DataFrame], ensemble_type:  Ensemble_Type = Ensemble_Type.AVERAGE):
+
+def ensemble_models(preds: [pd.DataFrame], ensemble_type: Ensemble_Type = Ensemble_Type.AVERAGE):
     assert all([preds[i].size == preds[i + 1].size for i in range(0, len(preds) - 1)]), \
         'Sizes of local and global prediction dfs dont match!'
     assert all([(preds[i].site_id == preds[i + 1].site_id).all() for i in range(0, len(preds) - 1)]), \
@@ -40,12 +41,10 @@ def ensemble_models(preds: [pd.DataFrame], ensemble_type:  Ensemble_Type = Ensem
                 pred = pred.drop(columns=['site_id', 'issue_date'])
 
                 final_pred = pred.add(final_pred, fill_value=0)
-                if idx == (len(preds)-1): # last iteration
-                    final_pred = final_pred / len(pred) # nromalize with the length to get the average
+                if idx == (len(preds) - 1):  # last iteration
+                    final_pred = final_pred / len(pred)  # nromalize with the length to get the average
                 final_pred['site_id'] = site_id_col
                 final_pred['issue_date'] = date_col
-
-
 
                 # Reorder columns
                 cols = final_pred.columns.to_list()
