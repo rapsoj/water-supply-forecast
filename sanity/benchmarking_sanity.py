@@ -3,12 +3,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from models.models import general_pcr_fitter, xgboost_fitter
+from models.fit_to_data import Ensemble_Type
 
 os.chdir("../exploration")
 
-fitters = (general_pcr_fitter, xgboost_fitter)
-models = ('local','global')
-
+fitters = (xgboost_fitter, general_pcr_fitter)
+models = ('local',)
+ensemble_type = Ensemble_Type.BEST_PREDICTION
 ground_truth_df = pd.read_csv(os.path.join("..", "assets", "data", "train.csv"))
 site_ids = ground_truth_df.site_id.unique()
 train_intervs = []
@@ -18,36 +19,44 @@ ave_val_q_losses = []
 train_qlosses = []
 val_qlosses = []
 ave_gts = []
-for site_id in site_ids:
-    site_sum_gts = 0
-    site_sum_train_intervs = 0
-    site_sum_val_intervs = 0
 
-    site_sum_train_q_loss = 0
-    site_sum_val_q_loss = 0
+for site_id in site_ids:
+    site_gts = []
+    site_train_intervs = []
+    site_val_intervs = []
+
+    site_train_q_loss = []
+    site_val_q_loss = []
 
     for fitter in fitters:
         for model in models:
             if not (model == 'global' and fitter.__name__ == 'general_pcr_fitter'):
                 ave_gt = ground_truth_df[ground_truth_df.site_id == site_id].volume.mean()
-                site_sum_gts += ave_gt
+                site_gts.append(ave_gt)
 
                 perc_interv = pd.read_csv(f'{model}_{fitter.__name__}_{site_id}_perc_in_interval.csv')  # Read perc interval file
-                site_sum_train_intervs += perc_interv['0'][0]
-                site_sum_val_intervs += perc_interv['0'][1]
+                site_train_intervs.append(perc_interv['0'][0])
+                site_val_intervs.append(perc_interv['0'][1])
 
                 avg_q_losses = pd.read_csv(f'{model}_{fitter.__name__}_{site_id}_avg_q_losses.csv')  # Read perc avg_q_losses file
-                site_sum_train_q_loss += avg_q_losses.train[0]
-                site_sum_val_q_loss += avg_q_losses.val[0]
+                site_train_q_loss.append(avg_q_losses.train[0])
+                site_val_q_loss.append(avg_q_losses.val[0])
 
                 '''all_q_losses = pd.read_csv(f'{model}_{site_id}_{fitter}_all_q_losses.csv')  # Read perc avg_q_losses file
                 train_qlosses.append(all_q_losses.train.to_numpy())
                 val_qlosses.append(all_q_losses.val)'''
-    ave_gts.append(site_sum_gts/(len(fitters)*len(models)))
-    train_intervs.append(site_sum_train_intervs/(len(fitters)*len(models)))
-    val_intervs.append(site_sum_val_intervs/(len(fitters)*len(models)))
-    ave_train_q_losses.append(site_sum_train_q_loss/(len(fitters)*len(models)))
-    ave_val_q_losses.append(site_sum_val_q_loss/(len(fitters)*len(models)))
+    if ensemble_type == Ensemble_Type.AVERAGE:
+        ave_gts.append(sum(site_gts)/len(site_gts))
+        train_intervs.append(sum(site_train_intervs)/len(site_train_intervs))
+        val_intervs.append(sum(site_val_intervs)/len(site_val_intervs))
+        ave_train_q_losses.append(sum(site_train_q_loss)/len(site_train_q_loss))
+        ave_val_q_losses.append(sum(site_val_q_loss)/len(site_val_q_loss))
+    elif ensemble_type == Ensemble_Type.BEST_PREDICTION:
+        ave_gts.append(min(site_gts))
+        train_intervs.append(min(site_train_intervs))
+        val_intervs.append(min(site_val_intervs))
+        ave_train_q_losses.append(min(site_train_q_loss))
+        ave_val_q_losses.append(min(site_val_q_loss))
 
 
 plt.scatter(site_ids, train_intervs, c='b')

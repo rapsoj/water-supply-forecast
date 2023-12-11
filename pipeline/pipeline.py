@@ -10,7 +10,7 @@ from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
 from models.fit_to_data import ensemble_models
 from models.models import general_pcr_fitter, xgboost_fitter, k_nearest_neighbors_fitter
-
+from models.fit_to_data import Ensemble_Type
 
 path = os.getcwd()
 
@@ -53,16 +53,16 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
     print('Ensembling global and local model submissions...')
 
-    final_df = ensemble_models(local_dfs+global_dfs)
-
+    final_df_dict = ensemble_models(local_dfs,'local', ensemble_type=Ensemble_Type.BEST_PREDICTION)
+    final_df = final_df_dict['local']
     cache_merged_submission_file(final_df)
 
 
 def run_local_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids,
-                     fitters=(general_pcr_fitter, xgboost_fitter,)
+                     fitters=(general_pcr_fitter, xgboost_fitter)
                      ):
     non_feat_cols = ['site_id']
-    dfs = []
+    dfs = {}
     site_id_sets = []
 
     # Run through all sites first to
@@ -137,12 +137,12 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
         ordered_site_ids = train_gt.site_id.drop_duplicates().tolist()
         print('Generating local model submission file...')
         df = generate_submission_file(ordered_site_ids=ordered_site_ids, model_id='local', fitter_id=fitter.__name__)
-        dfs.append(df)
+        dfs[f'local_{fitter.__name__}'] = df
 
     return dfs
 
 def run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids,
-                      fitters=(xgboost_fitter,)):
+                      fitters=(xgboost_fitter, general_pcr_fitter)):
 
     drop_cols = ['site_id']
     train_site_id_col = train_features.site_id.reset_index(drop=True)
@@ -163,7 +163,7 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
     train_features = train_features.fillna(0)
     val_features = val_features.fillna(0)
     test_features = test_features.fillna(0)
-    dfs = []
+    dfs = {}
     for fitter in fitters:
         hyper_tuned_model, model = fitter(train_features, train_gt[gt_col], val_features, val_gt[gt_col])
 
@@ -203,7 +203,7 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
         ordered_site_ids = train_gt.site_id.drop_duplicates().tolist()
         print('Generating global model submission file...')
         df = generate_submission_file(ordered_site_ids=ordered_site_ids, model_id='global', fitter_id=fitter.__name__)
-        dfs.append(df)
+        dfs[f'global_id_{fitter.__name__}'] = df
     return dfs
 
 # todo implement this function to generate the ground truth (YG: it's here, isn't this checked off?)
