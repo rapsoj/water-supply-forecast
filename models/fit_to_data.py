@@ -23,12 +23,14 @@ def gen_basin_preds(train_site: pd.DataFrame, train_gt: pd.DataFrame, val_site: 
 
     return train_pred, val_pred, test_pred
 
-def ensemble_models(preds: dict, ensemble_name: str, ensemble_type:  Ensemble_Type = Ensemble_Type.AVERAGE):
+def ensemble_models(preds: dict, ensemble_name: str, ensemble_type:  Ensemble_Type = Ensemble_Type.BEST_PREDICTION):
     # todo make these asserts work for dictionary
-    '''assert all([preds[i].size == preds[i + 1].size for i in range(0, len(preds) - 1)]), \
+    pred_keys = list(preds.keys())
+    assert all([preds[pred_keys[i]].size == preds[pred_keys[i + 1]].size for i in range(0, len(pred_keys) - 1)]), \
         'Sizes of local and global prediction dfs dont match!'
-    assert all([(preds[i].site_id == preds[i + 1].site_id).all() for i in range(0, len(preds) - 1)]), \
-        'Mismatch between local and global site columns!'''
+
+    assert all([(preds[pred_keys[i]].site_id == preds[pred_keys[i + 1]].site_id).all() for i in range(0, len(pred_keys) - 1)]), \
+        'Mismatch between local and global site columns!'
 
     if ensemble_type == Ensemble_Type.AVERAGE:
         final_pred = pd.DataFrame()
