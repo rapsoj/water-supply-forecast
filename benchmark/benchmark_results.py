@@ -27,12 +27,12 @@ def cache_preds(site_id: str, pred_dates: pd.Series, pred: pd.DataFrame, cache_i
     return pred_df
 
 
-def generate_submission_file(ordered_site_ids, model_id: str):
+def generate_submission_file(ordered_site_ids, model_id: str, fitter_id: str):
     # Get the correct order, sort in the way competition wants it
     final_submission_df = pd.DataFrame()
     for idx, site_id in enumerate(ordered_site_ids):
 
-        site_submission = pd.read_csv(f'{site_id}_pred.csv')
+        site_submission = pd.read_csv(f'{model_id}_{fitter_id}_{site_id}_pred.csv')
         site_submission.issue_date = site_submission.issue_date.astype('datetime64[ns]')
         if site_id == DETROIT:
             site_submission = site_submission[site_submission.issue_date.dt.month != JULY]
@@ -43,7 +43,7 @@ def generate_submission_file(ordered_site_ids, model_id: str):
     final_submission_df = final_submission_df.groupby(final_submission_df.issue_date.dt.year) \
         .apply(lambda x: x.sort_values(['site_id', 'issue_date']))
 
-    final_submission_df.to_csv(f'final_pred{model_id}.csv', index=False)
+    final_submission_df.to_csv(f'final_pred_{model_id}_{fitter_id}.csv', index=False)
     return final_submission_df
 
 
