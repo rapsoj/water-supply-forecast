@@ -31,7 +31,8 @@ def generate_submission_file(ordered_site_ids, model_id: str, fitter_id: str):
     # Get the correct order, sort in the way competition wants it
     final_submission_df = pd.DataFrame()
     for idx, site_id in enumerate(ordered_site_ids):
-
+        # todo explicitly pass this as an argument
+        # todo get this path from a func instead of hardcoding+copy pasting
         site_submission = pd.read_csv(f'{model_id}_{fitter_id}_{site_id}_pred.csv')
         site_submission.issue_date = site_submission.issue_date.astype('datetime64[ns]')
         if site_id == DETROIT:

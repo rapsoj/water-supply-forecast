@@ -2,11 +2,11 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from models.models import general_pcr_fitter, xgboost_fitter
+from models.models import general_pcr_fitter, xgboost_fitter, k_nearest_neighbors_fitter
 
 os.chdir(os.path.join("..", "pipeline"))
 
-fitters = (general_pcr_fitter, xgboost_fitter)
+fitters = (k_nearest_neighbors_fitter,)
 models = ('local', 'global')
 
 ground_truth_df = pd.read_csv(os.path.join("..", "assets", "data", "train.csv"))
@@ -18,6 +18,10 @@ ave_val_q_losses = []
 train_qlosses = []
 val_qlosses = []
 ave_gts = []
+
+# todo work with generic configs, eg different local vs global models
+n_models_in_ensemble = len(models) * len(fitters)
+
 for site_id in site_ids:
     site_sum_gts = 0
     site_sum_train_intervs = 0
@@ -28,22 +32,18 @@ for site_id in site_ids:
 
     for fitter in fitters:
         for model in models:
-            if not (model == 'global' and fitter.__name__ == 'general_pcr_fitter'):
-                ave_gt = ground_truth_df[ground_truth_df.site_id == site_id].volume.mean()
-                site_sum_gts += ave_gt
+            ave_gt = ground_truth_df[ground_truth_df.site_id == site_id].volume.mean()
+            site_sum_gts += ave_gt
 
-                perc_interv = pd.read_csv(f'{model}_{fitter.__name__}_{site_id}_perc_in_interval.csv')
-                site_sum_train_intervs += perc_interv['0'][0]
-                site_sum_val_intervs += perc_interv['0'][1]
+            perc_interv = pd.read_csv(f'{model}_{fitter.__name__}_{site_id}_perc_in_interval.csv')
+            site_sum_train_intervs += perc_interv['0'][0]
+            site_sum_val_intervs += perc_interv['0'][1]
 
-                avg_q_losses = pd.read_csv(
-                    f'{model}_{fitter.__name__}_{site_id}_avg_q_losses.csv')  # Read perc avg_q_losses file
-                site_sum_train_q_loss += avg_q_losses.train[0]
-                site_sum_val_q_loss += avg_q_losses.val[0]
+            avg_q_losses = pd.read_csv(
+                f'{model}_{fitter.__name__}_{site_id}_avg_q_losses.csv')  # Read perc avg_q_losses file
+            site_sum_train_q_loss += avg_q_losses.train[0]
+            site_sum_val_q_loss += avg_q_losses.val[0]
 
-                '''all_q_losses = pd.read_csv(f'{model}_{site_id}_{fitter}_all_q_losses.csv')  # Read perc avg_q_losses file
-                train_qlosses.append(all_q_losses.train.to_numpy())
-                val_qlosses.append(all_q_losses.val)'''
     ave_gts.append(site_sum_gts / (len(fitters) * len(models)))
     train_intervs.append(site_sum_train_intervs / (len(fitters) * len(models)))
     val_intervs.append(site_sum_val_intervs / (len(fitters) * len(models)))
@@ -52,13 +52,13 @@ for site_id in site_ids:
 
 plt.scatter(site_ids, train_intervs, c='b')
 plt.scatter(site_ids, val_intervs, c='r')
-print(np.mean(val_intervs))
+print(f'Average interval coverage: {np.mean(val_intervs):.2f}')
 plt.ylabel("Percentage in interval")
 
 plt.figure()
 plt.scatter(site_ids, ave_train_q_losses)
 plt.scatter(site_ids, ave_val_q_losses)
-print(np.mean(ave_val_q_losses))
+print(f'AMQ validation loss: {np.mean(ave_val_q_losses):.0f}')
 print(np.mean(ave_train_q_losses))
 print(site_ids[np.argmax(ave_train_q_losses)])
 
@@ -74,7 +74,6 @@ val_dict = {f'{site_id}': ave_val_q_losses[i] / sum(ave_val_q_losses) for i, sit
 
 df = pd.DataFrame(val_dict, index=np.arange(0, 1)).transpose()
 print(df)
-# print(my_dict)
 plt.scatter(site_ids, ave_train_q_losses / ave_gts)
 plt.scatter(site_ids, ave_val_q_losses / ave_gts)
 plt.ylabel("Average quantile loss")

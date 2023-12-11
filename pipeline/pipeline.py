@@ -58,14 +58,21 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     cache_merged_submission_file(final_df)
 
 
+def scale_data(inp, mean, std):
+    return (inp - mean) / std
+
+
+def inv_scale_data(pred, mean, std):
+    return pred * std + mean
+
+
 def run_local_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids,
-                     fitters=(general_pcr_fitter, xgboost_fitter, k_nearest_neighbors_fitter)
-                     ):
+                     fitters=(k_nearest_neighbors_fitter,)):
     non_feat_cols = ['site_id']
     dfs = []
     site_id_sets = []
 
-    # Run through all sites first to
+    # get sitewise data
     for site_id in site_ids:
         train_site = train_features[train_features.site_id == site_id]
         # set-list in case non feature columns have NaNs
@@ -80,9 +87,10 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
         test_site = test_features[test_features.site_id == site_id].reset_index(drop=True)
         test_site = test_site.drop(columns=drop_cols, errors='ignore')
 
-        train_site_gt[gt_col] = (train_site_gt[gt_col] - gt_mean) / gt_std
-        val_site_gt[gt_col] = (val_site_gt[gt_col] - gt_mean) / gt_std
+        train_site_gt[gt_col] = scale_data(train_site_gt[gt_col], gt_mean, gt_std)
+        val_site_gt[gt_col] = scale_data(val_site_gt[gt_col], gt_mean, gt_std)
 
+        # todo create namedtuple/smthing to make this prettier
         site_id_sets.append([train_site, train_site_gt, val_site, val_site_gt, test_site, gt_mean, gt_std])
 
     for fitter in fitters:
@@ -114,12 +122,12 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
             print(f'Benchmarking results for site {site_id}')
 
             # rescaling data
-            train_pred = train_pred * gt_std + gt_mean
-            val_pred = val_pred * gt_std + gt_mean
-            test_pred = test_pred * gt_std + gt_mean
+            train_pred = inv_scale_data(train_pred, gt_mean, gt_std)
+            val_pred = inv_scale_data(val_pred, gt_mean, gt_std)
+            test_pred = inv_scale_data(test_pred, gt_mean, gt_std)
 
-            train_site_gt[gt_col] = train_site_gt[gt_col] * gt_std + gt_mean
-            val_site_gt[gt_col] = val_site_gt[gt_col] * gt_std + gt_mean
+            train_site_gt[gt_col] = inv_scale_data(train_site_gt[gt_col], gt_mean, gt_std)
+            val_site_gt[gt_col] = inv_scale_data(val_site_gt[gt_col], gt_mean, gt_std)
             train_site_gt = train_site_gt.reset_index(drop=True)
             val_site_gt = val_site_gt.reset_index(drop=True)
 
@@ -136,7 +144,7 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
 
 
 def run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids,
-                      fitters=(xgboost_fitter, k_nearest_neighbors_fitter)):
+                      fitters=(k_nearest_neighbors_fitter,)):
     drop_cols = ['site_id']
     train_site_id_col = train_features.site_id.reset_index(drop=True)
     train_features = train_features.drop(columns=drop_cols).reset_index(drop=True)
@@ -149,8 +157,8 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
     test_site_id_col = test_features.site_id
     test_features = test_features.drop(columns=drop_cols, errors='ignore')
 
-    train_gt[gt_col] = (train_gt[gt_col] - gt_mean) / gt_std
-    val_gt[gt_col] = (val_gt[gt_col] - gt_mean) / gt_std
+    train_gt[gt_col] = scale_data(train_gt[gt_col], gt_mean, gt_std)
+    val_gt[gt_col] = scale_data(val_gt[gt_col], gt_mean, gt_std)
 
     # todo perhaps find a better way of treating NaN values (Californian sites for volume+SNOTEL)
     train_features = train_features.fillna(0)
@@ -176,13 +184,13 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
             val_pred = hyper_tuned_model(val_site)
             test_pred = model(test_site)
 
-            # rescaling data+retransforming
-            train_pred = train_pred * gt_std + gt_mean
-            val_pred = val_pred * gt_std + gt_mean
-            test_pred = test_pred * gt_std + gt_mean
+            # rescaling data
+            train_pred = inv_scale_data(train_pred, gt_mean, gt_std)
+            val_pred = inv_scale_data(val_pred, gt_mean, gt_std)
+            test_pred = inv_scale_data(test_pred, gt_mean, gt_std)
 
-            train_site_gt[gt_col] = train_site_gt[gt_col] * gt_std + gt_mean
-            val_site_gt[gt_col] = val_site_gt[gt_col] * gt_std + gt_mean
+            train_site_gt[gt_col] = inv_scale_data(train_site_gt[gt_col], gt_mean, gt_std)
+            val_site_gt[gt_col] = inv_scale_data(val_site_gt[gt_col], gt_mean, gt_std)
 
             train_site_gt = train_site_gt.reset_index(drop=True)
             val_site_gt = val_site_gt.reset_index(drop=True)
@@ -194,10 +202,10 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
         print('Generating global model submission file...')
         df = generate_submission_file(ordered_site_ids=ordered_site_ids, model_id='global', fitter_id=fitter.__name__)
         dfs.append(df)
+
     return dfs
 
 
-# todo implement this function to generate the ground truth (YG: it's here, isn't this checked off?)
 def load_ground_truth(num_predictions: int):
     ground_truth_df = pd.read_csv(os.path.join("..", "assets", "data", "train.csv"))
     # todo improve how we retrieve data for different sites, retrieving as much data as we can for each
