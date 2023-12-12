@@ -71,7 +71,7 @@ def ensemble_models(preds: dict, ensemble_name: str, ensemble_type:  Ensemble_Ty
             best_pred = site_id_preds[site_keys[best_site_idx]]
 
             final_pred = pd.concat((final_pred, best_pred))
-            print(site_keys[best_site_idx])
+            print(f'{site_id}: {site_keys[best_site_idx]}')
 
     final_pred = final_pred.reset_index(drop=True)
 

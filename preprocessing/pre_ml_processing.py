@@ -59,17 +59,34 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
     # break every station into its separate columns (while keeping the df which has station=NaN separate,
     # merging it back later to make sure it doesn't disappear)
     # todo - deal with stations more properly by using lat/lon data or something groovier
-    rest_df = df[df.station.isna()]
-    station_df = df[~df.station.isna()]
-    if not df.station.isna().all():
-        renaming_cols = [col for col in df.columns if 'DAILY' in col]+['station']
-        station_dfs = [group.reset_index(drop=True) for _, group in station_df.groupby('station')]
-        merging_cols = ['year', 'month', 'day']+list(set(df.columns) - set(['year', 'month', 'day']+renaming_cols))
-        new_station_dfs = [station_dataf.rename(columns={col:(col+str(station_dataf.station.unique()[0])) for col in renaming_cols} ) for station_dataf in station_dfs]
-        station_df = reduce(lambda left, right: pd.merge(left, right, on=merging_cols,
-                                            how='outer'), new_station_dfs)
+    def expand_columns(dataf: pd.DataFrame, expansion_cols):
+        for expansion_col in expansion_cols:
 
-    df = pd.concat((station_df, rest_df))
+            rest_df = dataf[dataf[expansion_col].isna()]
+            expansion_df = dataf[~dataf[expansion_col].isna()]
+            if not dataf[expansion_col].isna().all():
+
+                if expansion_col == 'station':
+                    renaming_cols = [col for col in dataf.columns if 'DAILY' in col] + [expansion_col]
+                elif expansion_col == 'LEAD':
+                    renaming_cols = [col for col in dataf.columns if '_prec' in col or '_temp' in col] + [expansion_col]
+
+                expansion_dfs = [group for _, group in expansion_df.groupby(expansion_col)]
+
+                new_expansion_dfs = [expansion_df.rename(
+                    columns={col: (col + str(expansion_df[expansion_col].unique()[0])) for col in renaming_cols}) for
+                                   station_dataf in expansion_dfs]
+
+                merging_cols = ['year', 'month', 'day'] + list(
+                    set(new_expansion_dfs[0].columns) - set(['year', 'month', 'day'] + [expansion_col]))
+
+                expansion_df = reduce(lambda left, right: pd.merge(left, right, on=merging_cols,
+                                                                 how='outer'), new_expansion_dfs)
+
+            dataf = pd.concat((expansion_df, rest_df))
+        return dataf
+
+    df = expand_columns(df, expansion_cols=['station', 'LEAD'])
     # drop irrelevant columns, especially relevant for california data that's missing some features
     df = df.drop(columns=df.columns[df.isna().all()])
     # drop station name columns
@@ -120,6 +137,7 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
     assert not site_df.isna().any().any(), 'Error - we have nans!'
 
     site_df['site_id'] = site_id
+    print(f'Finishing processing features of {site_id}')
     return site_df
 
 

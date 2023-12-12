@@ -23,7 +23,7 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
     # todo add explicit forecasting functionality, split train/test for forecasting earlier.
     #  currently everything is processed together. unsure if necessary
-    processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache)
+    processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=False)
 
     print()
     # Data sanity check
@@ -43,7 +43,7 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     # todo implement global models
     site_ids = processed_data.site_id.unique()
 
-    print('Running global models...')
+    #print('Running global models...')
 
     #global_dfs = run_global_models(train_features, val_features, test_features, \
     #                               train_gt, val_gt, gt_col, site_ids)
