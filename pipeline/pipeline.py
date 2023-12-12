@@ -52,9 +52,10 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     local_dfs = run_local_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids)
 
     print('Ensembling global and local model submissions...')
+    full_dfs = local_dfs | global_dfs
 
-    final_df_dict = ensemble_models(local_dfs, 'local', ensemble_type=Ensemble_Type.BEST_PREDICTION)
-    final_df = final_df_dict['local']
+    final_df_dict = ensemble_models(full_dfs, 'final', ensemble_type=Ensemble_Type.BEST_PREDICTION)
+    final_df = final_df_dict['final']
     cache_merged_submission_file(final_df)
 
 
@@ -145,7 +146,7 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
 
 
 def run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids,
-                      fitters=(xgboost_fitter, general_pcr_fitter)):
+                      fitters=(xgboost_fitter,)):
     drop_cols = ['site_id']
     train_site_id_col = train_features.site_id.reset_index(drop=True)
     train_features = train_features.drop(columns=drop_cols).reset_index(drop=True)
@@ -202,7 +203,7 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
         ordered_site_ids = train_gt.site_id.drop_duplicates().tolist()
         print('Generating global model submission file...')
         df = generate_submission_file(ordered_site_ids=ordered_site_ids, model_id='global', fitter_id=fitter.__name__)
-        dfs[f'global_id_{fitter.__name__}'] = df
+        dfs[f'global_{fitter.__name__}'] = df
     return dfs
 
 

@@ -22,8 +22,11 @@ train_qlosses = []
 val_qlosses = []
 ave_gts = []
 
-# todo work with generic configs, eg different local vs global models
-n_models_in_ensemble = len(models) * len(fitters)
+final_pred = pd.read_csv(os.path.join("..", "exploration", "final_pred.csv"))
+final_pred_local = pd.read_csv(os.path.join("..", "exploration", "final_predlocal.csv"))
+
+pred_sids = final_pred.site_id.unique()
+
 
 
 for site_id in site_ids:
@@ -54,11 +57,12 @@ for site_id in site_ids:
         ave_train_q_losses.append(np.mean(site_train_q_loss))
         ave_val_q_losses.append(np.mean(site_val_q_loss))
     elif ensemble_type == Ensemble_Type.BEST_PREDICTION:
-        ave_gts.append(min(site_gts))
-        train_intervs.append(min(site_train_intervs))
-        val_intervs.append(min(site_val_intervs))
-        ave_train_q_losses.append(min(site_train_q_loss))
-        ave_val_q_losses.append(min(site_val_q_loss))
+        idx = np.argmin(np.array(site_val_q_loss))
+        ave_gts.append(site_gts[idx])
+        train_intervs.append(site_train_intervs[idx])
+        val_intervs.append(site_val_intervs[idx])
+        ave_train_q_losses.append(site_train_q_loss[idx])
+        ave_val_q_losses.append(site_val_q_loss[idx])
 
 plt.scatter(site_ids, train_intervs, c='b')
 plt.scatter(site_ids, val_intervs, c='r')
