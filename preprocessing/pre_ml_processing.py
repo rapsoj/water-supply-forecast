@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from consts import JULY
 from sklearn.preprocessing import StandardScaler
+from functools import reduce
 
 import time
 
@@ -37,7 +38,6 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
     feat_dates = pd.Series(np.sort(
         np.concatenate((np.array(feat_dates1), np.array(feat_dates2), np.array(feat_dates3), np.array(feat_dates4)))))
 
-    site_feat_cols = set(df.columns) - ({'site_id', 'date', 'forecast_year', 'station'} | set(date_cols))
 
 
 
@@ -56,14 +56,36 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
     df = df[~(df.LEAD > JULY)]
 
 
-    # average over data from different stations in the same day,
+    # break every station into its separate columns (while keeping the df which has station=NaN separate,
+    # merging it back later to make sure it doesn't disappear)
     # todo - deal with stations more properly by using lat/lon data or something groovier
+    rest_df = df[df.station.isna()]
+    station_df = df[~df.station.isna()]
+    if not df.station.isna().all():
+        renaming_cols = [col for col in df.columns if 'DAILY' in col]+['station']
+        station_dfs = [group.reset_index(drop=True) for _, group in station_df.groupby('station')]
+        merging_cols = ['year', 'month', 'day']+list(set(df.columns) - set(['year', 'month', 'day']+renaming_cols))
+        new_station_dfs = [station_dataf.rename(columns={col:(col+str(station_dataf.station.unique()[0])) for col in renaming_cols} ) for station_dataf in station_dfs]
+        station_df = reduce(lambda left, right: pd.merge(left, right, on=merging_cols,
+                                            how='outer'), new_station_dfs)
+
+    df = pd.concat((station_df, rest_df))
+    # drop irrelevant columns, especially relevant for california data that's missing some features
+    df = df.drop(columns=df.columns[df.isna().all()])
+    # drop station name columns
+    station_cols = [col for col in df.columns if 'station' in col]
+    df = df.drop(columns=station_cols)
+    site_feat_cols = set(df.columns) - ({'site_id', 'date', 'forecast_year', 'station'} | set(date_cols))
+
+
+
     # todo - do not average over all cpc forecasts with different leads on the same date, deal with it in a smarter/more information preserving manner
     df = df.groupby('date')[list(site_feat_cols)].agg(lambda x: x.dropna().mean()).reset_index()
 
+
+
     # todo interpolate variables that only stretch a certain extent back in time such that they take the average value for everything after (i.e. 0s), e.g. for CPC forecasts
-    # drop irrelevant columns, especially relevant for california data that's missing some features
-    df = df.drop(columns=df.columns[df.isna().all()])
+
 
     # re-add global data into specific df
     df = df.merge(mjo_data, on='date', how='outer') \

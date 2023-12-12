@@ -192,6 +192,11 @@ def clean_snotel(df_snotel):
     df_snotel.drop('date', axis=1, inplace=True)
 
     df_snotel = df_snotel.rename(columns={'site': 'site_id'})
+
+
+
+
+
     return df_snotel
 
 def import_cpc_prec(current_dir):
