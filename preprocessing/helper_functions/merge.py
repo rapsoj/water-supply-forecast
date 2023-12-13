@@ -23,3 +23,8 @@ def merge_day(list_dataframes):
     df_merged = reduce(lambda left, right: pd.merge(left, right, on=['year', 'month', 'day'],
                                                     how='outer'), list_dataframes)
     return df_merged
+
+def merge_site_id(list_dataframes):
+    # Merge on site id
+    df_merged = reduce(lambda left, right: pd.merge(left, right, on=['site_id'], how='outer'), list_dataframes)
+    return df_merged

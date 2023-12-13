@@ -230,3 +230,11 @@ def clean_cpc_temp(df_cpc_temp):
     df_cpc_temp['day'] = 15
 
     return df_cpc_temp
+
+def import_dem(current_dir):
+    folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'dem')
+    df_dem = pd.read_csv(os.path.join(folder_path, 'dem_summary.csv'))
+    return df_dem
+
+def clean_dem(df_dem):
+    return df_dem
