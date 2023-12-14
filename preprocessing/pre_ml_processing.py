@@ -53,7 +53,7 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
 
 
     # drop forecasts looking more than 7 months (up to july) in the future
-    df = df[~(df.LEAD > JULY)]
+    #df = df[~(df.LEAD > JULY)]
 
 
     # break every station into its separate columns (while keeping the df which has station=NaN separate,
