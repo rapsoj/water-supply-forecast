@@ -18,7 +18,7 @@ def data_gen(n_samples: int, out_dim: int = 15) -> tuple:
     return X, pd.Series(y)
 
 
-def straight_line_err_is_good(fitter=general_pcr_fitter, train_size: int = 5000, val_size: int = 1000,
+def straight_line_err_is_good(fitter=general_pcr_fitter, train_size: int = 50000, val_size: int = 1000,
                               test_size: int = 1000):
     X, y = data_gen(train_size)
     val_X, val_y = data_gen(val_size)
