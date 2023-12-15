@@ -7,7 +7,7 @@ from models.fit_to_data import Ensemble_Type
 
 os.chdir("../exploration")
 
-fitters = (xgboost_fitter,)
+fitters = (general_pcr_fitter,)
 models = ('local',)
 ensemble_type = Ensemble_Type.BEST_PREDICTION
 ground_truth_df = pd.read_csv(os.path.join("..", "assets", "data", "train.csv"))
@@ -24,8 +24,6 @@ final_pred = pd.read_csv(os.path.join("..", "exploration", "final_pred.csv"))
 final_pred_local = pd.read_csv(os.path.join("..", "exploration", "final_predlocal.csv"))
 
 pred_sids = final_pred.site_id.unique()
-
-
 
 for site_id in site_ids:
     site_gts = []

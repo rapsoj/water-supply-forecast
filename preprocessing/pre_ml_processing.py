@@ -53,7 +53,7 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
 
 
     # drop forecasts looking more than 7 months (up to july) in the future
-    #df = df[~(df.LEAD > JULY)]
+    #df = df[(df.LEAD <= JULY)]
 
 
     # break every station into its separate columns (while keeping the df which has station=NaN separate,
@@ -92,7 +92,7 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
             dataf = pd.concat((expansion_df, rest_df))
         return dataf
 
-    df = expand_columns(df, expansion_cols=['station', 'LEAD'])
+    #df = expand_columns(df, expansion_cols=['station', 'LEAD'])
     # drop irrelevant columns, especially relevant for california data that's missing some features
     df = df.drop(columns=df.columns[df.isna().all()])
     # drop station name columns
@@ -177,6 +177,7 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
 
     nino_data = data[global_nino_cols + shared_cols].dropna()
     misc_data = data[global_misc_cols + shared_cols].dropna()
+
     # Keeping only SNOTEL data
     data = data.drop(columns=global_mjo_cols + global_nino_cols + global_oni_cols + global_misc_cols)
 
