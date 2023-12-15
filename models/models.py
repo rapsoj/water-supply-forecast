@@ -14,14 +14,8 @@ from consts import DEF_QUANTILES, JULY
 
 
 def base_feature_adapter(X, pc=None):
-
     X = X[X.date.dt.month <= JULY].drop(columns=['date', 'forecast_year'])
-    if pc is not None:
-        pca = PCA(n_components=pc)
-        pca.fit(X.T)
-        return pd.DataFrame(pca.components_.T)
-    else:
-        return X
+    return X
 
 
 class StreamflowModel:
@@ -150,7 +144,7 @@ def pcr_fitter(X, y, pc, quantile: bool = True, solver="highs"):
 
         model.fit(X, y)
 
-        predictor = StreamflowModel(model, adapter=base_feature_adapter)
+        predictor = StreamflowModel(model)
     else:
         regressors = {}
         for q in DEF_QUANTILES:
