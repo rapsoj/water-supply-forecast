@@ -85,11 +85,11 @@ def fix_df(data: pd.DataFrame):
     return ini_data
 
 def analyze_data():
-    basic_preprocessed_df = get_processed_dataset(load_from_cache=True)
+    basic_preprocessed_df = get_processed_dataset(load_from_cache=True).copy()
 
     # todo add explicit forecasting functionality, split train/test for forecasting earlier.
     #  currently everything is processed together. unsure if necessary
-    processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=True)
+    processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=True).copy()
 
     ini_data = fix_df(basic_preprocessed_df)
     snotel_cols = [col for col in processed_data.columns if 'DAILY' in col]

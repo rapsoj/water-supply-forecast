@@ -103,7 +103,7 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
 
 
     # todo - do not average over all cpc forecasts with different leads on the same date, deal with it in a smarter/more information preserving manner
-    df = df.groupby('date')[list(site_feat_cols)].agg(lambda x: x.dropna().mean()).reset_index()
+    #df = df.groupby('date')[list(site_feat_cols)].agg(lambda x: x.dropna().mean()).reset_index()
 
 
 
