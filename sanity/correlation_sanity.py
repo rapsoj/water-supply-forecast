@@ -5,6 +5,7 @@ from preprocessing.pre_ml_processing import ml_preprocess_data
 from pipeline.pipeline import load_ground_truth
 from consts import N_PRED_MONTHS, N_PREDS_PER_MONTH, FIRST_FULL_GT_YEAR
 from models.models import base_feature_adapter
+from scipy.stats import pearsonr
 
 def analyze_data():
     basic_preprocessed_df = get_processed_dataset(load_from_cache=True)
@@ -27,7 +28,14 @@ def analyze_data():
         gt_df = load_ground_truth(N_PRED_MONTHS*N_PREDS_PER_MONTH)
         gt_df = gt_df.sort_values(by='forecast_year')
 
-        plt.scatter(processed_data[col], gt_df[gt_df.site_id==site_id].volume.unique())
+        x = processed_data[col]
+        y = gt_df[gt_df.site_id==site_id].volume.unique()
+
+        if x.nunique() > 1:
+            cor, _ = pearsonr(x,y)
+            print(f'{col}: {cor}')
+
+        plt.scatter(x, y)
         plt.xlabel("Feature")
         plt.ylabel("Ground truth (volume)")
         plt.title(f"{col}")
