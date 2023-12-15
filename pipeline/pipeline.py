@@ -17,7 +17,7 @@ path = os.getcwd()
 
 def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
                  validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)), gt_col: str = 'volume',
-                 load_from_cache: bool = True, start_year=FIRST_FULL_GT_YEAR, ):
+                 load_from_cache: bool = False, start_year=FIRST_FULL_GT_YEAR, ):
     print('Loading data')
     basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache)
 
@@ -31,7 +31,7 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
                .drop(columns=['date', 'forecast_year', 'site_id']).dtypes]), "All features are not floats"
     assert len(processed_data.site_id[processed_data.volume.isna()].unique()) == 3, \
         "More than 3 sites having NaNs in volume (should only be the California sites)"
-    #assert len(processed_data.site_id[processed_data.SNWD_DAILY.isna()].unique()) == 1, \
+    # assert len(processed_data.site_id[processed_data.SNWD_DAILY.isna()].unique()) == 1, \
     #    "More than 1 site has NaNs in SNWD_DAILY (should only be american river folsom)"
 
     ground_truth = load_ground_truth(num_predictions=N_PRED_MONTHS * N_PREDS_PER_MONTH)
@@ -41,19 +41,16 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
     site_ids = processed_data.site_id.unique()
 
-    #print('Running global models...')
-
-    #global_dfs = run_global_models(train_features, val_features, test_features, \
-    #                              train_gt, val_gt, gt_col, site_ids)
+    print('Running global models...')
+    global_dfs = run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids)
 
     print('Running local models...')
-
     local_dfs = run_local_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids)
 
     print('Ensembling global and local model submissions...')
-    full_dfs = local_dfs# | global_dfs
+    full_dfs = local_dfs | global_dfs
 
-    final_df_dict = ensemble_models(full_dfs ,'final', ensemble_type=Ensemble_Type.BEST_PREDICTION)
+    final_df_dict = ensemble_models(full_dfs, 'final', ensemble_type=Ensemble_Type.BEST_PREDICTION)
     final_df = final_df_dict['final']
     cache_merged_submission_file(final_df)
 
@@ -67,7 +64,7 @@ def inv_scale_data(pred, mean, std):
 
 
 def run_local_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids,
-                     fitters=(xgboost_fitter,general_pcr_fitter)
+                     fitters=(xgboost_fitter, general_pcr_fitter)
                      ):
     non_feat_cols = ['site_id']
     dfs = {}
@@ -226,7 +223,6 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
     test_feature_mask = feature_df.forecast_year.isin(test_years)
     test_gt_mask = gt_df.forecast_year.isin(test_years)
 
-    # todo check if dropping volume here is okay (should be ok I think because this volume is only used as features, not labels, and so gradually "unlocking" it over time should be alright, I think, although maybe this data is not available at test time)
     test_feature_df = feature_df[test_feature_mask].reset_index(drop=True)
 
     val_mask = feature_df.forecast_year.isin(validation_years)

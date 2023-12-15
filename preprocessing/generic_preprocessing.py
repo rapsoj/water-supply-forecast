@@ -63,8 +63,6 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
     df_flow['day'] = np.nan  # input nan when we don't know which day of the month data was measured
     df_merged = merge.merge_site_id_day(dataframes)
 
-
-
     # Merge on day
     dataframes = [df_mjo, df_pna, df_soi1, df_soi2, df_pdo, df_nino, df_oni, df_merged]
     for df in dataframes:

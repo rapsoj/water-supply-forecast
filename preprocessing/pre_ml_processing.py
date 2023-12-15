@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 
+from consts import JULY
+
 path = os.getcwd()
 
 global_mjo_cols = ['mjo20E', 'mjo70E', 'mjo80E', 'mjo100E', 'mjo120E', 'mjo140E', 'mjo160E', 'mjo120W', 'mjo40W',
@@ -23,7 +25,6 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
                      misc_data: pd.DataFrame) -> pd.DataFrame:
     # Generate a df with rows for every prediction date, then gather data accordingly up until that point
     start_date1 = pd.to_datetime(f"{df.date.dt.year.min()}0101", format="%Y%m%d")
-    # start_time = time.strptime(start_date1)
     end_date1 = pd.to_datetime(f"{df.date.dt.year.max()}0701", format="%Y%m%d")
 
     feat_dates1 = pd.date_range(start=start_date1, end=end_date1, freq=f'{1}MS')
@@ -33,26 +34,13 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
     feat_dates = pd.Series(np.sort(
         np.concatenate((np.array(feat_dates1), np.array(feat_dates2), np.array(feat_dates3), np.array(feat_dates4)))))
 
-
     site_id = df.name
-    # remove stations which are not present throughout the whole dataseries
-    # todo deal with sites which have varying number of stations (2 + [0] = 3 different numbers of stations)
-    '''if df.groupby('date').station.nunique().nunique() > 2: # todo deal with sites which have varying number of stations (2 + [0] = 3 different numbers of stations)
-        dates_per_station = df.groupby('station').date.nunique()
-        min_val = np.min(dates_per_station.unique())
-        min_val_station = dates_per_station.loc[dates_per_station==min_val].index[0]
-        df = df[df.station != min_val_station]'''
-
-    # drop forecasts looking more than 7 months (up to july) in the future
-    #df = df[~(df.LEAD > JULY)]
-
 
     # break every station into its separate columns (while keeping the df which has station=NaN separate,
     # merging it back later to make sure it doesn't disappear)
     # todo - deal with stations more properly by using lat/lon data or something groovier
     def expand_columns(dataf: pd.DataFrame, expansion_cols):
         for expansion_col in expansion_cols:
-
             rest_df = dataf[dataf[expansion_col].isna()]
             expansion_df = dataf[~dataf[expansion_col].isna()]
             if not dataf[expansion_col].isna().all():
@@ -66,19 +54,18 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
 
                 new_expansion_dfs = [station_dataf.rename(
                     columns={col: (col + str(station_dataf[expansion_col].unique()[0])) for col in renaming_cols}) for
-                                   station_dataf in expansion_dfs]
+                    station_dataf in expansion_dfs]
                 if expansion_col == 'station':
-                    unshared_cols = [col for col in dataf.columns if 'DAILY' in col]+[expansion_col]
+                    unshared_cols = [col for col in dataf.columns if 'DAILY' in col] + [expansion_col]
                 elif expansion_col == 'LEAD':
-                    unshared_cols = [col for col in dataf.columns if '_prec' in col or '_temp' in col]+[expansion_col]
+                    unshared_cols = [col for col in dataf.columns if '_prec' in col or '_temp' in col] + [expansion_col]
 
-                shared_cols = list(set(dataf.columns)-set(unshared_cols))
-                #merging_cols = list(np.unique(np.array([col for col in (list(df.columns) for df in new_expansion_dfs)])))
-                merging_cols = ['year', 'month', 'day'] + list(
-                    set(shared_cols) - set(['year', 'month', 'day'] + [expansion_col]))
+                shared_cols = list(set(dataf.columns) - set(unshared_cols))
+                merging_cols = ['year', 'month', 'day'] + \
+                               list(set(shared_cols) - set(['year', 'month', 'day'] + [expansion_col]))
 
                 expansion_df = reduce(lambda left, right: pd.merge(left, right, on=merging_cols,
-                                                                 how='outer'), new_expansion_dfs)
+                                                                   how='outer'), new_expansion_dfs)
 
             dataf = pd.concat((expansion_df, rest_df))
         return dataf
@@ -86,20 +73,8 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
     df = expand_columns(df, expansion_cols=['station', 'LEAD'])
     # drop irrelevant columns, especially relevant for california data that's missing some features
     df = df.drop(columns=df.columns[df.isna().all()])
-    # drop station name columns
-    station_cols = [col for col in df.columns if 'station' in col]
-    df = df.drop(columns=station_cols)
-    site_feat_cols = set(df.columns) - ({'site_id', 'date', 'forecast_year', 'station'} | set(date_cols))
 
-
-
-    # todo - do not average over all cpc forecasts with different leads on the same date, deal with it in a smarter/more information preserving manner
-    df = df.groupby('date')[list(site_feat_cols)].agg(lambda x: x.dropna().mean()).reset_index()
-
-
-
-    # todo interpolate variables that only stretch a certain extent back in time such that they take the average value for everything after (i.e. 0s), e.g. for CPC forecasts
-
+    # todo interpolate variables that only stretch a certain extent back in time such that they take the average value for everything after (i.e. 0s or a site-wise average), e.g. for CPC forecasts
 
     # re-add global data into specific df
     df = df.merge(mjo_data, on='date', how='outer') \
@@ -127,8 +102,7 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
 
     site_df = interp_df.join(other_cols_df)
     site_df['date'] = feat_dates.reset_index(drop=True)
-    site_df['forecast_year'] = feat_dates.apply(lambda x: x.year + (x.month >= 10)).reset_index(
-        drop=True)  # set value as +1 for all
+    site_df['forecast_year'] = feat_dates.apply(lambda x: x.year + (x.month >= 10)).reset_index(drop=True)
 
     # todo make sure this is after the train/test split, don't want leakage
     assert not site_df.isna().any().any(), 'Error - we have nans!'
