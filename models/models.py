@@ -53,10 +53,10 @@ def xgboost_fitter(X, y, val_X, val_y, quantile: bool = True):
         hyper_tuned_q_models = {}
         best_q_models = {}
         for q in DEF_QUANTILES:
-            h_model = GradientBoostingRegressor(loss='quantile', alpha=q)
+            h_model = GradientBoostingRegressor(loss='quantile', alpha=q, max_depth=7)
             h_model.fit(xgb_X, y)
             hyper_tuned_q_models[q] = h_model
-            b_model = GradientBoostingRegressor(loss='quantile', alpha=q)
+            b_model = GradientBoostingRegressor(loss='quantile', alpha=q, max_depth=7)
             b_model.fit(combined_X, combined_y)
             best_q_models[q] = b_model
 

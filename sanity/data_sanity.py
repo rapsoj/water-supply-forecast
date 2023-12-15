@@ -27,15 +27,23 @@ def sanity_function(ini_data: pd.DataFrame, processed_data: pd.DataFrame, col: s
     # To check global variables, remove the [ini_data.site_id == site_id] in the ini_data scatter plot,
     # for local variables keep it. Site id picked at the discretion of the programmer (YOU).
     site_id = "animas_r_at_durango"
-    #site_id = "american_river_folsom_lake"
-    plt.scatter(ini_data.date[~ini_data[col].isna()][ini_data.site_id == site_id],
-                ini_data[col].dropna()[ini_data.site_id == site_id], alpha=0.7, c='b')
-    plt.plot(processed_data.date[processed_data.site_id == site_id].iloc[::1],
-                processed_data[col][processed_data.site_id == site_id].iloc[::1], alpha=0.7, c='g')
+    #ini_col = col[:-5]
+    ini_col = col[:-3]
 
-    plt.title(col)
-    plt.show()
-    plt.pause(1e-3)
+    # uncomment which one youre using
+    #station = int(float(col[-5:]))
+    lead = int(float(col[-3:]))
+
+    #site_id = "american_river_folsom_lake"
+    if len(ini_data[ini_col].dropna()[ini_data.site_id == site_id][ini_data.LEAD == lead]) > 0:
+        plt.scatter(ini_data.date[~ini_data[ini_col].isna()][ini_data.site_id == site_id][ini_data.LEAD == lead],
+                    ini_data[ini_col].dropna()[ini_data.site_id == site_id][ini_data.LEAD == lead], alpha=0.7, c='b')
+        plt.plot(processed_data.date[processed_data.site_id == site_id].iloc[::1],
+                    processed_data[col][processed_data.site_id == site_id].iloc[::1], alpha=0.7, c='g')
+
+        plt.title(col)
+        plt.show()
+        plt.pause(1e-3)
 
 def fix_df(data: pd.DataFrame):
     # Create dates to work with
@@ -61,12 +69,12 @@ def fix_df(data: pd.DataFrame):
     misc_data = ini_data[global_misc_cols + shared_cols].dropna()
     # Keeping only SNOTEL data
     ini_data = ini_data.drop(columns=global_mjo_cols + global_nino_cols + global_oni_cols + global_misc_cols)
-    ini_data = ini_data.merge(mjo_data, on='date', how='outer') \
+    '''ini_data = ini_data.merge(mjo_data, on='date', how='outer') \
         .merge(nino_data.drop_duplicates(), on='date', how='outer') \
         .merge(oni_data.drop_duplicates(), on='date', how='outer') \
         .merge(misc_data.drop_duplicates(), on='date', how='outer') \
         .sort_values(by='date') \
-        .reset_index(drop=True)
+        .reset_index(drop=True)'''
 
     ini_data['time'] = (
                 ini_data.date - pd.to_datetime(dict(year=ini_data.date.dt.year, month=1, day=1))).dt.days
@@ -84,7 +92,8 @@ def analyze_data():
     processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=True)
 
     ini_data = fix_df(basic_preprocessed_df)
-    for col in processed_data.columns:
+    snotel_cols = [col for col in processed_data.columns if '_prec' in col]
+    for col in snotel_cols:
         sanity_function(ini_data, processed_data, col)
 
 if __name__ == '__main__':

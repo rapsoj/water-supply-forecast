@@ -52,6 +52,8 @@ for site_id in site_ids:
                 '''all_q_losses = pd.read_csv(f'{model}_{site_id}_{fitter}_all_q_losses.csv')  # Read perc avg_q_losses file
                 train_qlosses.append(all_q_losses.train.to_numpy())
                 val_qlosses.append(all_q_losses.val)'''
+
+    # todo calculate ensembling correctly when global and local models are used together
     if ensemble_type == Ensemble_Type.AVERAGE:
         ave_gts.append(sum(site_gts)/len(site_gts))
         train_intervs.append(sum(site_train_intervs)/len(site_train_intervs))

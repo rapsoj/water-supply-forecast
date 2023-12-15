@@ -73,12 +73,18 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
 
                 expansion_dfs = [group for _, group in expansion_df.groupby(expansion_col)]
 
-                new_expansion_dfs = [expansion_df.rename(
-                    columns={col: (col + str(expansion_df[expansion_col].unique()[0])) for col in renaming_cols}) for
+                new_expansion_dfs = [station_dataf.rename(
+                    columns={col: (col + str(station_dataf[expansion_col].unique()[0])) for col in renaming_cols}) for
                                    station_dataf in expansion_dfs]
+                if expansion_col == 'station':
+                    unshared_cols = [col for col in dataf.columns if 'DAILY' in col]+[expansion_col]
+                elif expansion_col == 'LEAD':
+                    unshared_cols = [col for col in dataf.columns if '_prec' in col or '_temp' in col]+[expansion_col]
 
+                shared_cols = list(set(dataf.columns)-set(unshared_cols))
+                #merging_cols = list(np.unique(np.array([col for col in (list(df.columns) for df in new_expansion_dfs)])))
                 merging_cols = ['year', 'month', 'day'] + list(
-                    set(new_expansion_dfs[0].columns) - set(['year', 'month', 'day'] + [expansion_col]))
+                    set(shared_cols) - set(['year', 'month', 'day'] + [expansion_col]))
 
                 expansion_df = reduce(lambda left, right: pd.merge(left, right, on=merging_cols,
                                                                  how='outer'), new_expansion_dfs)

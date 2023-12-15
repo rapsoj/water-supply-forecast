@@ -40,13 +40,12 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     train_features, val_features, test_features, train_gt, val_gt = \
         train_val_test_split(processed_data, ground_truth, test_years, validation_years, start_year=start_year)
 
-    # todo implement global models
     site_ids = processed_data.site_id.unique()
 
-    print('Running global models...')
+    #print('Running global models...')
 
-    global_dfs = run_global_models(train_features, val_features, test_features, \
-                                   train_gt, val_gt, gt_col, site_ids)
+    #global_dfs = run_global_models(train_features, val_features, test_features, \
+    #                              train_gt, val_gt, gt_col, site_ids)
 
     print('Running local models...')
 
@@ -54,7 +53,7 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
 
     print('Ensembling global and local model submissions...')
-    full_dfs = local_dfs | global_dfs
+    full_dfs = local_dfs# | global_dfs
 
     final_df_dict = ensemble_models(full_dfs ,'final', ensemble_type=Ensemble_Type.BEST_PREDICTION)
     final_df = final_df_dict['final']
@@ -257,4 +256,4 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
 
 
 if __name__ == '__main__':
-    run_pipeline(load_from_cache=False)
+    run_pipeline()
