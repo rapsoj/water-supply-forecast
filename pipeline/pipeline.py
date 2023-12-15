@@ -61,7 +61,7 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
 
 def run_local_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids,
-                     fitters=(xgboost_fitter,)
+                     fitters=(xgboost_fitter,general_pcr_fitter)
                      ):
     non_feat_cols = ['site_id']
     dfs = {}
