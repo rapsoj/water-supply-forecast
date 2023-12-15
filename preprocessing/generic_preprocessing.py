@@ -26,8 +26,10 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
     df_flow = cleaning.import_flow(current_dir)
     df_grace = cleaning.import_grace(current_dir)
     df_snotel = cleaning.import_snotel(current_dir)
+    #df_swann = cleaning.import_swann(current_dir)
     df_cpc_prec = cleaning.import_cpc_prec(current_dir)
     df_cpc_temp = cleaning.import_cpc_temp(current_dir)
+    df_dem = cleaning.import_dem(current_dir)
 
     ## Pre-merge cleaning steps
 
@@ -49,6 +51,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
     df_snotel = cleaning.clean_snotel(df_snotel)
     df_cpc_prec = cleaning.clean_cpc_prec(df_cpc_prec)
     df_cpc_temp = cleaning.clean_cpc_temp(df_cpc_temp)
+    df_dem = cleaning.clean_dem(df_dem)
 
     # Merging dataframes
     # Merge on site id, day, LEAD column
@@ -70,6 +73,8 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
         df['day'] = np.nan
     df_merged = merge.merge_day(dataframes)
 
+    # Merge on site_id
+    df_merged = merge.merge_site_id([df_merged, df_dem])
     # Outlier cleaning todo
 
     # Imputation todo

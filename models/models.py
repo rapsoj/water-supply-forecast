@@ -13,19 +13,27 @@ from benchmark.benchmark_results import average_quantile_loss
 from consts import DEF_QUANTILES, JULY
 
 
-def base_feature_adapter(X):
-    return X[X.date.dt.month <= JULY].drop(columns=['date', 'forecast_year'])
+def base_feature_adapter(X, pc=None):
+
+    X = X[X.date.dt.month <= JULY].drop(columns=['date', 'forecast_year'])
+    if pc is not None:
+        pca = PCA(n_components=pc)
+        pca.fit(X.T)
+        return pd.DataFrame(pca.components_.T)
+    else:
+        return X
 
 
 class StreamflowModel:
-    def __init__(self, model, adapter=base_feature_adapter):
+    def __init__(self, model,adapter=base_feature_adapter,pc=None):
         self.model = model
         self.adapter = adapter
         self._loss = average_quantile_loss if isinstance(self.model, dict) else mean_squared_error
+        self.pc = pc
 
     def __call__(self, X: pd.DataFrame, adapt_feats: bool = True):
         if adapt_feats:
-            X = self.adapter(X)
+            X = self.adapter(X, pc=self.pc)
 
         assert (X.dtypes == float).all(), 'Error - wrong dtypes!'
 
@@ -45,9 +53,9 @@ class StreamflowModel:
         return loss
 
 
-def xgboost_fitter(X, y, val_X, val_y, quantile: bool = True):
-    xgb_X = base_feature_adapter(X)
-    xgb_val_X = base_feature_adapter(val_X)
+def xgboost_fitter(X, y, val_X, val_y, pc=10, quantile: bool = True):
+    xgb_X = base_feature_adapter(X, pc)
+    xgb_val_X = base_feature_adapter(val_X, pc)
     combined_X = pd.concat([xgb_X, xgb_val_X])
     combined_y = pd.concat([y, val_y])
 
@@ -62,7 +70,7 @@ def xgboost_fitter(X, y, val_X, val_y, quantile: bool = True):
             b_model.fit(combined_X, combined_y)
             best_q_models[q] = b_model
 
-        return StreamflowModel(hyper_tuned_q_models), StreamflowModel(best_q_models)
+        return StreamflowModel(hyper_tuned_q_models, pc=pc), StreamflowModel(best_q_models, pc=pc)
 
     model = GradientBoostingRegressor(loss='quantile', alpha=.5)
     model.fit(xgb_X, y)

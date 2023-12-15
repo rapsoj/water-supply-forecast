@@ -1,12 +1,9 @@
-import datetime as dt
 import os
-import matplotlib.pyplot as plt
+from functools import reduce
+
 import numpy as np
 import pandas as pd
-from consts import JULY
 from sklearn.preprocessing import StandardScaler
-
-import time
 
 path = os.getcwd()
 
@@ -36,7 +33,6 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
     feat_dates = pd.Series(np.sort(
         np.concatenate((np.array(feat_dates1), np.array(feat_dates2), np.array(feat_dates3), np.array(feat_dates4)))))
 
-    site_feat_cols = set(df.columns) - ({'site_id', 'date', 'forecast_year', 'station'} | set(date_cols))
 
     site_id = df.name
     # remove stations which are not present throughout the whole dataseries
@@ -48,16 +44,62 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
         df = df[df.station != min_val_station]'''
 
     # drop forecasts looking more than 7 months (up to july) in the future
-    df = df[~(df.LEAD > JULY)]
+    #df = df[~(df.LEAD > JULY)]
 
-    # average over data from different stations in the same day,
+
+    # break every station into its separate columns (while keeping the df which has station=NaN separate,
+    # merging it back later to make sure it doesn't disappear)
     # todo - deal with stations more properly by using lat/lon data or something groovier
+    def expand_columns(dataf: pd.DataFrame, expansion_cols):
+        for expansion_col in expansion_cols:
+
+            rest_df = dataf[dataf[expansion_col].isna()]
+            expansion_df = dataf[~dataf[expansion_col].isna()]
+            if not dataf[expansion_col].isna().all():
+
+                if expansion_col == 'station':
+                    renaming_cols = [col for col in dataf.columns if 'DAILY' in col] + [expansion_col]
+                elif expansion_col == 'LEAD':
+                    renaming_cols = [col for col in dataf.columns if '_prec' in col or '_temp' in col] + [expansion_col]
+
+                expansion_dfs = [group for _, group in expansion_df.groupby(expansion_col)]
+
+                new_expansion_dfs = [station_dataf.rename(
+                    columns={col: (col + str(station_dataf[expansion_col].unique()[0])) for col in renaming_cols}) for
+                                   station_dataf in expansion_dfs]
+                if expansion_col == 'station':
+                    unshared_cols = [col for col in dataf.columns if 'DAILY' in col]+[expansion_col]
+                elif expansion_col == 'LEAD':
+                    unshared_cols = [col for col in dataf.columns if '_prec' in col or '_temp' in col]+[expansion_col]
+
+                shared_cols = list(set(dataf.columns)-set(unshared_cols))
+                #merging_cols = list(np.unique(np.array([col for col in (list(df.columns) for df in new_expansion_dfs)])))
+                merging_cols = ['year', 'month', 'day'] + list(
+                    set(shared_cols) - set(['year', 'month', 'day'] + [expansion_col]))
+
+                expansion_df = reduce(lambda left, right: pd.merge(left, right, on=merging_cols,
+                                                                 how='outer'), new_expansion_dfs)
+
+            dataf = pd.concat((expansion_df, rest_df))
+        return dataf
+
+    df = expand_columns(df, expansion_cols=['station', 'LEAD'])
+    # drop irrelevant columns, especially relevant for california data that's missing some features
+    df = df.drop(columns=df.columns[df.isna().all()])
+    # drop station name columns
+    station_cols = [col for col in df.columns if 'station' in col]
+    df = df.drop(columns=station_cols)
+    site_feat_cols = set(df.columns) - ({'site_id', 'date', 'forecast_year', 'station'} | set(date_cols))
+
+
+
     # todo - do not average over all cpc forecasts with different leads on the same date, deal with it in a smarter/more information preserving manner
     df = df.groupby('date')[list(site_feat_cols)].agg(lambda x: x.dropna().mean()).reset_index()
 
+
+
     # todo interpolate variables that only stretch a certain extent back in time such that they take the average value for everything after (i.e. 0s), e.g. for CPC forecasts
-    # drop irrelevant columns, especially relevant for california data that's missing some features
-    df = df.drop(columns=df.columns[df.isna().all()])
+
 
     # re-add global data into specific df
     df = df.merge(mjo_data, on='date', how='outer') \
@@ -92,6 +134,7 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
     assert not site_df.isna().any().any(), 'Error - we have nans!'
 
     site_df['site_id'] = site_id
+    print(f'Finishing processing features of {site_id}')
     return site_df
 
 
