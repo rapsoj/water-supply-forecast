@@ -16,14 +16,14 @@ path = os.getcwd()
 
 
 def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
-                 validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)), gt_col: str = 'volume',
-                 load_from_cache: bool = True, start_year=FIRST_FULL_GT_YEAR, ):
+                 validation_years: tuple = tuple(np.arange(2004, 2023, 2)), gt_col: str = 'volume',
+                 load_from_cache: bool = False, start_year=FIRST_FULL_GT_YEAR, ):
     print('Loading data')
-    basic_preprocessed_df = get_processed_dataset(load_from_cache=False)
+    basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache)
 
     # todo add explicit forecasting functionality, split train/test for forecasting earlier.
     #  currently everything is processed together. unsure if necessary
-    processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=False)
+    processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache)
 
     print()
     # Data sanity check
@@ -55,13 +55,13 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     print('Ensembling global and local model submissions...')
     full_dfs = local_dfs# | global_dfs
 
-    final_df_dict = ensemble_models(full_dfs ,'final', ensemble_type=Ensemble_Type.BEST_PREDICTION)
+    final_df_dict = ensemble_models(full_dfs,'final', ensemble_type=Ensemble_Type.BEST_PREDICTION)
     final_df = final_df_dict['final']
     cache_merged_submission_file(final_df)
 
 
 def run_local_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids,
-                     fitters=(general_pcr_fitter, )
+                     fitters=(xgboost_fitter, )
                      ):
     non_feat_cols = ['site_id']
     dfs = {}
@@ -83,8 +83,10 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
         test_site = test_features[test_features.site_id == site_id].reset_index(drop=True)
         test_site = test_site.drop(columns=drop_cols, errors='ignore')
 
-        train_site_gt[gt_col] = (np.log(train_site_gt[gt_col]) - gt_mean) / gt_std
-        val_site_gt[gt_col] = (np.log(val_site_gt[gt_col]) - gt_mean) / gt_std
+        #train_site_gt[gt_col] = (np.log(train_site_gt[gt_col]) - gt_mean) / gt_std
+        #val_site_gt[gt_col] = (np.log(val_site_gt[gt_col]) - gt_mean) / gt_std
+        train_site_gt[gt_col] = (train_site_gt[gt_col] - gt_mean) / gt_std
+        val_site_gt[gt_col] = (val_site_gt[gt_col] - gt_mean) / gt_std
 
         site_id_sets.append([train_site, train_site_gt, val_site, val_site_gt, test_site, gt_mean, gt_std])
 
@@ -120,12 +122,12 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
 
             # rescaling data+retransforming, nice side effect - model cannot have negative outputs
             #train_pred, val_pred, test_pred = quantilise_preds(train_pred, val_pred, test_pred, train_site_gt[gt_col])
-            train_pred = np.exp(train_pred * gt_std + gt_mean)
-            val_pred = np.exp(val_pred * gt_std + gt_mean)
-            test_pred = np.exp(test_pred * gt_std + gt_mean)
+            train_pred = (train_pred * gt_std + gt_mean)
+            val_pred = (val_pred * gt_std + gt_mean)
+            test_pred = (test_pred * gt_std + gt_mean)
 
-            train_site_gt[gt_col] = np.exp(train_site_gt[gt_col] * gt_std + gt_mean)
-            val_site_gt[gt_col] = np.exp(val_site_gt[gt_col] * gt_std + gt_mean)
+            train_site_gt[gt_col] = (train_site_gt[gt_col] * gt_std + gt_mean)
+            val_site_gt[gt_col] = (val_site_gt[gt_col] * gt_std + gt_mean)
             train_site_gt = train_site_gt.reset_index(drop=True)
             val_site_gt = val_site_gt.reset_index(drop=True)
 
@@ -158,8 +160,10 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
     test_site_id_col = test_features.site_id
     test_features = test_features.drop(columns=drop_cols, errors='ignore')
 
-    train_gt[gt_col] = (np.log(train_gt[gt_col]) - gt_mean) / gt_std
-    val_gt[gt_col] = (np.log(val_gt[gt_col]) - gt_mean) / gt_std
+    #train_gt[gt_col] = (np.log(train_gt[gt_col]) - gt_mean) / gt_std
+    #val_gt[gt_col] = (np.log(val_gt[gt_col]) - gt_mean) / gt_std
+    train_gt[gt_col] = (train_site_gt[gt_col] - gt_mean) / gt_std
+    val_gt[gt_col] = (val_site_gt[gt_col] - gt_mean) / gt_std
 
     # todo perhaps find a better way of treating NaN values (Californian sites for volume+SNOTEL)
     train_features = train_features.fillna(0)
@@ -187,12 +191,13 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
 
             # rescaling data+retransforming, nice side effect - model cannot have negative outputs
             # train_pred, val_pred, test_pred = quantilise_preds(train_pred, val_pred, test_pred, train_gt[gt_col])
-            train_pred = np.exp(train_pred * gt_std + gt_mean)
-            val_pred = np.exp(val_pred * gt_std + gt_mean)
-            test_pred = np.exp(test_pred * gt_std + gt_mean)
+            train_pred = (train_pred * gt_std + gt_mean)
+            val_pred = (val_pred * gt_std + gt_mean)
+            test_pred = (test_pred * gt_std + gt_mean)
 
-            train_site_gt[gt_col] = np.exp(train_site_gt[gt_col] * gt_std + gt_mean)
-            val_site_gt[gt_col] = np.exp(val_site_gt[gt_col] * gt_std + gt_mean)
+
+            train_site_gt[gt_col] = (train_site_gt[gt_col] * gt_std + gt_mean)
+            val_site_gt[gt_col] = (val_site_gt[gt_col] * gt_std + gt_mean)
 
             train_site_gt = train_site_gt.reset_index(drop=True)
             val_site_gt = val_site_gt.reset_index(drop=True)

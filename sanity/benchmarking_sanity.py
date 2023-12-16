@@ -7,7 +7,7 @@ from models.fit_to_data import Ensemble_Type
 
 os.chdir("../exploration")
 
-fitters = (general_pcr_fitter,)
+fitters = (xgboost_fitter,)
 models = ('local',)
 ensemble_type = Ensemble_Type.BEST_PREDICTION
 ground_truth_df = pd.read_csv(os.path.join("..", "assets", "data", "train.csv"))
