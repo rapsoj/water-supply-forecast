@@ -22,13 +22,17 @@ def analyze_data():
     processed_data = base_feature_adapter(processed_data)
 
 
-    n_components = 5
+    n_components = 20
     pca = PCA(n_components=n_components)
-    pca.fit(processed_data)
-    pcs = sum([[idx for idx, val in enumerate(c) if abs(val) > 0.1] for c in pca.components_.T], [])
-    pc_dict = {processed_data.columns[val]: pcs.count(val) for val in pcs}
-    plt.bar(pc_dict.keys(), pc_dict.values())
 
+    pca.fit(processed_data)
+    pcs = [sum(abs(pca.components_[:,i])) for i in range(pca.components_.shape[1])]
+    pc_dict = {processed_data.columns[idx]: val for idx, val in enumerate(pcs)}
+    plt.bar(pc_dict.keys(), pc_dict.values())
+    plt.xlabel("Features with absolute component value of more than 0.5 in at least one principal component axis")
+    plt.ylabel("Sum of absolute values of components in pc axes")
+    plt.title(f"Number of principal components {n_components}")
+    plt.xticks(rotation=30, ha='right')
     plt.show()
 
 if __name__ == '__main__':

@@ -160,6 +160,7 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
     # Create dates to work with
     data["date"] = pd.to_datetime(data[date_cols].map(int))
     data = data.sort_values('date')
+    data = data.drop(columns=date_cols)
 
     ini_data = data
     # Get site ids
@@ -193,6 +194,5 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
     scaler = StandardScaler()
     processed_data.time = scaler.fit_transform(processed_data[['time']])
     processed_data.to_csv(output_file_path, index=False)
-
     return processed_data
 
