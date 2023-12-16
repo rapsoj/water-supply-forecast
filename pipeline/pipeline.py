@@ -17,21 +17,21 @@ path = os.getcwd()
 
 def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
                  validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)), gt_col: str = 'volume',
-                 load_from_cache: bool = False, start_year=FIRST_FULL_GT_YEAR, ):
+                 load_from_cache: bool = True, start_year=FIRST_FULL_GT_YEAR, ):
     print('Loading data')
-    basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache)
+    basic_preprocessed_df = get_processed_dataset(load_from_cache=False)
 
     # todo add explicit forecasting functionality, split train/test for forecasting earlier.
     #  currently everything is processed together. unsure if necessary
-    processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache)
+    processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=False)
 
     print()
     # Data sanity check
     # Check types (do we wish to also check that date, forecast_year and site_id are the correct types here?
     assert all([data_type == float for data_type in processed_data
                .drop(columns=['date', 'forecast_year', 'site_id']).dtypes]), "All features are not floats"
-    assert len(processed_data.site_id[processed_data.volume.isna()].unique()) == 3, \
-        "More than 3 sites having NaNs in volume (should only be the California sites)"
+    #assert len(processed_data.site_id[processed_data.volume.isna()].unique()) == 3, \
+    #    "More than 3 sites having NaNs in volume (should only be the California sites)"
     #assert len(processed_data.site_id[processed_data.SNWD_DAILY.isna()].unique()) == 1, \
     #    "More than 1 site has NaNs in SNWD_DAILY (should only be american river folsom)"
 

@@ -193,6 +193,11 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
 
     scaler = StandardScaler()
     processed_data.time = scaler.fit_transform(processed_data[['time']])
+    grace_cols = [col for col in processed_data.columns if '_inst' in col]
+    processed_data = processed_data.drop(columns=['SWE_volume_m3', 'volume']+global_oni_cols+global_misc_cols+global_mjo_cols+grace_cols+global_nino_cols)
+
     processed_data.to_csv(output_file_path, index=False)
+
+    # Testing effect on PCR benchmarking by dropping columns
     return processed_data
 

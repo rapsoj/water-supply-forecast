@@ -22,7 +22,7 @@ def analyze_data():
     processed_data = base_feature_adapter(processed_data)
 
 
-    n_components = 20
+    n_components = 12
     pca = PCA(n_components=n_components)
 
     pca.fit(processed_data)
