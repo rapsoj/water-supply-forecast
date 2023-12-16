@@ -19,7 +19,7 @@ def base_feature_adapter(X, pc=None):
 
 
 class StreamflowModel:
-    def __init__(self, model,adapter=base_feature_adapter,pc=None):
+    def __init__(self, model, adapter=base_feature_adapter, pc=None):
         self.model = model
         self.adapter = adapter
         self._loss = average_quantile_loss if isinstance(self.model, dict) else mean_squared_error
@@ -148,7 +148,7 @@ def pcr_fitter(X, y, pc, quantile: bool = True, solver="highs"):
     else:
         regressors = {}
         for q in DEF_QUANTILES:
-            qregr = linear_model.QuantileRegressor(quantile=q, solver=solver)
+            qregr = linear_model.QuantileRegressor(quantile=q, alpha=0, solver=solver)
             model = Pipeline([('pca', pca), ('quantile_regression', qregr)])
             model.fit(X, y)
 
