@@ -52,7 +52,7 @@ class StreamflowModel:
         return loss
 
 
-def xgboost_fitter(X, y, val_X, val_y, pc=10, quantile: bool = True):
+def xgboost_fitter(X, y, val_X, val_y, pc=None, quantile: bool = True):
     xgb_X = base_feature_adapter(X, pc)
     xgb_val_X = base_feature_adapter(val_X, pc)
     combined_X = pd.concat([xgb_X, xgb_val_X])

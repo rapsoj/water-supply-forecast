@@ -9,7 +9,7 @@ from models.models import general_pcr_fitter, xgboost_fitter
 
 os.chdir(os.path.join("..", "pipeline"))
 
-fitters = (general_pcr_fitter,)
+fitters = (xgboost_fitter,)
 models = ('local',)
 ensemble_type = Ensemble_Type.BEST_PREDICTION
 ground_truth_df = pd.read_csv(os.path.join("..", "assets", "data", "train.csv"))

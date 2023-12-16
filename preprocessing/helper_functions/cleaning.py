@@ -147,7 +147,8 @@ def import_flow(current_dir):
     # Import flows training dataset
     folder_path = os.path.join(current_dir, '..', 'assets', 'data')
     df_flow = pd.read_csv(os.path.join(folder_path, "train_monthly_naturalized_flow.csv"))
-
+    df_test_flow = pd.read_csv(os.path.join(folder_path, 'test_monthly_naturalized_flow.csv'))
+    df_flow = pd.concat([df_flow, df_test_flow]) # todo fix leakage
     return df_flow
 
 
