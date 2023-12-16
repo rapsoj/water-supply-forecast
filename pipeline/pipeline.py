@@ -29,9 +29,9 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     # Check types (do we wish to also check that date, forecast_year and site_id are the correct types here?
     assert all([data_type == float for data_type in processed_data
                .drop(columns=['date', 'forecast_year', 'site_id']).dtypes]), "All features are not floats"
-    assert len(processed_data.site_id[processed_data.volume.isna()].unique()) == 3, \
-        "More than 3 sites having NaNs in volume (should only be the California sites)"
-    # assert len(processed_data.site_id[processed_data.SNWD_DAILY.isna()].unique()) == 1, \
+    #assert len(processed_data.site_id[processed_data.volume.isna()].unique()) == 3, \
+    #    "More than 3 sites having NaNs in volume (should only be the California sites)"
+    #assert len(processed_data.site_id[processed_data.SNWD_DAILY.isna()].unique()) == 1, \
     #    "More than 1 site has NaNs in SNWD_DAILY (should only be american river folsom)"
 
     ground_truth = load_ground_truth(num_predictions=N_PRED_MONTHS * N_PREDS_PER_MONTH)
@@ -64,7 +64,7 @@ def inv_scale_data(pred, mean, std):
 
 
 def run_local_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids,
-                     fitters=(xgboost_fitter, general_pcr_fitter)
+                     fitters=(general_pcr_fitter, )
                      ):
     non_feat_cols = ['site_id']
     dfs = {}

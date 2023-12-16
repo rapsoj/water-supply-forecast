@@ -15,7 +15,12 @@ from consts import DEF_QUANTILES, JULY
 
 def base_feature_adapter(X, pc=None):
     X = X[X.date.dt.month <= JULY].drop(columns=['date', 'forecast_year'])
-    return X
+    if pc is not None:
+        pca = PCA(n_components=pc)
+
+        return pd.DataFrame(pca.components_.T)
+    else:
+        return X
 
 
 class StreamflowModel:

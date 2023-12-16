@@ -242,3 +242,21 @@ def import_dem(current_dir):
 
 def clean_dem(df_dem):
     return df_dem
+
+
+# todo fix importing and cleaning swann
+def import_swann(current_dir):
+
+    folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'swann')
+    df_swann = pd.read_csv(os.path.join(folder_path, 'swann_swe.csv'))
+    return df_swann
+
+def clean_swann(df_swann):
+    df_swann['time'] = pd.to_datetime(df_swann['time'])
+
+    # Extract day, month, and year into separate columns
+    df_swann['day'] = df_swann['time'].dt.day
+    df_swann['month'] = df_swann['time'].dt.month
+    df_swann['year'] = df_swann['time'].dt.year
+    df_swann.drop('time', axis=1, inplace=True)
+    return df_swann

@@ -101,7 +101,7 @@ def benchmark_results(train_pred: [pd.Series, pd.DataFrame], train_gt: pd.Series
     # todo make sure we can pass this assertion of non-negative predictions
     # assert (train_pred >= 0).all().all() and (val_pred >= 0).all().all() and (test_pred >= 0).all().all(), \
     #     'Error - negative predictions!'
-    # assert (train_gt >= 0).all() and (val_gt >= 0).all(), 'Error - negative ground truths!'
+    assert (train_gt >= 0).all() and (val_gt >= 0).all(), 'Error - negative ground truths!'
 
     # for data in (train_pred, val_pred, test_pred):
     #    assert all((data[DEF_QUANTILES[i]] <= data[DEF_QUANTILES[i + 1]]).all()

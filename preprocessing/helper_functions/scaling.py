@@ -4,7 +4,7 @@ import pandas as pd
 
 def preprocess_column(df, column_name):
     # Skip preprocessing for specified columns
-    if column_name in ['month', 'year', 'day', 'volume', 'forecast_year', 'station', 'LEAD']:
+    if column_name in ['month', 'year', 'day', 'volume', 'forecast_year']:
         return df
 
     # Check the data type of the column

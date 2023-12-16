@@ -68,9 +68,19 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
             dataf = pd.concat((expansion_df, rest_df))
         return dataf
 
-    df = expand_columns(df, expansion_cols=['station', 'LEAD'])
+    #df = expand_columns(df, expansion_cols=['station', 'LEAD'])
     # drop irrelevant columns, especially relevant for california data that's missing some features
     df = df.drop(columns=df.columns[df.isna().all()])
+    # drop station name columns
+    station_cols = [col for col in df.columns if 'station' in col]
+    df = df.drop(columns=station_cols)
+    site_feat_cols = set(df.columns) - ({'site_id', 'date', 'forecast_year', 'station'} | set(date_cols))
+
+
+
+    # todo - do not average over all cpc forecasts with different leads on the same date, deal with it in a smarter/more information preserving manner
+    #df = df.groupby('date')[list(site_feat_cols)].agg(lambda x: x.dropna().mean()).reset_index()
+
 
     # todo interpolate variables that only stretch a certain extent back in time such that they take the average value for everything after (i.e. 0s or a site-wise average), e.g. for CPC forecasts
 
@@ -123,6 +133,7 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
     # Create dates to work with
     data["date"] = pd.to_datetime(data[date_cols].applymap(int))
     data = data.sort_values('date')
+    data = data.drop(columns=date_cols)
 
     # Get site ids
     site_id_str = 'site_id_'
@@ -139,6 +150,7 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
 
     nino_data = data[global_nino_cols + shared_cols].dropna()
     misc_data = data[global_misc_cols + shared_cols].dropna()
+
     # Keeping only SNOTEL data
     data = data.drop(columns=global_mjo_cols + global_nino_cols + global_oni_cols + global_misc_cols)
 
@@ -152,6 +164,10 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
 
     scaler = StandardScaler()
     processed_data.time = scaler.fit_transform(processed_data[['time']])
+    grace_cols = [col for col in processed_data.columns if '_inst' in col]
+    processed_data = processed_data.drop(columns=['SWE_volume_m3', 'volume']+global_oni_cols+global_misc_cols+global_mjo_cols+grace_cols+global_nino_cols)
+
     processed_data.to_csv(output_file_path, index=False)
 
+    # Testing effect on PCR benchmarking by dropping columns
     return processed_data

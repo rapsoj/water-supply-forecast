@@ -9,8 +9,8 @@ from models.models import general_pcr_fitter, xgboost_fitter
 
 os.chdir(os.path.join("..", "pipeline"))
 
-fitters = (xgboost_fitter, general_pcr_fitter)
-models = ('local','global')
+fitters = (general_pcr_fitter,)
+models = ('local',)
 ensemble_type = Ensemble_Type.BEST_PREDICTION
 ground_truth_df = pd.read_csv(os.path.join("..", "assets", "data", "train.csv"))
 site_ids = ground_truth_df.site_id.unique()
@@ -26,8 +26,6 @@ final_pred = pd.read_csv(os.path.join("..", "exploration", "final_pred.csv"))
 final_pred_local = pd.read_csv(os.path.join("..", "exploration", "final_predlocal.csv"))
 
 pred_sids = final_pred.site_id.unique()
-
-
 
 for site_id in site_ids:
     site_gts = []
