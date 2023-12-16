@@ -22,8 +22,7 @@ train_qlosses = []
 val_qlosses = []
 ave_gts = []
 
-final_pred = pd.read_csv(os.path.join("..", "exploration", "final_pred.csv"))
-final_pred_local = pd.read_csv(os.path.join("..", "exploration", "final_predlocal.csv"))
+final_pred = pd.read_csv(os.path.join("..", "pipeline", "final_pred.csv"))
 
 pred_sids = final_pred.site_id.unique()
 
@@ -71,8 +70,7 @@ plt.figure()
 plt.scatter(site_ids, ave_train_q_losses)
 plt.scatter(site_ids, ave_val_q_losses)
 print(f'AMQ validation loss: {np.mean(ave_val_q_losses):.0f}')
-print(np.mean(ave_train_q_losses))
-print(site_ids[np.argmax(ave_train_q_losses)])
+print(f'AMQ train loss: {np.mean(ave_train_q_losses):.0f}')
 
 plt.ylabel("Average quantile loss")
 

@@ -1,4 +1,5 @@
 import os
+import random
 
 import numpy as np
 import pandas as pd
@@ -17,7 +18,10 @@ path = os.getcwd()
 
 def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
                  validation_years: tuple = tuple(np.arange(2004, 2023, 2)), gt_col: str = 'volume',
-                 load_from_cache: bool = False, start_year=FIRST_FULL_GT_YEAR, ):
+                 load_from_cache: bool = True, start_year=FIRST_FULL_GT_YEAR, ):
+    np.random.seed(0)
+    random.seed(0)
+
     print('Loading data')
     basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache)
 
@@ -42,13 +46,13 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     site_ids = processed_data.site_id.unique()
 
     print('Running global models...')
-    global_dfs = run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids)
+    # global_dfs = run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids)
 
     print('Running local models...')
     local_dfs = run_local_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids)
 
     print('Ensembling global and local model submissions...')
-    full_dfs = local_dfs | global_dfs
+    full_dfs = local_dfs #| global_dfs
 
     final_df_dict = ensemble_models(full_dfs, 'final', ensemble_type=Ensemble_Type.BEST_PREDICTION)
     final_df = final_df_dict['final']
