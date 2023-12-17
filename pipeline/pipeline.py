@@ -214,7 +214,7 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
     train_dfs = {}
 
     for fitter in fitters:
-        hyper_tuned_model, model = fitter(train_features, train_gt[gt_col], val_features, val_gt[gt_col])
+        train_only_model, model = fitter(train_features, train_gt, val_features, val_gt)
 
         test_mask = test_features.date.dt.month <= JULY
         test_vals = test_features[test_mask]
@@ -235,7 +235,7 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
 
             test_site = test_features[test_site_id_col == site_id]
             train_pred = model(train_site)
-            val_pred = hyper_tuned_model(val_site)
+            val_pred = train_only_model(val_site)
             test_pred = model(test_site)
 
             # rescaling data
