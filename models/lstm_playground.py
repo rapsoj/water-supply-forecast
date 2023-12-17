@@ -1,4 +1,5 @@
 import pickle
+from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
@@ -10,6 +11,15 @@ from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence, pad_se
 from torch.utils.data import DataLoader, Dataset
 
 from consts import JULY, DEF_QUANTILES
+
+
+@dataclass
+class HypParams:
+    lr: float
+    bs: float
+    n_epochs: int
+    n_hidden: int
+    dropout_prob: float
 
 
 class SequenceDataset(Dataset):
@@ -97,7 +107,7 @@ def calc_val_loss(model: nn.Module, val_set):
         return np.mean(val_losses)
 
 
-def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, lr: float):
+def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, lr: float) -> nn.Module:
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
     num_epochs = 15
@@ -117,6 +127,8 @@ def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, lr
         train_loss /= len(train_dloader.dataset)
         val_loss = calc_val_loss(model, val_set)
         print(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {train_loss:.4f}, Val Loss: {val_loss.item():.4f}')
+
+    return model
 
 
 def main():
@@ -143,12 +155,17 @@ def main():
 
     val_set = features2seqs(val_X, val_y)
 
-    bs = 8
-    lr = 1e-3
+    n_feats = train_set[0][0].shape[1]
+
+    N_HIDDEN = [1, 2, 3]
+    DROPOUT_PROBS = [0.2, 0.3, 0.4, 0.5]
+    HIDDEN_SIZES = [16, 32, 64, 128, 256]
+    BATCH_SIZES = [2, 4, 8, 16, 32, 64, 128, 256]
+    LEARNING_RATES = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5]
+    N_EPOCHS = [5, 10, 15, 20, 25, 30]
+    # todo implement hyperparam search
 
     dataloader = DataLoader(train_set, batch_size=bs, shuffle=True, collate_fn=pad_collate_fn)
-
-    n_feats = train_set[0][0].shape[1]
     model = LSTMModel(input_size=n_feats)
 
     train_lstm(dataloader, val_set, model, lr)
