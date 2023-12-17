@@ -104,7 +104,7 @@ def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, lr
     optimizer = optim.Adam(model.parameters(), lr=lr)
     loss_fn = avg_quantile_loss  # todo implement AQM loss, requires multioutput (use dummy std for starters)
 
-    num_epochs = 100
+    num_epochs = 15
     for epoch in range(num_epochs):
         train_loss = 0
         for sequences, labels, lengths in train_dloader:
@@ -131,6 +131,13 @@ def main():
     # val_X, val_y = data['val']
 
     X, val_X, test_X, y, val_y = data
+    y_mean, y_std = y.volume.mean(), y.volume.std()
+    y.volume = (y.volume - y_mean) / y_std
+    val_y.volume = (val_y.volume - y_mean) / y_std
+
+    y_vol = y.volume
+    print(f"Empirical quantile's training loss:"
+          f" {np.mean([mean_pinball_loss(y_vol, [y_vol.quantile(q)] * len(y), alpha=q) for q in DEF_QUANTILES]):.3f}")
 
     train_set = features2seqs(X, y)
 
