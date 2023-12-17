@@ -261,3 +261,11 @@ def clean_swann(df_swann):
     df_swann['year'] = df_swann['time'].dt.year
     df_swann.drop('time', axis=1, inplace=True)
     return df_swann
+
+def import_basins(current_dir):
+    folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'hydrobasins')
+    df_basins = pd.read_csv(os.path.join(folder_path, 'hydrobasins_summary.csv'))
+    return df_basins
+
+def clean_basins(df_basins):
+    return df_basins

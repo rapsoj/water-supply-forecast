@@ -2,8 +2,8 @@ from enum import Enum
 
 import numpy as np
 import pandas as pd
-
-from models.models import xgboost_fitter
+import os
+from models.models import general_xgboost_fitter
 
 
 class Ensemble_Type(Enum):
@@ -13,7 +13,7 @@ class Ensemble_Type(Enum):
 
 def gen_basin_preds(train_site: pd.DataFrame, train_gt: pd.DataFrame, val_site: pd.DataFrame, val_gt: pd.DataFrame,
                     test: pd.DataFrame,
-                    fitter=xgboost_fitter) -> tuple:  # todo reimplement ensembling so it happens elsewhere, so you can still store the individual model predictions
+                    fitter=general_xgboost_fitter,) -> tuple:  # todo reimplement ensembling so it happens elsewhere, so you can still store the individual model predictions
     # todo implement a "smarter" ensemble model, for now just implement one that averages
 
     # Ensemble model
@@ -67,7 +67,7 @@ def ensemble_models(preds: dict, ensemble_name: str, ensemble_type:  Ensemble_Ty
             site_keys = list(site_id_preds.keys())
 
             # Find best prediction by looking through the validation loss
-            losses = [(pd.read_csv(f'{model}_{site_id}_avg_q_losses.csv')).val[0] for model, _ in preds.items()]
+            losses = [(pd.read_csv(os.path.join('..', 'outputs', f'{model}_{site_id}_avg_q_losses.csv'))).val[0] for model, _ in preds.items()]
             best_site_idx = np.argmin(losses)
             best_pred = site_id_preds[site_keys[best_site_idx]]
 

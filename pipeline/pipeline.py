@@ -3,24 +3,27 @@ import random
 
 import numpy as np
 import pandas as pd
+import torch
 
 from benchmark.benchmark_results import benchmark_results, cache_preds, generate_submission_file, \
     cache_merged_submission_file
 from consts import JULY, FIRST_FULL_GT_YEAR, N_PREDS_PER_MONTH, N_PRED_MONTHS
 from models.fit_to_data import Ensemble_Type
 from models.fit_to_data import ensemble_models
-from models.models import general_pcr_fitter, xgboost_fitter
+from models.models import general_pcr_fitter, general_xgboost_fitter
 from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
+from preprocessing.data_pruning import data_pruning
 
 path = os.getcwd()
 
 
 def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
-                 validation_years: tuple = tuple(np.arange(2004, 2023, 2)), gt_col: str = 'volume',
-                 load_from_cache: bool = True, start_year=FIRST_FULL_GT_YEAR, ):
+                 validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)), gt_col: str = 'volume',
+                 load_from_cache: bool = True, start_year=FIRST_FULL_GT_YEAR, using_pca=False):
     np.random.seed(0)
     random.seed(0)
+    torch.random.manual_seed(0)
 
     print('Loading data')
     basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache)
@@ -45,25 +48,27 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
     site_ids = processed_data.site_id.unique()
 
-    #print('Running global models...')
-    #test_val_train_global_dfs = run_global_models(train_features, val_features, test_features, \
-    #                              train_gt, val_gt, gt_col, site_ids)
+    print('Running global models...')
+
+    test_val_train_global_dfs = run_global_models(train_features, val_features, test_features, \
+                                                  train_gt, val_gt, gt_col, site_ids, using_pca=using_pca)
 
     print('Running local models...')
 
-    test_val_train_dfs = run_local_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids)
+    test_val_train_local_dfs = run_local_models(train_features, val_features, test_features, train_gt, val_gt, gt_col,
+                                                site_ids,
+                                                using_pca=using_pca)
 
     print('Ensembling global and local model submissions...')
 
     labels = ['pred', 'val', 'train']
 
-    for idx, df in enumerate(test_val_train_dfs):
-
+    for idx, df in enumerate(test_val_train_local_dfs):
         label = labels[idx]
 
-        full_dfs = df# | test_val_train_global_dfs[idx]
+        full_dfs = df  # | global/local
 
-        final_df_dict = ensemble_models(full_dfs,'final', ensemble_type=Ensemble_Type.BEST_PREDICTION)
+        final_df_dict = ensemble_models(full_dfs, 'final', ensemble_type=Ensemble_Type.BEST_PREDICTION)
         final_df = final_df_dict['final']
         cache_merged_submission_file(final_df, label)
 
@@ -76,8 +81,8 @@ def inv_scale_data(pred, mean, std):
     return pred * std + mean
 
 
-def run_local_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids,
-                     fitters=(xgboost_fitter,)
+def run_local_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids, using_pca,
+                     fitters=(general_xgboost_fitter,),
                      ):
     non_feat_cols = ['site_id']
     test_dfs = {}
@@ -123,7 +128,7 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
                 continue
 
             hyper_tuned_model, model = fitter(train_site, train_site_gt[gt_col], val_site,
-                                              val_site_gt[gt_col])
+                                              val_site_gt[gt_col], using_pca=using_pca)
             train_pred = model(train_site)
             val_pred = hyper_tuned_model(val_site)
             test_pred = model(test_site)
@@ -159,9 +164,12 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
 
         ordered_site_ids = train_gt.site_id.drop_duplicates().tolist()
         print('Generating local model submission file...')
-        test_df = generate_submission_file(ordered_site_ids=ordered_site_ids, model_id='local', fitter_id=fitter.__name__, set_id='pred')
-        val_df = generate_submission_file(ordered_site_ids=ordered_site_ids, model_id='local', fitter_id=fitter.__name__, set_id='val')
-        train_df = generate_submission_file(ordered_site_ids=ordered_site_ids, model_id='local', fitter_id=fitter.__name__, set_id='train')
+        test_df = generate_submission_file(ordered_site_ids=ordered_site_ids, model_id='local',
+                                           fitter_id=fitter.__name__, set_id='pred')
+        val_df = generate_submission_file(ordered_site_ids=ordered_site_ids, model_id='local',
+                                          fitter_id=fitter.__name__, set_id='val')
+        train_df = generate_submission_file(ordered_site_ids=ordered_site_ids, model_id='local',
+                                            fitter_id=fitter.__name__, set_id='train')
 
         test_dfs[f'local_{fitter.__name__}'] = test_df
         val_dfs[f'local_{fitter.__name__}'] = val_df
@@ -170,9 +178,17 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
     return test_dfs, val_dfs, train_dfs
 
 
-def run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids,
-                      fitters=(xgboost_fitter,)):
+def run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids, using_pca,
+                      fitters=(general_xgboost_fitter,)):
     drop_cols = ['site_id']
+    train_features = train_features.sort_values(by=['site_id', 'date']).reset_index(
+        drop=True)  # Might not be necessary (might already be that way) but just to make sure
+    val_features = val_features.sort_values(by=['site_id', 'date']).reset_index(drop=True)
+    train_gt = train_gt.sort_values(by=['site_id', 'forecast_year']).reset_index(drop=True)
+    val_gt = val_gt.sort_values(by=['site_id', 'forecast_year']).reset_index(drop=True)
+
+    # todo set up assert to check matching dates and site ids
+
     train_site_id_col = train_features.site_id.reset_index(drop=True)
     train_features = train_features.drop(columns=drop_cols).reset_index(drop=True)
     train_gt = train_gt.reset_index(drop=True)
@@ -187,7 +203,7 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
     train_gt[gt_col] = scale_data(train_gt[gt_col], gt_mean, gt_std)
     val_gt[gt_col] = scale_data(val_gt[gt_col], gt_mean, gt_std)
 
-    # todo perhaps find a better way of treating NaN values (Californian sites for volume+SNOTEL)
+    # todo perhaps find a better way of treating NaN values (Californian sites for volume + SNOTEL)
     train_features = train_features.fillna(0)
     val_features = val_features.fillna(0)
     test_features = test_features.fillna(0)
@@ -196,7 +212,8 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
     train_dfs = {}
 
     for fitter in fitters:
-        hyper_tuned_model, model = fitter(train_features, train_gt[gt_col], val_features, val_gt[gt_col])
+        hyper_tuned_model, model = fitter(train_features, train_gt[gt_col], val_features, val_gt[gt_col],
+                                          using_pca=using_pca)
 
         test_mask = test_features.date.dt.month <= JULY
         test_vals = test_features[test_mask]
@@ -207,7 +224,6 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
         train_mask = train_features.date.dt.month <= JULY
         train_vals = train_features[train_mask]
         train_dates = train_vals.date.reset_index(drop=True).unique()
-
 
         for site_id in site_ids:
             results_id = f'global_{fitter.__name__}_{site_id}'
@@ -232,8 +248,8 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
             train_site_gt = train_site_gt.reset_index(drop=True)
             val_site_gt = val_site_gt.reset_index(drop=True)
 
-            benchmark_results(train_pred, train_site_gt[gt_col], val_pred,
-                              val_site_gt[gt_col], val_pred, benchmark_id=results_id)
+            benchmark_results(train_pred=train_pred, train_gt=train_site_gt[gt_col], val_pred=val_pred,
+                              val_gt=val_site_gt[gt_col], benchmark_id=results_id)
 
             cache_preds(pred=test_pred, cache_id=results_id, site_id=site_id, pred_dates=test_dates, set_id='pred')
             cache_preds(pred=val_pred, cache_id=results_id, site_id=site_id, pred_dates=val_dates, set_id='val')
@@ -241,12 +257,15 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
 
         ordered_site_ids = train_gt.site_id.drop_duplicates().tolist()
         print('Generating global model submission file...')
-        df_test = generate_submission_file(ordered_site_ids=ordered_site_ids, model_id='global', fitter_id=fitter.__name__,
-                                      set_id='pred')
-        df_val = generate_submission_file(ordered_site_ids=ordered_site_ids, model_id='global', fitter_id=fitter.__name__,
-                                      set_id='val')
-        df_train = generate_submission_file(ordered_site_ids=ordered_site_ids, model_id='global', fitter_id=fitter.__name__,
-                                      set_id='train')
+        df_test = generate_submission_file(ordered_site_ids=ordered_site_ids, model_id='global',
+                                           fitter_id=fitter.__name__,
+                                           set_id='pred')
+        df_val = generate_submission_file(ordered_site_ids=ordered_site_ids, model_id='global',
+                                          fitter_id=fitter.__name__,
+                                          set_id='val')
+        df_train = generate_submission_file(ordered_site_ids=ordered_site_ids, model_id='global',
+                                            fitter_id=fitter.__name__,
+                                            set_id='train')
 
         test_dfs[f'global_{fitter.__name__}'] = df_test
         val_dfs[f'global_{fitter.__name__}'] = df_val

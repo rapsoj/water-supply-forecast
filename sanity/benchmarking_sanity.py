@@ -5,11 +5,11 @@ import numpy as np
 import pandas as pd
 
 from models.fit_to_data import Ensemble_Type
-from models.models import general_pcr_fitter, xgboost_fitter
+from models.models import general_pcr_fitter, xgboost_fitter, general_xgboost_fitter
 
-os.chdir(os.path.join("..", "pipeline"))
+os.chdir(os.path.join("..", "outputs"))
 
-fitters = (xgboost_fitter,)
+fitters = (general_xgboost_fitter,)
 models = ('local',)
 ensemble_type = Ensemble_Type.BEST_PREDICTION
 ground_truth_df = pd.read_csv(os.path.join("..", "assets", "data", "train.csv"))
@@ -22,7 +22,8 @@ train_qlosses = []
 val_qlosses = []
 ave_gts = []
 
-final_pred = pd.read_csv(os.path.join("..", "pipeline", "final_pred.csv"))
+final_pred = pd.read_csv(os.path.join("..", "outputs", "final_pred.csv"))
+#final_pred_local = pd.read_csv(os.path.join("..", "outputs", "final_predlocal.csv"))
 
 pred_sids = final_pred.site_id.unique()
 
