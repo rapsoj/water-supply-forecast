@@ -13,28 +13,29 @@ from benchmark.benchmark_results import average_quantile_loss
 from consts import DEF_QUANTILES, JULY
 
 
-def base_feature_adapter(X, pc=None):
-    X = X[X.date.dt.month <= JULY].drop(columns=['date', 'forecast_year'])
-    if pc is not None:
-        pca = PCA(n_components=pc)
+def base_feature_adapter(X, pca=None):
 
-        return pd.DataFrame(pca.components_.T)
-    else:
-        return X
+    X = X[X.date.dt.month <= JULY].drop(columns=['date', 'forecast_year'])
+    return X
 
 
 class StreamflowModel:
-    def __init__(self, model, adapter=base_feature_adapter, pc=None):
+    def __init__(self, model, adapter=base_feature_adapter, pca=None):
         self.model = model
         self.adapter = adapter
         self._loss = average_quantile_loss if isinstance(self.model, dict) else mean_squared_error
-        self.pc = pc
+        self.pca = pca
 
     def __call__(self, X: pd.DataFrame, adapt_feats: bool = True):
         if adapt_feats:
-            X = self.adapter(X, pc=self.pc)
+            X = self.adapter(X)
 
         assert (X.dtypes == float).all(), 'Error - wrong dtypes!'
+
+        if self.pca is not None: # for non PCR models
+            X = self.pca.transform(X)
+
+
 
         if isinstance(self.model, dict):
             pred = pd.DataFrame({q: q_model.predict(X) for q, q_model in self.model.items()})
@@ -52,28 +53,75 @@ class StreamflowModel:
         return loss
 
 
-def xgboost_fitter(X, y, val_X, val_y, pc=None, quantile: bool = True):
-    xgb_X = base_feature_adapter(X, pc)
-    xgb_val_X = base_feature_adapter(val_X, pc)
+def general_xgboost_fitter(X, y, val_X, val_y, MAX_N_PCS = 30, quantile: bool = True, using_pca=True):
+
+    xgb_X = base_feature_adapter(X)
+    xgb_val_X = base_feature_adapter(val_X)
     combined_X = pd.concat([xgb_X, xgb_val_X])
     combined_y = pd.concat([y, val_y])
+    if using_pca:
+        MAX_N_PCS = min(MAX_N_PCS, *xgb_X.shape)
+        optimal_pc = 1
+        min_v_loss = np.inf
 
-    if quantile:
-        hyper_tuned_q_models = {}
-        best_q_models = {}
-        for q in DEF_QUANTILES:
-            h_model = GradientBoostingRegressor(loss='quantile', alpha=q)
-            h_model.fit(xgb_X, y)
-            hyper_tuned_q_models[q] = h_model
-            b_model = GradientBoostingRegressor(loss='quantile', alpha=q)
-            b_model.fit(combined_X, combined_y)
-            best_q_models[q] = b_model
+        for pc in range(1, MAX_N_PCS):
 
-        return StreamflowModel(hyper_tuned_q_models, pc=pc), StreamflowModel(best_q_models, pc=pc)
+            model = xgboost_fitter(xgb_X, y, pc=pc, quantile=quantile, using_pca=True)
 
-    model = GradientBoostingRegressor(loss='quantile', alpha=.5)
-    model.fit(xgb_X, y)
-    return StreamflowModel(model), StreamflowModel(model)
+            loss = model.loss(xgb_val_X, val_y, adapt_feats=False)
+            if min_v_loss >= loss:
+                optimal_pc = pc
+                min_v_loss = loss
+                hyper_tuned_model = model
+
+        print(optimal_pc)
+
+        best_model = xgboost_fitter(combined_X, combined_y, pc=optimal_pc, quantile=quantile)
+        return hyper_tuned_model, best_model
+    else:
+        hyper_tuned_model, best_model = xgboost_fitter(xgb_X, y, xgb_val_X, val_y, using_pca=False)
+        return hyper_tuned_model, best_model
+
+
+def xgboost_fitter(xgb_X, y, xgb_val_X=None, val_y=None, quantile: bool = True, pc: int = None, using_pca=True):
+    if using_pca:
+
+        pca = PCA(n_components=pc)
+        pca.fit(xgb_X)  # todo figure out whether to fit on val set to
+        pca_xgb_X = pca.transform(xgb_X)
+
+        if quantile:
+            hyper_tuned_q_models = {}
+            for q in DEF_QUANTILES:
+                h_model = GradientBoostingRegressor(loss='quantile', alpha=q)
+                h_model.fit(pca_xgb_X, y)
+                hyper_tuned_q_models[q] = h_model
+            return StreamflowModel(hyper_tuned_q_models, pca=pca)
+
+        model = GradientBoostingRegressor(loss='quantile', alpha=.5)
+        model.fit(pca_xgb_X, y)
+        return StreamflowModel(model, pca=pca)
+
+    else:
+        combined_X = pd.concat([xgb_X, xgb_val_X])
+        combined_y = pd.concat([y, val_y])
+        if quantile:
+            hyper_tuned_q_models = {}
+            best_q_models = {}
+            for q in DEF_QUANTILES:
+                h_model = GradientBoostingRegressor(loss='quantile', alpha=q)
+                h_model.fit(xgb_X, y)
+                hyper_tuned_q_models[q] = h_model
+                best_model = GradientBoostingRegressor(loss='quantile', alpha=q)
+                best_model.fit(combined_X, combined_y)
+                best_q_models[q] = best_model
+            return StreamflowModel(hyper_tuned_q_models, pca=None), StreamflowModel(best_q_models, pca=None)
+
+        ht_model = GradientBoostingRegressor(loss='quantile', alpha=.5)
+        ht_model.fit(xgb_X, y)
+        best_model = GradientBoostingRegressor(loss='quantile', alpha=.5)
+        best_model.fit(combined_X, combined_y)
+        return StreamflowModel(ht_model, pca=None), StreamflowModel(best_model, pca=None)
 
 
 def k_nearest_neighbors_fitter(X, y, val_X, val_y, quantile: bool = True):
