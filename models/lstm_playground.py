@@ -120,7 +120,7 @@ def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, lr
 
         train_loss /= len(train_dloader.dataset)
         val_loss = calc_val_loss(model, val_set)
-        print(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {loss.item():.4f}, Val Loss: {val_loss.item():.4f}')
+        print(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {train_loss:.4f}, Val Loss: {val_loss.item():.4f}')
 
 
 def main():
