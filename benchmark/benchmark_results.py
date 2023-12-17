@@ -2,10 +2,11 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 from sklearn.metrics import mean_pinball_loss
-
+import os
 from consts import DEF_QUANTILES
 from consts import JULY, DETROIT
 
+os.chdir(os.path.join('..', 'outputs'))
 
 # todo be smarter than using an error threshold
 def calc_predictive_std(gt: pd.Series, preds: pd.Series) -> float:
@@ -18,7 +19,7 @@ def gen_predictive_quantile(preds: pd.Series, std: float, quantile: float) -> pd
     return preds + n_stds * std
 
 
-def cache_preds(site_id: str, pred_dates: pd.Series, pred: pd.DataFrame, cache_id: str = None):
+def cache_preds(site_id: str, pred_dates: pd.Series, pred: pd.DataFrame, set_id: str, cache_id: str = None):
     col_order = ['site_id', 'issue_date'] + [f'volume_{int(q * 100)}' for q in DEF_QUANTILES]
     pred_df = pd.DataFrame({"issue_date": pred_dates, 'site_id': site_id} |
                            {f'volume_{int(q * 100)}': pred[q] for q in DEF_QUANTILES})[col_order]

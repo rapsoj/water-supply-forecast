@@ -66,4 +66,3 @@ def get_global_data():
 
     return X, val_X, test_X, y, val_y
 
-get_global_data()
