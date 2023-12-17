@@ -58,13 +58,11 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     # test_val_train_local_dfs = run_local_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids,
     #                                      using_pca=using_pca)
 
+    # todo clean this up
     print('Ensembling global and local model submissions...')
 
     labels = ['pred', 'val', 'train']
-
     for idx, df in enumerate(test_val_train_global_dfs):
-
-    for idx, df in enumerate(test_val_train_local_dfs):
         label = labels[idx]
 
         full_dfs = df  # | global/local

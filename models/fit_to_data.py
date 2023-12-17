@@ -3,7 +3,8 @@ from enum import Enum
 import numpy as np
 import pandas as pd
 import os
-from fitters.models import general_xgboost_fitter
+
+from models.fitters import general_xgboost_fitter
 
 
 class Ensemble_Type(Enum):
@@ -13,7 +14,7 @@ class Ensemble_Type(Enum):
 
 def gen_basin_preds(train_site: pd.DataFrame, train_gt: pd.DataFrame, val_site: pd.DataFrame, val_gt: pd.DataFrame,
                     test: pd.DataFrame,
-                    fitter=general_xgboost_fitter,) -> tuple:  # todo reimplement ensembling so it happens elsewhere, so you can still store the individual model predictions
+                    fitter=general_xgboost_fitter, ) -> tuple:  # todo reimplement ensembling so it happens elsewhere, so you can still store the individual model predictions
     # todo implement a "smarter" ensemble model, for now just implement one that averages
 
     # Ensemble model
@@ -24,14 +25,16 @@ def gen_basin_preds(train_site: pd.DataFrame, train_gt: pd.DataFrame, val_site: 
 
     return train_pred, val_pred, test_pred
 
-def ensemble_models(preds: dict, ensemble_name: str, ensemble_type:  Ensemble_Type = Ensemble_Type.BEST_PREDICTION):
+
+def ensemble_models(preds: dict, ensemble_name: str, ensemble_type: Ensemble_Type = Ensemble_Type.BEST_PREDICTION):
     # todo make these asserts work for dictionary
     pred_keys = list(preds.keys())
 
     assert all([preds[pred_keys[i]].size == preds[pred_keys[i + 1]].size for i in range(0, len(pred_keys) - 1)]), \
         'Sizes of local and global prediction dfs dont match!'
 
-    assert all([(preds[pred_keys[i]].site_id == preds[pred_keys[i + 1]].site_id).all() for i in range(0, len(pred_keys) - 1)]), \
+    assert all(
+        [(preds[pred_keys[i]].site_id == preds[pred_keys[i + 1]].site_id).all() for i in range(0, len(pred_keys) - 1)]), \
         'Mismatch between local and global site columns!'
 
     ordered_site_ids = preds[pred_keys[0]].site_id.drop_duplicates().tolist()
@@ -52,8 +55,6 @@ def ensemble_models(preds: dict, ensemble_name: str, ensemble_type:  Ensemble_Ty
                 final_pred['site_id'] = site_id_col
                 final_pred['issue_date'] = date_col
 
-
-
                 # Reorder columns
                 cols = final_pred.columns.to_list()
                 cols = cols[-1:] + cols[:-1]
@@ -63,11 +64,12 @@ def ensemble_models(preds: dict, ensemble_name: str, ensemble_type:  Ensemble_Ty
         keys = list(preds.keys())
         final_pred = pd.DataFrame()
         for site_id in preds[keys[0]].site_id.unique():
-            site_id_preds = {model: pred[pred.site_id==site_id] for model, pred in preds.items()}
+            site_id_preds = {model: pred[pred.site_id == site_id] for model, pred in preds.items()}
             site_keys = list(site_id_preds.keys())
 
             # Find best prediction by looking through the validation loss
-            losses = [(pd.read_csv(os.path.join('..', 'outputs', f'{model}_{site_id}_avg_q_losses.csv'))).val[0] for model, _ in preds.items()]
+            losses = [(pd.read_csv(os.path.join('..', 'outputs', f'{model}_{site_id}_avg_q_losses.csv'))).val[0] for
+                      model, _ in preds.items()]
             best_site_idx = np.argmin(losses)
             best_pred = site_id_preds[site_keys[best_site_idx]]
 
@@ -77,5 +79,5 @@ def ensemble_models(preds: dict, ensemble_name: str, ensemble_type:  Ensemble_Ty
     final_pred = final_pred.reset_index(drop=True)
 
     final_pred = final_pred.groupby(final_pred.issue_date.dt.year) \
-        .apply(lambda x: x.sort_values(['site_id', 'issue_date']))    # todo implement other ensemble types of models
+        .apply(lambda x: x.sort_values(['site_id', 'issue_date']))  # todo implement other ensemble types of models
     return {f'{ensemble_name}': final_pred}

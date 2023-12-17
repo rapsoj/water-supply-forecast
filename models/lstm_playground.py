@@ -11,7 +11,7 @@ from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence, pad_se
 from torch.utils.data import DataLoader, Dataset
 
 from consts import JULY, DEF_QUANTILES
-from fitters.lstm_utils import train_lstm
+from models.lstm_utils import train_lstm
 
 
 @dataclass
