@@ -20,15 +20,22 @@ class SequenceDataset(Dataset):
         return len(self.y)
 
     def __getitem__(self, idx):
-        assert np.all(self.X.forecast_year.iloc[:-1].values <= self.X.forecast_year.iloc[1:].values), \
-            'Error - not sorted by forecast year!'
+        idx_row = self.X.iloc[idx]
+        fy = idx_row.forecast_year
+        site_id = idx_row.site_id
+        df_idx = idx_row.name
+        X = self.X[self.X.site_id == site_id]
 
-        fy = self.X.forecast_year.iloc[idx]
-        init_ind = (self.X.forecast_year == fy).argmax()
-        # Create sequence from rows 0 to idx
-        sequence = self.X.iloc[init_ind:idx + 1].drop(columns='forecast_year').values
         label = self.y.iloc[idx]
-        return torch.tensor(sequence, dtype=torch.float32), torch.tensor(label, dtype=torch.float32)
+
+        assert np.all(X.forecast_year.iloc[:-1].values <= X.forecast_year.iloc[1:].values), \
+            'Error - not sorted by forecast year!'
+        assert label.site_id == site_id, 'Error - site id mismatch!'
+
+        init_ind = (X.forecast_year == fy).idxmax()
+        # Create sequence from start of year until now
+        sequence = X.loc[init_ind:df_idx].drop(columns=['forecast_year', 'site_id']).values
+        return torch.tensor(sequence, dtype=torch.float32), torch.tensor(label.volume, dtype=torch.float32)
 
 
 class LSTMModel(nn.Module):
@@ -59,9 +66,13 @@ def pad_collate_fn(batch):
 
 
 def features2seqs(X: pd.DataFrame, y: pd.Series, train: bool = True):
-    X = X[X.date.dt.month <= JULY].drop(columns=['date'])
+    X = X[X.date.dt.month <= JULY].drop(columns=['date']).reset_index(drop=True)
+    X.sort_values(by=['site_id', 'forecast_year'], inplace=True)
+    y = y.sort_values(by='site_id').iloc[X.index].reset_index(drop=True)
+    X = X.reset_index(drop=True)
+
     if train:
-        return SequenceDataset(X.iloc[:-1], y.iloc[:-1])
+        return SequenceDataset(X, y)
 
     raise NotImplementedError
 
@@ -113,11 +124,13 @@ def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, lr
 
 
 def main():
-    with open('playground_input.pkl', 'rb') as f:
+    with open('global_data.pkl', 'rb') as f:
         data = pickle.load(f)
 
-    X, y = data['train']
-    val_X, val_y = data['val']
+    # X, y = data['train']
+    # val_X, val_y = data['val']
+
+    X, val_X, test_X, y, val_y = data
 
     train_set = features2seqs(X, y)
 

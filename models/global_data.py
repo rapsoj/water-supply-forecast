@@ -1,8 +1,11 @@
+import pickle
+
 import pandas as pd
 import os
 from preprocessing.pre_ml_processing import ml_preprocess_data
 from preprocessing.generic_preprocessing import get_processed_dataset
 from consts import N_PRED_MONTHS, N_PREDS_PER_MONTH, FIRST_FULL_GT_YEAR
+
 
 def load_ground_truth(num_predictions: int):
     ground_truth_df = pd.read_csv(os.path.join("..", "assets", "data", "train.csv"))
@@ -14,6 +17,7 @@ def load_ground_truth(num_predictions: int):
     ground_truth_df = ground_truth_df.drop(columns=['year'])
 
     return ground_truth_df
+
 
 def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_years: tuple, validation_years: tuple,
                          start_year: int = FIRST_FULL_GT_YEAR):
@@ -56,14 +60,16 @@ def get_global_data():
     assert processed_data.isna().any().sum() == 1, 'More than 1 column has Nans. Should only be the volume column.'
     processed_data = processed_data.fillna(0)
 
-
     test_years = range(2005, 2024, 2)
     validation_years = range(FIRST_FULL_GT_YEAR, 2023, 8)
 
-    gt = load_ground_truth(N_PRED_MONTHS*N_PREDS_PER_MONTH)
+    gt = load_ground_truth(N_PRED_MONTHS * N_PREDS_PER_MONTH)
 
     X, val_X, test_X, y, val_y = train_val_test_split(processed_data, gt, test_years, validation_years)
 
     return X, val_X, test_X, y, val_y
 
-get_global_data()
+
+res = get_global_data()
+with open('global_data.pkl', 'wb') as f:
+    pickle.dump(res, f)
