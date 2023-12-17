@@ -2,7 +2,7 @@
 from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
 from consts import FIRST_FULL_GT_YEAR
-from models.models import base_feature_adapter
+from models.fitters import base_feature_adapter
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 

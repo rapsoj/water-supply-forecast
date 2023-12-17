@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 from consts import DEF_QUANTILES
-from models.models import xgboost_fitter, k_nearest_neighbors_fitter, general_pcr_fitter
+from models.fitters import xgboost_fitter, k_nearest_neighbors_fitter, general_pcr_fitter
 
 
 def data_gen(n_samples: int, out_dim: int = 15) -> tuple:

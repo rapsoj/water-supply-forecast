@@ -4,7 +4,7 @@ from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
 from pipeline.pipeline import load_ground_truth
 from consts import N_PRED_MONTHS, N_PREDS_PER_MONTH, FIRST_FULL_GT_YEAR
-from models.models import base_feature_adapter
+from models.fitters import base_feature_adapter
 from scipy.stats import pearsonr
 import numpy as np
 import seaborn as sns

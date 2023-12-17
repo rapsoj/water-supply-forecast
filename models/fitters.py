@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+import torch
+from scipy.stats import norm
 from sklearn import linear_model
 from sklearn.decomposition import PCA
 from sklearn.ensemble import GradientBoostingRegressor
@@ -7,16 +9,37 @@ from sklearn.metrics import mean_squared_error, mean_pinball_loss, make_scorer
 from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.pipeline import Pipeline
-from sklearn.utils.fixes import parse_version, sp_version
+from torch import nn
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
+from torch.utils.data import DataLoader
 
 from benchmark.benchmark_results import average_quantile_loss
 from consts import DEF_QUANTILES, JULY
+from models.lstm_playground import DEF_LSTM_HYPPARAMS
+from models.lstm_utils import features2seqs, pad_collate_fn, train_lstm
 
 
 def base_feature_adapter(X, pca=None):
-
     X = (X[X.date.dt.month <= JULY].drop(columns=['date', 'forecast_year']))
     return X
+
+
+class LSTMModel(nn.Module):
+    def __init__(self, input_size, hidden_size=64, num_layers=1, output_size=2, dropout_prob: float = 0.3):
+        super(LSTMModel, self).__init__()
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=dropout_prob)
+        self.fc = nn.Linear(hidden_size, output_size)
+
+    def forward(self, x, lengths):
+        # Pack the padded sequences
+        x_packed = pack_padded_sequence(x, lengths, batch_first=True)
+        out_packed, _ = self.lstm(x_packed)
+        out_padded, _ = pad_packed_sequence(out_packed, batch_first=True)
+        # Apply the linear layer to the unpacked outputs
+        out = self.fc(out_padded)
+        outputs = out[torch.arange(out.size(0)), np.array(lengths) - 1]  # Return the outputs for the last time step
+        means, log_vars = outputs[:, 0], outputs[:, 1]
+        return means, torch.exp(0.5 * log_vars)
 
 
 class StreamflowModel:
@@ -30,15 +53,20 @@ class StreamflowModel:
         if adapt_feats:
             X = self.adapter(X)
 
-        assert (X.dtypes == float).all(), 'Error - wrong dtypes!'
+        if isinstance(X, pd.DataFrame):
+            assert (X.dtypes == float).all(), 'Error - wrong dtypes!'
+        else:
+            pass  # todo add some asserts for the lstm case?
 
-        if self.pca is not None: # for non PCR models
+        if self.pca is not None:  # for non PCR models
             X = self.pca.transform(X)
-
-
 
         if isinstance(self.model, dict):
             pred = pd.DataFrame({q: q_model.predict(X) for q, q_model in self.model.items()})
+        elif isinstance(self.model, nn.Module):
+            means, stds = self.model(X)
+            # todo create function for this
+            pred = pd.DataFrame({q: (means + norm.ppf(q) * stds).item() for q in DEF_QUANTILES})
         else:
             pred = pd.Series(self.model.predict(X))
 
@@ -53,8 +81,30 @@ class StreamflowModel:
         return loss
 
 
-def general_xgboost_fitter(X, y, val_X, val_y, MAX_N_PCS = 30, quantile: bool = True, using_pca=True):
+def lstm_fitter(X, y, val_X, val_y, quantile: bool = True):
+    assert quantile
 
+    train_set = features2seqs(X, y)
+
+    val_set = features2seqs(val_X, val_y)
+
+    n_feats = train_set[0][0].shape[1]
+
+    dataloader = DataLoader(train_set, batch_size=DEF_LSTM_HYPPARAMS.bs, shuffle=True, collate_fn=pad_collate_fn)
+    model = LSTMModel(input_size=n_feats)
+
+    model = train_lstm(dataloader, val_set, model, DEF_LSTM_HYPPARAMS.lr, DEF_LSTM_HYPPARAMS.n_epochs)
+
+    def lstm_feat_adapter(X):
+        dataset = features2seqs(X)
+        dataloader = DataLoader(dataset, collate_fn=pad_collate_fn)
+
+        return dataloader
+
+    return StreamflowModel(model, adapter=lstm_feat_adapter)
+
+
+def general_xgboost_fitter(X, y, val_X, val_y, MAX_N_PCS=30, quantile: bool = True, using_pca=True):
     xgb_X = base_feature_adapter(X)
     xgb_val_X = base_feature_adapter(val_X)
     combined_X = pd.concat([xgb_X, xgb_val_X])

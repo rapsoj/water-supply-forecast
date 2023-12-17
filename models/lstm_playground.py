@@ -11,6 +11,7 @@ from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence, pad_se
 from torch.utils.data import DataLoader, Dataset
 
 from consts import JULY, DEF_QUANTILES
+from fitters.lstm_utils import train_lstm
 
 
 @dataclass
@@ -19,116 +20,11 @@ class HypParams:
     bs: float
     n_epochs: int
     n_hidden: int
+    hidden_size: int
     dropout_prob: float
 
 
-class SequenceDataset(Dataset):
-    def __init__(self, X, y):
-        self.X = X
-        self.y = y
-
-    def __len__(self):
-        return len(self.y)
-
-    def __getitem__(self, idx):
-        idx_row = self.X.iloc[idx]
-        fy = idx_row.forecast_year
-        site_id = idx_row.site_id
-        df_idx = idx_row.name
-        X = self.X[self.X.site_id == site_id]
-
-        label = self.y.iloc[idx]
-
-        assert np.all(X.forecast_year.iloc[:-1].values <= X.forecast_year.iloc[1:].values), \
-            'Error - not sorted by forecast year!'
-        assert label.site_id == site_id, 'Error - site id mismatch!'
-
-        init_ind = (X.forecast_year == fy).idxmax()
-        # Create sequence from start of year until now
-        sequence = X.loc[init_ind:df_idx].drop(columns=['forecast_year', 'site_id']).values
-        return torch.tensor(sequence, dtype=torch.float32), torch.tensor(label.volume, dtype=torch.float32)
-
-
-class LSTMModel(nn.Module):
-    def __init__(self, input_size, hidden_size=64, num_layers=1, output_size=2, dropout_prob: float = 0.3):
-        super(LSTMModel, self).__init__()
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=dropout_prob)
-        self.fc = nn.Linear(hidden_size, output_size)
-
-    def forward(self, x, lengths):
-        # Pack the padded sequences
-        x_packed = pack_padded_sequence(x, lengths, batch_first=True)
-        out_packed, _ = self.lstm(x_packed)
-        out_padded, _ = pad_packed_sequence(out_packed, batch_first=True)
-        # Apply the linear layer to the unpacked outputs
-        out = self.fc(out_padded)
-        outputs = out[torch.arange(out.size(0)), np.array(lengths) - 1]  # Return the outputs for the last time step
-        means, log_vars = outputs[:, 0], outputs[:, 1]
-        return means, torch.exp(0.5 * log_vars)
-
-
-def pad_collate_fn(batch):
-    # Sort the batch by sequence length in descending order
-    batch.sort(key=lambda x: len(x[0]), reverse=True)
-    sequences, labels = zip(*batch)
-    # Pad the sequences and stack the labels
-    padded_sequences = pad_sequence(sequences, batch_first=True)
-    lengths = [len(seq) for seq in sequences]
-    labels = torch.stack(labels)
-    return padded_sequences, labels, lengths
-
-
-def features2seqs(X: pd.DataFrame, y: pd.Series):
-    X = X[X.date.dt.month <= JULY].drop(columns=['date']).reset_index(drop=True)
-    X.sort_values(by=['site_id', 'forecast_year'], inplace=True)
-    y = y.sort_values(by='site_id').iloc[X.index].reset_index(drop=True)
-    X = X.reset_index(drop=True)
-
-    return SequenceDataset(X, y)
-
-
-def quantile_loss(y_true, y_pred, quantile: float):
-    return torch.mean(torch.max(quantile * (y_true - y_pred), -(1 - quantile) * (y_true - y_pred)))
-
-
-def avg_quantile_loss(pred_means, pred_stds, y_true):
-    losses = [quantile_loss(y_true, pred_means + norm.ppf(q) * pred_stds, q) for q in DEF_QUANTILES]
-    return torch.mean(torch.stack(losses))
-
-
-def calc_val_loss(model: nn.Module, val_set):
-    with torch.inference_mode():
-        dataloader = DataLoader(val_set, collate_fn=pad_collate_fn)
-        val_losses = []
-        for sequences, labels, lengths in dataloader:
-            means, stds = model(sequences, lengths)
-            loss = avg_quantile_loss(means, stds, labels)
-            val_losses.append(loss)
-        return np.mean(val_losses)
-
-
-def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, lr: float) -> nn.Module:
-    optimizer = optim.Adam(model.parameters(), lr=lr)
-
-    num_epochs = 15
-    for epoch in range(num_epochs):
-        train_loss = 0
-        for sequences, labels, lengths in train_dloader:
-            optimizer.zero_grad()
-            means, stds = model(sequences, lengths)
-            # Ensure labels are also squeezed to match output shape
-            loss = avg_quantile_loss(means, stds, labels)
-            assert loss.item() > 0, 'Error - loss is negative!'
-            loss.backward()
-            optimizer.step()
-
-            train_loss += loss.item() * len(sequences)
-
-        train_loss /= len(train_dloader.dataset)
-        val_loss = calc_val_loss(model, val_set)
-        print(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {train_loss:.4f}, Val Loss: {val_loss.item():.4f}')
-
-    return model
+DEF_LSTM_HYPPARAMS = HypParams(lr=1e-3, bs=8, n_epochs=10, n_hidden=1, hidden_size=64, dropout_prob=0.3)
 
 
 def main():

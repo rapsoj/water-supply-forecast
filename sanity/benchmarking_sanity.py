@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from models.fit_to_data import Ensemble_Type
-from models.models import general_pcr_fitter, xgboost_fitter, general_xgboost_fitter
+from models.fitters import general_pcr_fitter, xgboost_fitter, general_xgboost_fitter
 
 os.chdir(os.path.join("..", "outputs"))
 

@@ -3,7 +3,7 @@ from enum import Enum
 import numpy as np
 import pandas as pd
 import os
-from models.models import general_xgboost_fitter
+from fitters.models import general_xgboost_fitter
 
 
 class Ensemble_Type(Enum):

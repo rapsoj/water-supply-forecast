@@ -10,7 +10,7 @@ from benchmark.benchmark_results import benchmark_results, cache_preds, generate
 from consts import JULY, FIRST_FULL_GT_YEAR, N_PREDS_PER_MONTH, N_PRED_MONTHS
 from models.fit_to_data import Ensemble_Type
 from models.fit_to_data import ensemble_models
-from models.models import general_pcr_fitter, general_xgboost_fitter
+from models.fitters import general_pcr_fitter, general_xgboost_fitter
 from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
 from preprocessing.data_pruning import data_pruning
@@ -32,7 +32,6 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     #  currently everything is processed together. unsure if necessary
     processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache)
 
-
     # Data sanity check
     # Check types (do we wish to also check that date, forecast_year and site_id are the correct types here?
     assert all([data_type == float for data_type in processed_data
@@ -46,8 +45,6 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     # Get training, validation and test sets
     train_features, val_features, test_features, train_gt, val_gt = \
         train_val_test_split(processed_data, ground_truth, test_years, validation_years, start_year=start_year)
-
-
 
     site_ids = processed_data.site_id.unique()
 
