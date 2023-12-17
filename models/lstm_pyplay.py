@@ -8,11 +8,13 @@ from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence, pad_se
 from torch.utils.data import DataLoader, Dataset
 
 from consts import JULY
+from models.global_data import get_global_data
+
 with open('playground_input.pkl', 'rb') as f:
     data = pickle.load(f)
 
-X, y = data['train']
-val_X, val_y = data['val']
+X, val_X, test_X, y, val_y = get_global_data()
+
 class SequenceDataset(Dataset):
     def __init__(self, X, y):
         self.X = X
