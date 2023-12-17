@@ -71,6 +71,8 @@ def avg_quantile_loss(pred_means, pred_stds, y_true):
 
 
 def calc_val_loss(model: nn.Module, val_set):
+    if val_set is None:
+        return
     with torch.inference_mode():
         dataloader = DataLoader(val_set, collate_fn=pad_collate_fn)
         val_losses = []
@@ -99,6 +101,10 @@ def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, lr
 
         train_loss /= len(train_dloader.dataset)
         val_loss = calc_val_loss(model, val_set)
-        print(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {train_loss:.4f}, Val Loss: {val_loss.item():.4f}')
+
+        epoch_str = f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {train_loss:.4f}'
+        if val_loss is not None:
+            epoch_str += f', Val Loss: {val_loss.item():.4f}'
+        print(epoch_str)
 
     return model

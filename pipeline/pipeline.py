@@ -10,7 +10,7 @@ from benchmark.benchmark_results import benchmark_results, cache_preds, generate
 from consts import JULY, FIRST_FULL_GT_YEAR, N_PREDS_PER_MONTH, N_PRED_MONTHS
 from models.fit_to_data import Ensemble_Type
 from models.fit_to_data import ensemble_models
-from models.fitters import general_pcr_fitter, general_xgboost_fitter
+from models.fitters import general_pcr_fitter, general_xgboost_fitter, lstm_fitter
 from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
 from preprocessing.data_pruning import data_pruning
@@ -184,11 +184,10 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
     return test_dfs, val_dfs, train_dfs
 
 
-def run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids, using_pca,
-                      fitters=(general_xgboost_fitter,)):
-    drop_cols = ['site_id']
-    train_features = train_features.sort_values(by=['site_id', 'date']).reset_index(
-        drop=True)  # Might not be necessary (might already be that way) but just to make sure
+def run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids, using_pca=False,
+                      fitters=(lstm_fitter,)):
+    train_features = train_features.sort_values(by=['site_id', 'date']) \
+        .reset_index(drop=True)  # Might not be necessary (might already be that way) but just to make sure
     val_features = val_features.sort_values(by=['site_id', 'date']).reset_index(drop=True)
     train_gt = train_gt.sort_values(by=['site_id', 'forecast_year']).reset_index(drop=True)
     val_gt = val_gt.sort_values(by=['site_id', 'forecast_year']).reset_index(drop=True)
@@ -196,15 +195,12 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
     # todo set up assert to check matching dates and site ids
 
     train_site_id_col = train_features.site_id.reset_index(drop=True)
-    train_features = train_features.drop(columns=drop_cols).reset_index(drop=True)
     train_gt = train_gt.reset_index(drop=True)
     gt_std, gt_mean = train_gt[gt_col].std(), train_gt[gt_col].mean()
 
     val_site_id_col = val_features.site_id.reset_index(drop=True)
-    val_features = val_features.drop(columns=drop_cols).reset_index(drop=True)
     val_gt = val_gt.reset_index(drop=True)
     test_site_id_col = test_features.site_id
-    test_features = test_features.drop(columns=drop_cols, errors='ignore')
 
     train_gt[gt_col] = scale_data(train_gt[gt_col], gt_mean, gt_std)
     val_gt[gt_col] = scale_data(val_gt[gt_col], gt_mean, gt_std)
@@ -218,8 +214,7 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
     train_dfs = {}
 
     for fitter in fitters:
-        hyper_tuned_model, model = fitter(train_features, train_gt[gt_col], val_features, val_gt[gt_col],
-                                          using_pca=using_pca)
+        hyper_tuned_model, model = fitter(train_features, train_gt[gt_col], val_features, val_gt[gt_col])
 
         test_mask = test_features.date.dt.month <= JULY
         test_vals = test_features[test_mask]

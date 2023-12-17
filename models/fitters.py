@@ -85,15 +85,20 @@ def lstm_fitter(X, y, val_X, val_y, quantile: bool = True):
     assert quantile
 
     train_set = features2seqs(X, y)
-
     val_set = features2seqs(val_X, val_y)
+    combined_set = features2seqs(pd.concat([X, val_X]), pd.concat([y, val_y]))
 
     n_feats = train_set[0][0].shape[1]
 
-    dataloader = DataLoader(train_set, batch_size=DEF_LSTM_HYPPARAMS.bs, shuffle=True, collate_fn=pad_collate_fn)
-    model = LSTMModel(input_size=n_feats)
+    train_dloader = DataLoader(train_set, batch_size=DEF_LSTM_HYPPARAMS.bs, shuffle=True, collate_fn=pad_collate_fn)
+    full_dloader = DataLoader(combined_set, batch_size=DEF_LSTM_HYPPARAMS.bs, shuffle=True, collate_fn=pad_collate_fn)
 
-    model = train_lstm(dataloader, val_set, model, DEF_LSTM_HYPPARAMS.lr, DEF_LSTM_HYPPARAMS.n_epochs)
+    train_model = LSTMModel(input_size=n_feats)
+    full_model = LSTMModel(input_size=n_feats)
+
+    train_model = train_lstm(train_dloader, val_set, train_model, DEF_LSTM_HYPPARAMS.lr, DEF_LSTM_HYPPARAMS.n_epochs)
+    # todo try fine-tuning trained model? probably no reason to do that, difficult to validate
+    full_model = train_lstm(full_dloader, None, full_model, DEF_LSTM_HYPPARAMS.lr, DEF_LSTM_HYPPARAMS.n_epochs)
 
     def lstm_feat_adapter(X):
         dataset = features2seqs(X)
@@ -101,7 +106,8 @@ def lstm_fitter(X, y, val_X, val_y, quantile: bool = True):
 
         return dataloader
 
-    return StreamflowModel(model, adapter=lstm_feat_adapter)
+    return StreamflowModel(train_model, adapter=lstm_feat_adapter), \
+           StreamflowModel(full_model, adapter=lstm_feat_adapter)
 
 
 def general_xgboost_fitter(X, y, val_X, val_y, MAX_N_PCS=30, quantile: bool = True, using_pca=True):
