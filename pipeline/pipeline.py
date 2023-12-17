@@ -32,6 +32,7 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     #  currently everything is processed together. unsure if necessary
     processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache)
 
+
     # Data sanity check
     # Check types (do we wish to also check that date, forecast_year and site_id are the correct types here?
     assert all([data_type == float for data_type in processed_data
@@ -45,6 +46,8 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     # Get training, validation and test sets
     train_features, val_features, test_features, train_gt, val_gt = \
         train_val_test_split(processed_data, ground_truth, test_years, validation_years, start_year=start_year)
+
+
 
     site_ids = processed_data.site_id.unique()
 

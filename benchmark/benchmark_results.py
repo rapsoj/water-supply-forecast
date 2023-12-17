@@ -6,7 +6,7 @@ import os
 from consts import DEF_QUANTILES
 from consts import JULY, DETROIT
 
-os.chdir('../outputs')
+os.chdir(os.path.join('..', 'outputs'))
 
 # todo be smarter than using an error threshold
 def calc_predictive_std(gt: pd.Series, preds: pd.Series) -> float:
