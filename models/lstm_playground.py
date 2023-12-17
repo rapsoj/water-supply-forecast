@@ -38,9 +38,9 @@ class SequenceDataset(Dataset):
 
 
 class LSTMModel(nn.Module):
-    def __init__(self, input_size, hidden_size=128, num_layers=2, output_size=1):
+    def __init__(self, input_size, hidden_size=64, num_layers=2, output_size=1, dropout_prob: float = 0.2):
         super(LSTMModel, self).__init__()
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=dropout_prob)
         self.fc = nn.Linear(hidden_size, output_size)
 
     def forward(self, x, lengths):
@@ -92,6 +92,21 @@ combined_X = pd.concat([X, val_X])
 combined_y = pd.concat([y, val_y])
 combined_set = features2seqs(combined_X, combined_y)
 
+val_set = features2seqs(val_X, val_y)
+
+
+def calc_val_loss(model: nn.Module, val_set):
+    with torch.inference_mode():
+        dataloader = DataLoader(val_set, batch_size=bs, collate_fn=pad_collate_fn)
+        val_losses = []
+        for sequences, labels, lengths in dataloader:
+            outputs = model(sequences, lengths)
+            outputs = outputs.squeeze()
+            labels = labels.squeeze()
+            val_losses.append(avg_quantile_loss(outputs, labels))
+        return np.mean(val_losses)
+
+
 dataloader = DataLoader(train_set, batch_size=bs, shuffle=True, collate_fn=pad_collate_fn)
 
 n_feats = train_set[0][0].shape[1]
@@ -111,6 +126,5 @@ for epoch in range(num_epochs):
         loss.backward()
         optimizer.step()
 
-    print(f'Epoch [{epoch + 1}/{num_epochs}], Loss: {loss.item():.4f}')
-
-np.mean([mean_pinball_loss(y, [y.quantile(q)] * len(y), alpha=q) for q in DEF_QUANTILES])
+    val_loss = calc_val_loss(model, val_set)
+    print(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {loss.item():.4f}, Val Loss: {val_loss.item():.4f}')
