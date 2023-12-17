@@ -38,7 +38,7 @@ class SequenceDataset(Dataset):
 
 
 class LSTMModel(nn.Module):
-    def __init__(self, input_size, hidden_size=64, num_layers=2, output_size=1, dropout_prob: float = 0.2):
+    def __init__(self, input_size, hidden_size=64, num_layers=1, output_size=1, dropout_prob: float = 0.3):
         super(LSTMModel, self).__init__()
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=dropout_prob)
         self.fc = nn.Linear(hidden_size, output_size)
@@ -117,6 +117,7 @@ criterion = avg_quantile_loss  # todo implement AQM loss, requires multioutput (
 
 num_epochs = 100
 for epoch in range(num_epochs):
+    train_loss = 0
     for sequences, labels, lengths in dataloader:
         optimizer.zero_grad()
         outputs = model(sequences, lengths)
@@ -126,5 +127,8 @@ for epoch in range(num_epochs):
         loss.backward()
         optimizer.step()
 
+        train_loss += loss.item() * len(sequences)
+
+    train_loss /= len(dataloader.dataset)
     val_loss = calc_val_loss(model, val_set)
     print(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {loss.item():.4f}, Val Loss: {val_loss.item():.4f}')
