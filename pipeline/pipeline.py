@@ -17,7 +17,7 @@ path = os.getcwd()
 
 def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
                  validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)), gt_col: str = 'volume',
-                 load_from_cache: bool = False, start_year=FIRST_FULL_GT_YEAR, using_pca=False):
+                 load_from_cache: bool = True, start_year=FIRST_FULL_GT_YEAR, using_pca=False):
     print('Loading data')
     basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache)
 
@@ -44,22 +44,22 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     print('Running global models...')
 
     test_val_train_global_dfs = run_global_models(train_features, val_features, test_features, \
-                                  train_gt, val_gt, gt_col, site_ids)
+                                  train_gt, val_gt, gt_col, site_ids, using_pca=using_pca)
 
     print('Running local models...')
 
-    test_val_train_dfs = run_local_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids,
+    test_val_train_local_dfs = run_local_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids,
                                           using_pca=using_pca)
 
     print('Ensembling global and local model submissions...')
 
     labels = ['pred', 'val', 'train']
 
-    for idx, df in enumerate(test_val_train_dfs):
+    for idx, df in enumerate(test_val_train_global_dfs):
 
         label = labels[idx]
 
-        full_dfs = df# | test_val_train_global_dfs[idx]
+        full_dfs = df # | global/local
 
         final_df_dict = ensemble_models(full_dfs,'final', ensemble_type=Ensemble_Type.BEST_PREDICTION)
         final_df = final_df_dict['final']
@@ -171,6 +171,13 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
 def run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids, using_pca,
                       fitters=(general_xgboost_fitter,)):
     drop_cols = ['site_id']
+    train_features = train_features.sort_values(by=['site_id', 'date']).reset_index(drop=True) # Might not be necessary (might already be that way) but just to make sure
+    val_features = val_features.sort_values(by=['site_id', 'date']).reset_index(drop=True)
+    train_gt = train_gt.sort_values(by=['site_id', 'forecast_year']).reset_index(drop=True)
+    val_gt = val_gt.sort_values(by=['site_id', 'forecast_year']).reset_index(drop=True)
+
+    # todo set up assert to check matching dates and site ids
+
     train_site_id_col = train_features.site_id.reset_index(drop=True)
     train_features = train_features.drop(columns=drop_cols).reset_index(drop=True)
     train_gt = train_gt.reset_index(drop=True)
@@ -184,6 +191,8 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
 
     train_gt[gt_col] = scale_data(train_gt[gt_col], gt_mean, gt_std)
     val_gt[gt_col] = scale_data(val_gt[gt_col], gt_mean, gt_std)
+
+
 
     # todo perhaps find a better way of treating NaN values (Californian sites for volume + SNOTEL)
     train_features = train_features.fillna(0)
@@ -230,8 +239,8 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
             train_site_gt = train_site_gt.reset_index(drop=True)
             val_site_gt = val_site_gt.reset_index(drop=True)
 
-            benchmark_results(train_pred, train_site_gt[gt_col], val_pred,
-                              val_site_gt[gt_col], val_pred, benchmark_id=results_id)
+            benchmark_results(train_pred=train_pred, train_gt=train_site_gt[gt_col], val_pred=val_pred,
+                              val_gt=val_site_gt[gt_col], benchmark_id=results_id)
 
             cache_preds(pred=test_pred, cache_id=results_id, site_id=site_id, pred_dates=test_dates, set_id='pred')
             cache_preds(pred=val_pred, cache_id=results_id, site_id=site_id, pred_dates=val_dates, set_id='val')

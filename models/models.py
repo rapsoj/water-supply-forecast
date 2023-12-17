@@ -15,7 +15,7 @@ from consts import DEF_QUANTILES, JULY
 
 def base_feature_adapter(X, pca=None):
 
-    X = X[X.date.dt.month <= JULY].drop(columns=['date', 'forecast_year'])
+    X = (X[X.date.dt.month <= JULY].drop(columns=['date', 'forecast_year']))
     return X
 
 
