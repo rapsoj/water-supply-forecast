@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 import numpy as np
 import pandas as pd
 import torch
@@ -8,6 +10,19 @@ from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 
 from consts import JULY, DEF_QUANTILES
+
+
+@dataclass
+class HypParams:
+    lr: float
+    bs: int
+    n_epochs: int
+    n_hidden: int
+    hidden_size: int
+    dropout_prob: float
+
+
+DEF_LSTM_HYPPARAMS = HypParams(lr=1e-3, bs=8, n_epochs=10, n_hidden=1, hidden_size=64, dropout_prob=0.3)
 
 
 class SequenceDataset(Dataset):

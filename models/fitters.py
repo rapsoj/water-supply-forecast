@@ -15,8 +15,7 @@ from torch.utils.data import DataLoader
 
 from benchmark.benchmark_results import average_quantile_loss
 from consts import DEF_QUANTILES, JULY
-from models.lstm_playground import DEF_LSTM_HYPPARAMS
-from models.lstm_utils import features2seqs, pad_collate_fn, train_lstm
+from models.lstm_utils import features2seqs, pad_collate_fn, train_lstm, DEF_LSTM_HYPPARAMS
 
 
 def base_feature_adapter(X, pca=None):

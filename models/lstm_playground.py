@@ -9,20 +9,7 @@ from torch.utils.data import DataLoader
 
 from consts import DEF_QUANTILES
 from models.fitters import LSTMModel
-from models.lstm_utils import train_lstm, pad_collate_fn, features2seqs, calc_val_loss
-
-
-@dataclass
-class HypParams:
-    lr: float
-    bs: int
-    n_epochs: int
-    n_hidden: int
-    hidden_size: int
-    dropout_prob: float
-
-
-DEF_LSTM_HYPPARAMS = HypParams(lr=1e-3, bs=8, n_epochs=10, n_hidden=1, hidden_size=64, dropout_prob=0.3)
+from models.lstm_utils import train_lstm, pad_collate_fn, features2seqs, calc_val_loss, HypParams
 
 
 def main():
@@ -76,7 +63,7 @@ def main():
 
         # append new results to running text file
         with open('lstm_results.txt', 'a+') as f:
-            f.write(f'{val_loss}, {hyp_params}\n')
+            f.write(f'val loss: {val_loss:.5f}, {hyp_params}\n')
 
 
 if __name__ == '__main__':
