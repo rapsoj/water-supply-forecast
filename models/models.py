@@ -3,7 +3,9 @@ import pandas as pd
 from sklearn import linear_model
 from sklearn.decomposition import PCA
 from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, mean_pinball_loss, make_scorer
+from sklearn.model_selection import GridSearchCV
+from sklearn.neighbors import KNeighborsRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.utils.fixes import parse_version, sp_version
 
@@ -12,11 +14,9 @@ from consts import DEF_QUANTILES, JULY
 
 
 def base_feature_adapter(X, pc=None):
-
     X = X[X.date.dt.month <= JULY].drop(columns=['date', 'forecast_year'])
     if pc is not None:
         pca = PCA(n_components=pc)
-
 
         return pd.DataFrame(pca.components_.T)
     else:
@@ -24,7 +24,7 @@ def base_feature_adapter(X, pc=None):
 
 
 class StreamflowModel:
-    def __init__(self, model,adapter=base_feature_adapter,pc=None):
+    def __init__(self, model, adapter=base_feature_adapter, pc=None):
         self.model = model
         self.adapter = adapter
         self._loss = average_quantile_loss if isinstance(self.model, dict) else mean_squared_error
@@ -75,13 +75,39 @@ def xgboost_fitter(X, y, val_X, val_y, pc=None, quantile: bool = True):
     model.fit(xgb_X, y)
     return StreamflowModel(model), StreamflowModel(model)
 
-def k_nearest_neighbors_fitter(X, y, val_X, val_y):
+
+def k_nearest_neighbors_fitter(X, y, val_X, val_y, quantile: bool = True):
+    assert quantile
+
     knn_X = base_feature_adapter(X)
     knn_val_X = base_feature_adapter(val_X)
     combined_X = pd.concat([knn_X, knn_val_X])
     combined_y = pd.concat([y, val_y])
 
-    # todo implement k nearest neighbors
+    knn = KNeighborsRegressor()
+
+    param_grid = {
+        'n_neighbors': np.arange(1, 2500, 250),
+    }
+
+    models = {}
+    noval_data_models = {}
+    for q in DEF_QUANTILES:
+        custom_scorer = make_scorer(mean_pinball_loss, greater_is_better=False, alpha=q)
+
+        # Define the grid search
+        grid_search = GridSearchCV(knn, param_grid, scoring=custom_scorer)
+
+        # Fit the grid search
+        grid_search.fit(combined_X, combined_y)
+
+        models[q] = grid_search.best_estimator_
+
+        noval_model = KNeighborsRegressor(n_neighbors=grid_search.best_params_['n_neighbors'])
+        noval_model.fit(knn_X, y)
+        noval_data_models[q] = noval_model
+
+    return StreamflowModel(noval_data_models), StreamflowModel(models)
 
 
 def general_pcr_fitter(X, y, val_X, val_y, quantile: bool = True, MAX_N_PCS: int = 50):
@@ -123,11 +149,11 @@ def pcr_fitter(X, y, pc, quantile: bool = True, solver="highs"):
 
         model.fit(X, y)
 
-        predictor = StreamflowModel(model, adapter=base_feature_adapter)
+        predictor = StreamflowModel(model)
     else:
         regressors = {}
         for q in DEF_QUANTILES:
-            qregr = linear_model.QuantileRegressor(quantile=q, solver=solver)
+            qregr = linear_model.QuantileRegressor(quantile=q, alpha=0, solver=solver)
             model = Pipeline([('pca', pca), ('quantile_regression', qregr)])
             model.fit(X, y)
 

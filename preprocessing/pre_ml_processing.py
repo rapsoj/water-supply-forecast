@@ -1,13 +1,9 @@
-import datetime as dt
 import os
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-from consts import JULY
-from sklearn.preprocessing import StandardScaler
 from functools import reduce
 
-import time
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
 
 path = os.getcwd()
 
@@ -24,13 +20,11 @@ date_cols = ['year', 'month', 'day']
 
 
 def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.DataFrame, oni_data: pd.DataFrame,
-                     misc_data: pd.DataFrame, N_DAYS_DELTA: int = 7) -> pd.DataFrame:
+                     misc_data: pd.DataFrame) -> pd.DataFrame:
     # Generate a df with rows for every prediction date, then gather data accordingly up until that point
     start_date1 = pd.to_datetime(f"{df.date.dt.year.min()}0101", format="%Y%m%d")
-    # start_time = time.strptime(start_date1)
     end_date1 = pd.to_datetime(f"{df.date.dt.year.max()}0701", format="%Y%m%d")
 
-    end_date = df.date.max()
     feat_dates1 = pd.date_range(start=start_date1, end=end_date1, freq=f'{1}MS')
     feat_dates2 = feat_dates1.shift(7, freq="D")
     feat_dates3 = feat_dates1.shift(14, freq="D")
@@ -38,30 +32,13 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
     feat_dates = pd.Series(np.sort(
         np.concatenate((np.array(feat_dates1), np.array(feat_dates2), np.array(feat_dates3), np.array(feat_dates4)))))
 
-
-
-
     site_id = df.name
-    # remove stations which are not present throughout the whole dataseries
-    # todo deal with sites which have varying number of stations (2 + [0] = 3 different numbers of stations)
-    '''if df.groupby('date').station.nunique().nunique() > 2: # todo deal with sites which have varying number of stations (2 + [0] = 3 different numbers of stations)
-        dates_per_station = df.groupby('station').date.nunique()
-        min_val = np.min(dates_per_station.unique())
-        min_val_station = dates_per_station.loc[dates_per_station==min_val].index[0]
-        df = df[df.station != min_val_station]'''
-
-
-
-    # drop forecasts looking more than 7 months (up to july) in the future
-    #df = df[(df.LEAD <= JULY)]
-
 
     # break every station into its separate columns (while keeping the df which has station=NaN separate,
     # merging it back later to make sure it doesn't disappear)
     # todo - deal with stations more properly by using lat/lon data or something groovier
     def expand_columns(dataf: pd.DataFrame, expansion_cols):
         for expansion_col in expansion_cols:
-
             rest_df = dataf[dataf[expansion_col].isna()]
             expansion_df = dataf[~dataf[expansion_col].isna()]
             if not dataf[expansion_col].isna().all():
@@ -75,19 +52,18 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
 
                 new_expansion_dfs = [station_dataf.rename(
                     columns={col: (col + str(station_dataf[expansion_col].unique()[0])) for col in renaming_cols}) for
-                                   station_dataf in expansion_dfs]
+                    station_dataf in expansion_dfs]
                 if expansion_col == 'station':
-                    unshared_cols = [col for col in dataf.columns if 'DAILY' in col]+[expansion_col]
+                    unshared_cols = [col for col in dataf.columns if 'DAILY' in col] + [expansion_col]
                 elif expansion_col == 'LEAD':
-                    unshared_cols = [col for col in dataf.columns if '_prec' in col or '_temp' in col]+[expansion_col]
+                    unshared_cols = [col for col in dataf.columns if '_prec' in col or '_temp' in col] + [expansion_col]
 
-                shared_cols = list(set(dataf.columns)-set(unshared_cols))
-                #merging_cols = list(np.unique(np.array([col for col in (list(df.columns) for df in new_expansion_dfs)])))
-                merging_cols = ['year', 'month', 'day'] + list(
-                    set(shared_cols) - set(['year', 'month', 'day'] + [expansion_col]))
+                shared_cols = list(set(dataf.columns) - set(unshared_cols))
+                merging_cols = ['year', 'month', 'day'] + \
+                               list(set(shared_cols) - set(['year', 'month', 'day'] + [expansion_col]))
 
                 expansion_df = reduce(lambda left, right: pd.merge(left, right, on=merging_cols,
-                                                                 how='outer'), new_expansion_dfs)
+                                                                   how='outer'), new_expansion_dfs)
 
             dataf = pd.concat((expansion_df, rest_df))
         return dataf
@@ -106,9 +82,7 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
     #df = df.groupby('date')[list(site_feat_cols)].agg(lambda x: x.dropna().mean()).reset_index()
 
 
-
-    # todo interpolate variables that only stretch a certain extent back in time such that they take the average value for everything after (i.e. 0s), e.g. for CPC forecasts
-
+    # todo interpolate variables that only stretch a certain extent back in time such that they take the average value for everything after (i.e. 0s or a site-wise average), e.g. for CPC forecasts
 
     # re-add global data into specific df
     df = df.merge(mjo_data, on='date', how='outer') \
@@ -136,8 +110,7 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
 
     site_df = interp_df.join(other_cols_df)
     site_df['date'] = feat_dates.reset_index(drop=True)
-    site_df['forecast_year'] = feat_dates.apply(lambda x: x.year + (x.month >= 10)).reset_index(
-        drop=True)  # set value as +1 for all
+    site_df['forecast_year'] = feat_dates.apply(lambda x: x.year + (x.month >= 10)).reset_index(drop=True)
 
     # todo make sure this is after the train/test split, don't want leakage
     assert not site_df.isna().any().any(), 'Error - we have nans!'
@@ -158,11 +131,10 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
     data.day[data.day == -1] = 15
 
     # Create dates to work with
-    data["date"] = pd.to_datetime(data[date_cols].map(int))
+    data["date"] = pd.to_datetime(data[date_cols].applymap(int))
     data = data.sort_values('date')
     data = data.drop(columns=date_cols)
 
-    ini_data = data
     # Get site ids
     site_id_str = 'site_id_'
     site_id_cols = [col for col in data.columns if 'site_id' in col]
@@ -182,14 +154,13 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
     # Keeping only SNOTEL data
     data = data.drop(columns=global_mjo_cols + global_nino_cols + global_oni_cols + global_misc_cols)
 
-    # Removing sites with no snotel data
-    # todo process this data separately
     processed_data = data.groupby('site_id').apply(process_features, mjo_data=mjo_data, nino_data=nino_data,
                                                    oni_data=oni_data, misc_data=misc_data) \
         .reset_index(drop=True)
 
-    # todo add temporal features
-    processed_data['time'] = (processed_data.date - pd.to_datetime(dict(year=processed_data.date.dt.year, month=1, day=1))).dt.days
+    # adding temporal feature
+    processed_data['time'] = (processed_data.date -
+                              pd.to_datetime(dict(year=processed_data.date.dt.year, month=1, day=1))).dt.days
 
     scaler = StandardScaler()
     processed_data.time = scaler.fit_transform(processed_data[['time']])
@@ -200,4 +171,3 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
 
     # Testing effect on PCR benchmarking by dropping columns
     return processed_data
-

@@ -3,14 +3,14 @@ import os
 import numpy as np
 import pandas as pd
 
-from benchmark.benchmark_results import benchmark_results, cache_preds, generate_submission_file, quantilise_preds, cache_merged_submission_file
+from benchmark.benchmark_results import benchmark_results, cache_preds, generate_submission_file, \
+    cache_merged_submission_file
 from consts import JULY, FIRST_FULL_GT_YEAR, N_PREDS_PER_MONTH, N_PRED_MONTHS
-from models.fit_to_data import gen_basin_preds
+from models.fit_to_data import Ensemble_Type
+from models.fit_to_data import ensemble_models
+from models.models import general_pcr_fitter, xgboost_fitter
 from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
-from models.fit_to_data import ensemble_models
-from models.models import general_pcr_fitter, xgboost_fitter, k_nearest_neighbors_fitter
-from models.fit_to_data import Ensemble_Type
 
 path = os.getcwd()
 
@@ -25,14 +25,13 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     #  currently everything is processed together. unsure if necessary
     processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache)
 
-    print()
     # Data sanity check
     # Check types (do we wish to also check that date, forecast_year and site_id are the correct types here?
     assert all([data_type == float for data_type in processed_data
                .drop(columns=['date', 'forecast_year', 'site_id']).dtypes]), "All features are not floats"
-    #assert len(processed_data.site_id[processed_data.volume.isna()].unique()) == 3, \
+    # assert len(processed_data.site_id[processed_data.volume.isna()].unique()) == 3, \
     #    "More than 3 sites having NaNs in volume (should only be the California sites)"
-    #assert len(processed_data.site_id[processed_data.SNWD_DAILY.isna()].unique()) == 1, \
+    # assert len(processed_data.site_id[processed_data.SNWD_DAILY.isna()].unique()) == 1, \
     #    "More than 1 site has NaNs in SNWD_DAILY (should only be american river folsom)"
 
     ground_truth = load_ground_truth(num_predictions=N_PRED_MONTHS * N_PREDS_PER_MONTH)
@@ -51,7 +50,6 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
     test_val_train_dfs = run_local_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids)
 
-
     print('Ensembling global and local model submissions...')
 
     labels = ['pred', 'val', 'train']
@@ -67,8 +65,16 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
         cache_merged_submission_file(final_df, label)
 
 
+def scale_data(inp, mean, std):
+    return (inp - mean) / std
+
+
+def inv_scale_data(pred, mean, std):
+    return pred * std + mean
+
+
 def run_local_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids,
-                     fitters=(xgboost_fitter, )
+                     fitters=(xgboost_fitter,)
                      ):
     non_feat_cols = ['site_id']
     test_dfs = {}
@@ -77,9 +83,8 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
 
     site_id_sets = []
 
-    # Run through all sites first to
+    # get sitewise data
     for site_id in site_ids:
-
         train_site = train_features[train_features.site_id == site_id]
         # set-list in case non feature columns have NaNs
         drop_cols = list(set(non_feat_cols + train_site.columns[train_site.isna().any()].to_list()))
@@ -93,11 +98,10 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
         test_site = test_features[test_features.site_id == site_id].reset_index(drop=True)
         test_site = test_site.drop(columns=drop_cols, errors='ignore')
 
-        #train_site_gt[gt_col] = (np.log(train_site_gt[gt_col]) - gt_mean) / gt_std
-        #val_site_gt[gt_col] = (np.log(val_site_gt[gt_col]) - gt_mean) / gt_std
-        train_site_gt[gt_col] = (train_site_gt[gt_col] - gt_mean) / gt_std
-        val_site_gt[gt_col] = (val_site_gt[gt_col] - gt_mean) / gt_std
+        train_site_gt[gt_col] = scale_data(train_site_gt[gt_col], gt_mean, gt_std)
+        val_site_gt[gt_col] = scale_data(val_site_gt[gt_col], gt_mean, gt_std)
 
+        # todo create namedtuple/smthing to make this prettier
         site_id_sets.append([train_site, train_site_gt, val_site, val_site_gt, test_site, gt_mean, gt_std])
 
     for fitter in fitters:
@@ -111,14 +115,12 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
             gt_mean = site_id_sets[idx][5]
             gt_std = site_id_sets[idx][6]
 
-
             if train_site_gt.empty or val_site_gt.empty:
-                print(f'No ground truth data for site {site_id}')
+                print(f'No ground truth data for site {site_id}!')
                 continue
 
-
             hyper_tuned_model, model = fitter(train_site, train_site_gt[gt_col], val_site,
-                                                          val_site_gt[gt_col])
+                                              val_site_gt[gt_col])
             train_pred = model(train_site)
             val_pred = hyper_tuned_model(val_site)
             test_pred = model(test_site)
@@ -136,25 +138,21 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
             results_id = f'local_{fitter.__name__}_{site_id}'
             print(f'Benchmarking results for site {site_id}')
 
-            # rescaling data+retransforming, nice side effect - model cannot have negative outputs
-            #train_pred, val_pred, test_pred = quantilise_preds(train_pred, val_pred, test_pred, train_site_gt[gt_col])
-            train_pred = (train_pred * gt_std + gt_mean)
-            val_pred = (val_pred * gt_std + gt_mean)
-            test_pred = (test_pred * gt_std + gt_mean)
+            # rescaling data
+            train_pred = inv_scale_data(train_pred, gt_mean, gt_std)
+            val_pred = inv_scale_data(val_pred, gt_mean, gt_std)
+            test_pred = inv_scale_data(test_pred, gt_mean, gt_std)
 
-            train_site_gt[gt_col] = (train_site_gt[gt_col] * gt_std + gt_mean)
-            val_site_gt[gt_col] = (val_site_gt[gt_col] * gt_std + gt_mean)
+            train_site_gt[gt_col] = inv_scale_data(train_site_gt[gt_col], gt_mean, gt_std)
+            val_site_gt[gt_col] = inv_scale_data(val_site_gt[gt_col], gt_mean, gt_std)
             train_site_gt = train_site_gt.reset_index(drop=True)
             val_site_gt = val_site_gt.reset_index(drop=True)
 
-            benchmark_results(train_pred, train_site_gt[gt_col], val_pred,
-                              val_site_gt[gt_col], test_pred, benchmark_id=results_id)
+            benchmark_results(train_pred, train_site_gt[gt_col], val_pred, val_site_gt[gt_col], benchmark_id=results_id)
 
             cache_preds(pred=test_pred, cache_id=results_id, site_id=site_id, pred_dates=test_dates, set_id='pred')
             cache_preds(pred=val_pred, cache_id=results_id, site_id=site_id, pred_dates=val_dates, set_id='val')
             cache_preds(pred=train_pred, cache_id=results_id, site_id=site_id, pred_dates=train_dates, set_id='train')
-
-
 
         ordered_site_ids = train_gt.site_id.drop_duplicates().tolist()
         print('Generating local model submission file...')
@@ -168,9 +166,9 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
 
     return test_dfs, val_dfs, train_dfs
 
+
 def run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids,
                       fitters=(xgboost_fitter,)):
-
     drop_cols = ['site_id']
     train_site_id_col = train_features.site_id.reset_index(drop=True)
     train_features = train_features.drop(columns=drop_cols).reset_index(drop=True)
@@ -183,10 +181,8 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
     test_site_id_col = test_features.site_id
     test_features = test_features.drop(columns=drop_cols, errors='ignore')
 
-    #train_gt[gt_col] = (np.log(train_gt[gt_col]) - gt_mean) / gt_std
-    #val_gt[gt_col] = (np.log(val_gt[gt_col]) - gt_mean) / gt_std
-    val_gt[gt_col] = (val_gt[gt_col] - gt_mean) / gt_std
-    train_gt[gt_col] = (train_gt[gt_col] - gt_mean) / gt_std
+    train_gt[gt_col] = scale_data(train_gt[gt_col], gt_mean, gt_std)
+    val_gt[gt_col] = scale_data(val_gt[gt_col], gt_mean, gt_std)
 
     # todo perhaps find a better way of treating NaN values (Californian sites for volume+SNOTEL)
     train_features = train_features.fillna(0)
@@ -212,9 +208,9 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
 
         for site_id in site_ids:
             results_id = f'global_{fitter.__name__}_{site_id}'
-            train_site = train_features[train_site_id_col==site_id]
+            train_site = train_features[train_site_id_col == site_id]
             train_site_gt = train_gt[train_gt.site_id == site_id]
-            val_site = val_features[val_site_id_col==site_id]
+            val_site = val_features[val_site_id_col == site_id]
             val_site_gt = val_gt[val_gt.site_id == site_id]
 
             test_site = test_features[test_site_id_col == site_id]
@@ -222,15 +218,13 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
             val_pred = hyper_tuned_model(val_site)
             test_pred = model(test_site)
 
-            # rescaling data+retransforming, nice side effect - model cannot have negative outputs
-            # train_pred, val_pred, test_pred = quantilise_preds(train_pred, val_pred, test_pred, train_gt[gt_col])
-            train_pred = (train_pred * gt_std + gt_mean)
-            val_pred = (val_pred * gt_std + gt_mean)
-            test_pred = (test_pred * gt_std + gt_mean)
+            # rescaling data
+            train_pred = inv_scale_data(train_pred, gt_mean, gt_std)
+            val_pred = inv_scale_data(val_pred, gt_mean, gt_std)
+            test_pred = inv_scale_data(test_pred, gt_mean, gt_std)
 
-
-            train_site_gt[gt_col] = (train_site_gt[gt_col] * gt_std + gt_mean)
-            val_site_gt[gt_col] = (val_site_gt[gt_col] * gt_std + gt_mean)
+            train_site_gt[gt_col] = inv_scale_data(train_site_gt[gt_col], gt_mean, gt_std)
+            val_site_gt[gt_col] = inv_scale_data(val_site_gt[gt_col], gt_mean, gt_std)
 
             train_site_gt = train_site_gt.reset_index(drop=True)
             val_site_gt = val_site_gt.reset_index(drop=True)
@@ -257,7 +251,7 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
 
     return test_dfs, val_dfs, train_dfs
 
-# todo implement this function to generate the ground truth (YG: it's here, isn't this checked off?)
+
 def load_ground_truth(num_predictions: int):
     ground_truth_df = pd.read_csv(os.path.join("..", "assets", "data", "train.csv"))
     # todo improve how we retrieve data for different sites, retrieving as much data as we can for each
@@ -278,9 +272,7 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
     test_feature_mask = feature_df.forecast_year.isin(test_years)
     test_gt_mask = gt_df.forecast_year.isin(test_years)
 
-    # todo check if dropping volume here is okay (should be ok I think because this volume is only used as features, not labels, and so gradually "unlocking" it over time should be alright, I think, although maybe this data is not available at test time)
     test_feature_df = feature_df[test_feature_mask].reset_index(drop=True)
-    #test_gt_df = gt_df[test_gt_mask].reset_index(drop=True)
 
     val_mask = feature_df.forecast_year.isin(validation_years)
     val_gt_mask = gt_df.forecast_year.isin(validation_years)

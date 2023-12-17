@@ -2,12 +2,9 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 from sklearn.metrics import mean_pinball_loss
-import os
-from consts import JULY, DETROIT
 
 from consts import DEF_QUANTILES
-
-os.chdir("../exploration")
+from consts import JULY, DETROIT
 
 
 # todo be smarter than using an error threshold
@@ -21,10 +18,10 @@ def gen_predictive_quantile(preds: pd.Series, std: float, quantile: float) -> pd
     return preds + n_stds * std
 
 
-def cache_preds(site_id: str, pred_dates: pd.Series, pred: pd.DataFrame, set_id: str, cache_id: str = None):
-    col_order = ['site_id', 'issue_date'] + [f'volume_{int(np.ceil(q * 100))}' for q in DEF_QUANTILES]
+def cache_preds(site_id: str, pred_dates: pd.Series, pred: pd.DataFrame, cache_id: str = None):
+    col_order = ['site_id', 'issue_date'] + [f'volume_{int(q * 100)}' for q in DEF_QUANTILES]
     pred_df = pd.DataFrame({"issue_date": pred_dates, 'site_id': site_id} |
-                           {f'volume_{int(np.ceil(q * 100))}': pred[q] for q in DEF_QUANTILES})[col_order]
+                           {f'volume_{int(q * 100)}': pred[q] for q in DEF_QUANTILES})[col_order]
 
     pred_df.to_csv(f'{cache_id}_{set_id}.csv', index=False)
     return pred_df
@@ -36,6 +33,8 @@ def generate_submission_file(ordered_site_ids, model_id: str, fitter_id: str, se
     for idx, site_id in enumerate(ordered_site_ids):
 
         site_submission = pd.read_csv(f'{model_id}_{fitter_id}_{site_id}_{set_id}.csv')
+        # todo explicitly pass this as an argument
+        # todo get this path from a func instead of hardcoding+copy pasting
         site_submission.issue_date = site_submission.issue_date.astype('datetime64[ns]')
         if site_id == DETROIT:
             site_submission = site_submission[site_submission.issue_date.dt.month != JULY]
@@ -55,7 +54,7 @@ def cache_merged_submission_file(df: pd.DataFrame, label: str):
 
 
 def calc_quantile_loss(gt: pd.Series, preds: pd.DataFrame, quantile: float) -> float:
-    return 2*mean_pinball_loss(gt, preds[quantile], alpha=quantile) # Factor 2 to match DrivenData
+    return 2 * mean_pinball_loss(gt, preds[quantile], alpha=quantile)  # Factor 2 to match DrivenData
 
 
 def average_quantile_loss(gt: pd.Series, preds: pd.DataFrame, quantiles: list = DEF_QUANTILES) -> float:
@@ -98,22 +97,21 @@ def quantilise_preds(train_pred, val_pred, test_pred, train_gt):
 
 
 def benchmark_results(train_pred: [pd.Series, pd.DataFrame], train_gt: pd.Series, val_pred: [pd.Series, pd.DataFrame],
-                      val_gt: pd.Series, test_pred: [pd.Series, pd.DataFrame], benchmark_id: str = None,
-                      verbose: bool = False) \
+                      val_gt: pd.Series, benchmark_id: str = None, verbose: bool = False) \
         -> tuple[pd.DataFrame]:
     # todo make sure we can pass this assertion of non-negative predictions
     # assert (train_pred >= 0).all().all() and (val_pred >= 0).all().all() and (test_pred >= 0).all().all(), \
     #     'Error - negative predictions!'
     assert (train_gt >= 0).all() and (val_gt >= 0).all(), 'Error - negative ground truths!'
 
-    #for data in (train_pred, val_pred, test_pred):
+    # for data in (train_pred, val_pred, test_pred):
     #    assert all((data[DEF_QUANTILES[i]] <= data[DEF_QUANTILES[i + 1]]).all()
     #               for i in range(len(DEF_QUANTILES) - 1)), 'Error - quantiles are not ordered!'
 
     perc_in_interval, quantile_losses, avg_q_losses = calc_losses(train_pred, train_gt, val_pred, val_gt)
 
     # Extract and write to csvs to do sanity checks
-    avg_q_losses = pd.DataFrame(avg_q_losses, index=np.arange(0,1))
+    avg_q_losses = pd.DataFrame(avg_q_losses, index=np.arange(0, 1))
     quantile_losses = pd.DataFrame(quantile_losses)
 
     perc_in_interval = pd.DataFrame(perc_in_interval)
