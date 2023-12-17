@@ -1,23 +1,21 @@
 import pickle
 from dataclasses import dataclass
+from itertools import product
+from random import shuffle
 
 import numpy as np
-import pandas as pd
-import torch
-from scipy.stats import norm
 from sklearn.metrics import mean_pinball_loss
-from torch import nn, optim
-from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence, pad_sequence
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 
-from consts import JULY, DEF_QUANTILES
-from models.lstm_utils import train_lstm
+from consts import DEF_QUANTILES
+from models.fitters import LSTMModel
+from models.lstm_utils import train_lstm, pad_collate_fn, features2seqs, calc_val_loss
 
 
 @dataclass
 class HypParams:
     lr: float
-    bs: float
+    bs: int
     n_epochs: int
     n_hidden: int
     hidden_size: int
@@ -59,12 +57,26 @@ def main():
     BATCH_SIZES = [2, 4, 8, 16, 32, 64, 128, 256]
     LEARNING_RATES = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5]
     N_EPOCHS = [5, 10, 15, 20, 25, 30]
-    # todo implement hyperparam search
 
-    dataloader = DataLoader(train_set, batch_size=bs, shuffle=True, collate_fn=pad_collate_fn)
-    model = LSTMModel(input_size=n_feats)
+    # hypparam search
+    hyp_params_combs = list(product(LEARNING_RATES, BATCH_SIZES, N_EPOCHS, N_HIDDEN, HIDDEN_SIZES, DROPOUT_PROBS))
+    hyp_params_combs = [HypParams(*hyp_params) for hyp_params in hyp_params_combs]
+    shuffle(hyp_params_combs)
 
-    train_lstm(dataloader, val_set, model, lr)
+    results = []
+    for hyp_params in hyp_params_combs:
+        dataloader = DataLoader(train_set, batch_size=hyp_params.bs, shuffle=True, collate_fn=pad_collate_fn)
+        model = LSTMModel(input_size=n_feats, hidden_size=hyp_params.hidden_size, num_layers=hyp_params.n_hidden,
+                          dropout_prob=hyp_params.dropout_prob)
+
+        model = train_lstm(dataloader, val_set, model, lr=hyp_params.lr, num_epochs=hyp_params.n_epochs)
+
+        val_loss = calc_val_loss(model, val_set)
+        results.append({'val_loss': val_loss, 'hyp_params': hyp_params})
+
+        # append new results to running text file
+        with open('lstm_results.txt', 'a+') as f:
+            f.write(f'{val_loss}, {hyp_params}\n')
 
 
 if __name__ == '__main__':
