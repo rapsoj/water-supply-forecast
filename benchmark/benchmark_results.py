@@ -23,17 +23,18 @@ def cache_preds(site_id: str, pred_dates: pd.Series, pred: pd.DataFrame, cache_i
     pred_df = pd.DataFrame({"issue_date": pred_dates, 'site_id': site_id} |
                            {f'volume_{int(q * 100)}': pred[q] for q in DEF_QUANTILES})[col_order]
 
-    pred_df.to_csv(f'{cache_id}_pred.csv', index=False)
+    pred_df.to_csv(f'{cache_id}_{set_id}.csv', index=False)
     return pred_df
 
 
-def generate_submission_file(ordered_site_ids, model_id: str, fitter_id: str):
+def generate_submission_file(ordered_site_ids, model_id: str, fitter_id: str, set_id: str):
     # Get the correct order, sort in the way competition wants it
     final_submission_df = pd.DataFrame()
     for idx, site_id in enumerate(ordered_site_ids):
+
+        site_submission = pd.read_csv(f'{model_id}_{fitter_id}_{site_id}_{set_id}.csv')
         # todo explicitly pass this as an argument
         # todo get this path from a func instead of hardcoding+copy pasting
-        site_submission = pd.read_csv(f'{model_id}_{fitter_id}_{site_id}_pred.csv')
         site_submission.issue_date = site_submission.issue_date.astype('datetime64[ns]')
         if site_id == DETROIT:
             site_submission = site_submission[site_submission.issue_date.dt.month != JULY]
@@ -48,8 +49,8 @@ def generate_submission_file(ordered_site_ids, model_id: str, fitter_id: str):
     return final_submission_df
 
 
-def cache_merged_submission_file(df: pd.DataFrame):
-    df.to_csv(f'final_pred.csv', index=False)
+def cache_merged_submission_file(df: pd.DataFrame, label: str):
+    df.to_csv(f'final_{label}.csv', index=False)
 
 
 def calc_quantile_loss(gt: pd.Series, preds: pd.DataFrame, quantile: float) -> float:
