@@ -25,7 +25,8 @@ def base_feature_adapter(X, pca=None):
 
 
 class LSTMModel(nn.Module):
-    def __init__(self, input_size, hidden_size=64, num_layers=1, output_size=2, dropout_prob: float = 0.3):
+    def __init__(self, input_size, hidden_size=DEF_LSTM_HYPPARAMS.hidden_size, num_layers=DEF_LSTM_HYPPARAMS.n_hidden,
+                 output_size=2, dropout_prob: float = DEF_LSTM_HYPPARAMS.dropout_prob):
         super(LSTMModel, self).__init__()
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=dropout_prob)
         self.fc = nn.Linear(hidden_size, output_size)
@@ -106,6 +107,8 @@ def lstm_fitter(X, y, val_X, val_y, quantile: bool = True):
 
         return dataloader
 
+    train_model.eval()
+    full_model.eval()
     return StreamflowModel(train_model, adapter=lstm_feat_adapter), \
            StreamflowModel(full_model, adapter=lstm_feat_adapter)
 

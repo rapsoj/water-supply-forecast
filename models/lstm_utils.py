@@ -73,6 +73,7 @@ def avg_quantile_loss(pred_means, pred_stds, y_true):
 def calc_val_loss(model: nn.Module, val_set):
     if val_set is None:
         return
+    model.eval()
     with torch.inference_mode():
         dataloader = DataLoader(val_set, collate_fn=pad_collate_fn)
         val_losses = []
@@ -80,6 +81,7 @@ def calc_val_loss(model: nn.Module, val_set):
             means, stds = model(sequences, lengths)
             loss = avg_quantile_loss(means, stds, labels)
             val_losses.append(loss)
+        model.train()
         return np.mean(val_losses)
 
 
