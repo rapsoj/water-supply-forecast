@@ -3,6 +3,7 @@ import pickle
 import numpy as np
 import pandas as pd
 import torch
+from scipy.stats import norm
 from sklearn.metrics import mean_pinball_loss
 from torch import nn, optim
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence, pad_sequence
@@ -39,7 +40,7 @@ class SequenceDataset(Dataset):
 
 
 class LSTMModel(nn.Module):
-    def __init__(self, input_size, hidden_size=64, num_layers=1, output_size=1, dropout_prob: float = 0.3):
+    def __init__(self, input_size, hidden_size=64, num_layers=1, output_size=2, dropout_prob: float = 0.3):
         super(LSTMModel, self).__init__()
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=dropout_prob)
         self.fc = nn.Linear(hidden_size, output_size)
@@ -51,7 +52,9 @@ class LSTMModel(nn.Module):
         out_padded, _ = pad_packed_sequence(out_packed, batch_first=True)
         # Apply the linear layer to the unpacked outputs
         out = self.fc(out_padded)
-        return out[torch.arange(out.size(0)), np.array(lengths) - 1]  # Return the outputs for the last time step
+        outputs = out[torch.arange(out.size(0)), np.array(lengths) - 1]  # Return the outputs for the last time step
+        means, log_vars = outputs[:, 0], outputs[:, 1]
+        return means, torch.exp(0.5 * log_vars)
 
 
 def pad_collate_fn(batch):
@@ -65,27 +68,22 @@ def pad_collate_fn(batch):
     return padded_sequences, labels, lengths
 
 
-def features2seqs(X: pd.DataFrame, y: pd.Series, train: bool = True):
+def features2seqs(X: pd.DataFrame, y: pd.Series):
     X = X[X.date.dt.month <= JULY].drop(columns=['date']).reset_index(drop=True)
     X.sort_values(by=['site_id', 'forecast_year'], inplace=True)
     y = y.sort_values(by='site_id').iloc[X.index].reset_index(drop=True)
     X = X.reset_index(drop=True)
 
-    if train:
-        return SequenceDataset(X, y)
-
-    raise NotImplementedError
+    return SequenceDataset(X, y)
 
 
-def quantile_loss(quantile: float):
-    def qloss(y_true, y_pred):
-        return torch.mean(torch.max(quantile * (y_true - y_pred), -(1 - quantile) * (y_true - y_pred)))
-
-    return qloss
+def quantile_loss(y_true, y_pred, quantile: float):
+    return torch.mean(torch.max(quantile * (y_true - y_pred), -(1 - quantile) * (y_true - y_pred)))
 
 
-def avg_quantile_loss(y_pred, y_true):
-    return torch.mean(torch.stack([quantile_loss(q)(y_true, y_pred) for q in DEF_QUANTILES]))
+def avg_quantile_loss(pred_means, pred_stds, y_true):
+    losses = [quantile_loss(y_true, pred_means + norm.ppf(q) * pred_stds, q) for q in DEF_QUANTILES]
+    return torch.mean(torch.stack(losses))
 
 
 def calc_val_loss(model: nn.Module, val_set):
@@ -93,26 +91,24 @@ def calc_val_loss(model: nn.Module, val_set):
         dataloader = DataLoader(val_set, collate_fn=pad_collate_fn)
         val_losses = []
         for sequences, labels, lengths in dataloader:
-            outputs = model(sequences, lengths)
-            outputs = outputs.squeeze()
-            labels = labels.squeeze()
-            val_losses.append(avg_quantile_loss(outputs, labels))
+            means, stds = model(sequences, lengths)
+            loss = avg_quantile_loss(means, stds, labels)
+            val_losses.append(loss)
         return np.mean(val_losses)
 
 
 def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, lr: float):
     optimizer = optim.Adam(model.parameters(), lr=lr)
-    loss_fn = avg_quantile_loss  # todo implement AQM loss, requires multioutput (use dummy std for starters)
 
     num_epochs = 15
     for epoch in range(num_epochs):
         train_loss = 0
         for sequences, labels, lengths in train_dloader:
             optimizer.zero_grad()
-            outputs = model(sequences, lengths)
-            outputs = outputs.squeeze()  # todo remove/change when using a multioutput
+            means, stds = model(sequences, lengths)
             # Ensure labels are also squeezed to match output shape
-            loss = loss_fn(outputs, labels)
+            loss = avg_quantile_loss(means, stds, labels)
+            assert loss.item() > 0, 'Error - loss is negative!'
             loss.backward()
             optimizer.step()
 
@@ -136,8 +132,12 @@ def main():
     val_y.volume = (val_y.volume - y_mean) / y_std
 
     y_vol = y.volume
-    print(f"Empirical quantile's training loss:"
-          f" {np.mean([mean_pinball_loss(y_vol, [y_vol.quantile(q)] * len(y), alpha=q) for q in DEF_QUANTILES]):.3f}")
+
+    train_emp_aqm = np.mean([mean_pinball_loss(y_vol, [y_vol.quantile(q)] * len(y), alpha=q) for q in DEF_QUANTILES])
+    val_emp_aqm = np.mean([mean_pinball_loss(val_y.volume, [y_vol.quantile(q)] * len(val_y), alpha=q)
+                           for q in DEF_QUANTILES])
+    print(f"Empirical quantile's training loss: {train_emp_aqm:.3f}")
+    print(f"Empirical quantile's validation loss: {val_emp_aqm:.3f}")
 
     train_set = features2seqs(X, y)
 
