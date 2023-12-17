@@ -48,14 +48,14 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
     print('Running local models...')
 
-    test_val_train_local_dfs = run_local_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids,
-                                          using_pca=using_pca)
+    #test_val_train_local_dfs = run_local_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids,
+    #                                      using_pca=using_pca)
 
     print('Ensembling global and local model submissions...')
 
     labels = ['pred', 'val', 'train']
 
-    for idx, df in enumerate(test_val_train_local_dfs):
+    for idx, df in enumerate(test_val_train_global_dfs):
 
         label = labels[idx]
 
@@ -65,6 +65,12 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
         final_df = final_df_dict['final']
         cache_merged_submission_file(final_df, label)
 
+
+def log_values(x: pd.Series):
+    log_x = np.log(x)
+    log_mean = np.mean(log_x)
+    log_std = np.std(log_x)
+    return log_x, log_mean, log_std
 
 def scale_data(inp, mean, std):
     return (inp - mean) / std
@@ -189,10 +195,9 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
     test_site_id_col = test_features.site_id
     test_features = test_features.drop(columns=drop_cols, errors='ignore')
 
+
     train_gt[gt_col] = scale_data(train_gt[gt_col], gt_mean, gt_std)
     val_gt[gt_col] = scale_data(val_gt[gt_col], gt_mean, gt_std)
-
-
 
     # todo perhaps find a better way of treating NaN values (Californian sites for volume + SNOTEL)
     train_features = train_features.fillna(0)
@@ -257,7 +262,7 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
 
         test_dfs[f'global_{fitter.__name__}'] = df_test
         val_dfs[f'global_{fitter.__name__}'] = df_val
-        train_dfs[f'global_{fitter.__name__}_train'] = df_train
+        train_dfs[f'global_{fitter.__name__}'] = df_train
 
     return test_dfs, val_dfs, train_dfs
 
