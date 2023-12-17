@@ -17,7 +17,7 @@ path = os.getcwd()
 
 def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
                  validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)), gt_col: str = 'volume',
-                 load_from_cache: bool = True, start_year=FIRST_FULL_GT_YEAR, using_pca=True):
+                 load_from_cache: bool = False, start_year=FIRST_FULL_GT_YEAR, using_pca=False):
     print('Loading data')
     basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache)
 
@@ -41,10 +41,10 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
     site_ids = processed_data.site_id.unique()
 
-    #print('Running global models...')
+    print('Running global models...')
 
-    #test_val_train_global_dfs = run_global_models(train_features, val_features, test_features, \
-    #                              train_gt, val_gt, gt_col, site_ids)
+    test_val_train_global_dfs = run_global_models(train_features, val_features, test_features, \
+                                  train_gt, val_gt, gt_col, site_ids)
 
     print('Running local models...')
 
@@ -185,7 +185,7 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
     train_gt[gt_col] = scale_data(train_gt[gt_col], gt_mean, gt_std)
     val_gt[gt_col] = scale_data(val_gt[gt_col], gt_mean, gt_std)
 
-    # todo perhaps find a better way of treating NaN values (Californian sites for volume+SNOTEL)
+    # todo perhaps find a better way of treating NaN values (Californian sites for volume + SNOTEL)
     train_features = train_features.fillna(0)
     val_features = val_features.fillna(0)
     test_features = test_features.fillna(0)
