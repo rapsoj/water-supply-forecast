@@ -10,12 +10,6 @@ from torch.utils.data import DataLoader, Dataset
 
 from consts import JULY, DEF_QUANTILES
 
-with open('playground_input.pkl', 'rb') as f:
-    data = pickle.load(f)
-
-X, y = data['train']
-val_X, val_y = data['val']
-
 
 class SequenceDataset(Dataset):
     def __init__(self, X, y):
@@ -72,10 +66,6 @@ def features2seqs(X: pd.DataFrame, y: pd.Series, train: bool = True):
     raise NotImplementedError
 
 
-bs = 8
-lr = 1e-3
-
-
 def quantile_loss(quantile: float):
     def qloss(y_true, y_pred):
         return torch.mean(torch.max(quantile * (y_true - y_pred), -(1 - quantile) * (y_true - y_pred)))
@@ -87,17 +77,9 @@ def avg_quantile_loss(y_pred, y_true):
     return torch.mean(torch.stack([quantile_loss(q)(y_true, y_pred) for q in DEF_QUANTILES]))
 
 
-train_set = features2seqs(X, y)  # todo see we can overfit to a small training set before continuing
-combined_X = pd.concat([X, val_X])
-combined_y = pd.concat([y, val_y])
-combined_set = features2seqs(combined_X, combined_y)
-
-val_set = features2seqs(val_X, val_y)
-
-
 def calc_val_loss(model: nn.Module, val_set):
     with torch.inference_mode():
-        dataloader = DataLoader(val_set, batch_size=bs, collate_fn=pad_collate_fn)
+        dataloader = DataLoader(val_set, collate_fn=pad_collate_fn)
         val_losses = []
         for sequences, labels, lengths in dataloader:
             outputs = model(sequences, lengths)
@@ -107,28 +89,50 @@ def calc_val_loss(model: nn.Module, val_set):
         return np.mean(val_losses)
 
 
-dataloader = DataLoader(train_set, batch_size=bs, shuffle=True, collate_fn=pad_collate_fn)
+def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, lr: float):
+    optimizer = optim.Adam(model.parameters(), lr=lr)
+    loss_fn = avg_quantile_loss  # todo implement AQM loss, requires multioutput (use dummy std for starters)
 
-n_feats = train_set[0][0].shape[1]
-model = LSTMModel(input_size=n_feats)
+    num_epochs = 100
+    for epoch in range(num_epochs):
+        train_loss = 0
+        for sequences, labels, lengths in train_dloader:
+            optimizer.zero_grad()
+            outputs = model(sequences, lengths)
+            outputs = outputs.squeeze()  # todo remove/change when using a multioutput
+            # Ensure labels are also squeezed to match output shape
+            loss = loss_fn(outputs, labels)
+            loss.backward()
+            optimizer.step()
 
-optimizer = optim.Adam(model.parameters(), lr=lr)
-criterion = avg_quantile_loss  # todo implement AQM loss, requires multioutput (use dummy std for starters)
+            train_loss += loss.item() * len(sequences)
 
-num_epochs = 100
-for epoch in range(num_epochs):
-    train_loss = 0
-    for sequences, labels, lengths in dataloader:
-        optimizer.zero_grad()
-        outputs = model(sequences, lengths)
-        outputs = outputs.squeeze()  # todo remove/change when using a multioutput
-        # Ensure labels are also squeezed to match output shape
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
+        train_loss /= len(train_dloader.dataset)
+        val_loss = calc_val_loss(model, val_set)
+        print(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {loss.item():.4f}, Val Loss: {val_loss.item():.4f}')
 
-        train_loss += loss.item() * len(sequences)
 
-    train_loss /= len(dataloader.dataset)
-    val_loss = calc_val_loss(model, val_set)
-    print(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {loss.item():.4f}, Val Loss: {val_loss.item():.4f}')
+def main():
+    with open('playground_input.pkl', 'rb') as f:
+        data = pickle.load(f)
+
+    X, y = data['train']
+    val_X, val_y = data['val']
+
+    train_set = features2seqs(X, y)
+
+    val_set = features2seqs(val_X, val_y)
+
+    bs = 8
+    lr = 1e-3
+
+    dataloader = DataLoader(train_set, batch_size=bs, shuffle=True, collate_fn=pad_collate_fn)
+
+    n_feats = train_set[0][0].shape[1]
+    model = LSTMModel(input_size=n_feats)
+
+    train_lstm(dataloader, val_set, model, lr)
+
+
+if __name__ == '__main__':
+    main()
