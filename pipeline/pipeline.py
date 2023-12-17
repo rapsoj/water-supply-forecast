@@ -55,7 +55,7 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
     labels = ['pred', 'val', 'train']
 
-    for idx, df in enumerate(test_val_train_global_dfs):
+    for idx, df in enumerate(test_val_train_local_dfs):
 
         label = labels[idx]
 

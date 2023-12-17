@@ -2,7 +2,7 @@ from enum import Enum
 
 import numpy as np
 import pandas as pd
-
+import os
 from models.models import general_xgboost_fitter
 
 
@@ -67,7 +67,7 @@ def ensemble_models(preds: dict, ensemble_name: str, ensemble_type:  Ensemble_Ty
             site_keys = list(site_id_preds.keys())
 
             # Find best prediction by looking through the validation loss
-            losses = [(pd.read_csv(f'{model}_{site_id}_avg_q_losses.csv')).val[0] for model, _ in preds.items()]
+            losses = [(pd.read_csv(os.path.join('..', 'outputs', f'{model}_{site_id}_avg_q_losses.csv'))).val[0] for model, _ in preds.items()]
             best_site_idx = np.argmin(losses)
             best_pred = site_id_preds[site_keys[best_site_idx]]
 
