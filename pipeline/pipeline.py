@@ -8,16 +8,16 @@ from benchmark.benchmark_results import benchmark_results, cache_preds, generate
 from consts import JULY, FIRST_FULL_GT_YEAR, N_PREDS_PER_MONTH, N_PRED_MONTHS
 from models.fit_to_data import Ensemble_Type
 from models.fit_to_data import ensemble_models
-from models.models import general_pcr_fitter, xgboost_fitter
+from models.models import general_pcr_fitter, general_xgboost_fitter
 from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
+from preprocessing.data_pruning import data_pruning
 
 path = os.getcwd()
 
-
 def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
                  validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)), gt_col: str = 'volume',
-                 load_from_cache: bool = True, start_year=FIRST_FULL_GT_YEAR, ):
+                 load_from_cache: bool = True, start_year=FIRST_FULL_GT_YEAR, using_pca=True):
     print('Loading data')
     basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache)
 
@@ -48,7 +48,8 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
     print('Running local models...')
 
-    test_val_train_dfs = run_local_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids)
+    test_val_train_dfs = run_local_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids,
+                                          using_pca=using_pca)
 
     print('Ensembling global and local model submissions...')
 
@@ -73,8 +74,8 @@ def inv_scale_data(pred, mean, std):
     return pred * std + mean
 
 
-def run_local_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids,
-                     fitters=(xgboost_fitter,)
+def run_local_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids, using_pca,
+                     fitters=(general_xgboost_fitter,),
                      ):
     non_feat_cols = ['site_id']
     test_dfs = {}
@@ -120,7 +121,7 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
                 continue
 
             hyper_tuned_model, model = fitter(train_site, train_site_gt[gt_col], val_site,
-                                              val_site_gt[gt_col])
+                                              val_site_gt[gt_col], using_pca=using_pca)
             train_pred = model(train_site)
             val_pred = hyper_tuned_model(val_site)
             test_pred = model(test_site)
@@ -167,8 +168,8 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
     return test_dfs, val_dfs, train_dfs
 
 
-def run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids,
-                      fitters=(xgboost_fitter,)):
+def run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids, using_pca,
+                      fitters=(general_xgboost_fitter,)):
     drop_cols = ['site_id']
     train_site_id_col = train_features.site_id.reset_index(drop=True)
     train_features = train_features.drop(columns=drop_cols).reset_index(drop=True)
@@ -193,7 +194,7 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
     train_dfs = {}
 
     for fitter in fitters:
-        hyper_tuned_model, model = fitter(train_features, train_gt[gt_col], val_features, val_gt[gt_col])
+        hyper_tuned_model, model = fitter(train_features, train_gt[gt_col], val_features, val_gt[gt_col], using_pca=using_pca)
 
         test_mask = test_features.date.dt.month <= JULY
         test_vals = test_features[test_mask]
