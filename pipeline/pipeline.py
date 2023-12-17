@@ -51,7 +51,8 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     print('Running global models...')
 
     test_val_train_global_dfs = run_global_models(train_features, val_features, test_features, \
-                                                  train_gt, val_gt, gt_col, site_ids, using_pca=using_pca)
+                                                  train_gt, val_gt, gt_col, site_ids, using_pca=using_pca,
+                                                  log_transform=True)
 
     print('Running local models...')
 
@@ -168,7 +169,8 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
             cache_preds(pred=val_pred, cache_id=results_id, site_id=site_id, pred_dates=val_dates, set_id='val')
             cache_preds(pred=train_pred, cache_id=results_id, site_id=site_id, pred_dates=train_dates, set_id='train')
 
-        ordered_site_ids = train_gt.site_id.drop_duplicates().tolist()
+        df = pd.read_csv(os.path.join('..', 'assets', 'ordered_site_ids.csv'))
+        ordered_site_ids = df.site_id.tolist()
         print('Generating local model submission file...')
         test_df = generate_submission_file(ordered_site_ids=ordered_site_ids, model_id='local',
                                            fitter_id=fitter.__name__, set_id='pred')
@@ -184,10 +186,10 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
     return test_dfs, val_dfs, train_dfs
 
 
-def run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids, using_pca=False,
-                      fitters=(lstm_fitter,)):
-    train_features = train_features.sort_values(by=['site_id', 'date']) \
-        .reset_index(drop=True)  # Might not be necessary (might already be that way) but just to make sure
+def run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids, using_pca,
+                      fitters=(lstm_fitter,), log_transform=False):
+    train_features = train_features.sort_values(by=['site_id', 'date']).reset_index(
+        drop=True)  # Might not be necessary (might already be that way) but just to make sure
     val_features = val_features.sort_values(by=['site_id', 'date']).reset_index(drop=True)
     train_gt = train_gt.sort_values(by=['site_id', 'forecast_year']).reset_index(drop=True)
     val_gt = val_gt.sort_values(by=['site_id', 'forecast_year']).reset_index(drop=True)
@@ -202,8 +204,15 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
     val_gt = val_gt.reset_index(drop=True)
     test_site_id_col = test_features.site_id
 
-    train_gt[gt_col] = scale_data(train_gt[gt_col], gt_mean, gt_std)
-    val_gt[gt_col] = scale_data(val_gt[gt_col], gt_mean, gt_std)
+    if log_transform:
+        log_train_vals, log_mean, log_std = log_values(train_gt[gt_col])
+        log_val_vals, _, _ = log_values(val_gt[gt_col])
+
+        train_gt[gt_col] = scale_data(log_train_vals, log_mean, log_std)
+        val_gt[gt_col] = scale_data(log_val_vals, log_mean, log_std)
+    else:
+        train_gt[gt_col] = scale_data(train_gt[gt_col], gt_mean, gt_std)
+        val_gt[gt_col] = scale_data(val_gt[gt_col], gt_mean, gt_std)
 
     # todo perhaps find a better way of treating NaN values (Californian sites for volume + SNOTEL)
     train_features = train_features.fillna(0)
@@ -239,12 +248,20 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
             test_pred = model(test_site)
 
             # rescaling data
-            train_pred = inv_scale_data(train_pred, gt_mean, gt_std)
-            val_pred = inv_scale_data(val_pred, gt_mean, gt_std)
-            test_pred = inv_scale_data(test_pred, gt_mean, gt_std)
+            if log_transform:
+                train_pred = np.exp(inv_scale_data(train_pred, log_mean, log_std))
+                val_pred = np.exp(inv_scale_data(val_pred, log_mean, log_std))
+                test_pred = np.exp(inv_scale_data(test_pred, log_mean, log_std))
+                train_site_gt[gt_col] = np.exp(inv_scale_data(train_site_gt[gt_col], log_mean, log_std))
+                val_site_gt[gt_col] = np.exp(inv_scale_data(val_site_gt[gt_col], log_mean, log_std))
 
-            train_site_gt[gt_col] = inv_scale_data(train_site_gt[gt_col], gt_mean, gt_std)
-            val_site_gt[gt_col] = inv_scale_data(val_site_gt[gt_col], gt_mean, gt_std)
+            else:
+                train_pred = inv_scale_data(train_pred, gt_mean, gt_std)
+                val_pred = inv_scale_data(val_pred, gt_mean, gt_std)
+                test_pred = inv_scale_data(test_pred, gt_mean, gt_std)
+
+                train_site_gt[gt_col] = inv_scale_data(train_site_gt[gt_col], gt_mean, gt_std)
+                val_site_gt[gt_col] = inv_scale_data(val_site_gt[gt_col], gt_mean, gt_std)
 
             train_site_gt = train_site_gt.reset_index(drop=True)
             val_site_gt = val_site_gt.reset_index(drop=True)
@@ -256,7 +273,8 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
             cache_preds(pred=val_pred, cache_id=results_id, site_id=site_id, pred_dates=val_dates, set_id='val')
             cache_preds(pred=train_pred, cache_id=results_id, site_id=site_id, pred_dates=train_dates, set_id='train')
 
-        ordered_site_ids = train_gt.site_id.drop_duplicates().tolist()
+        df = pd.read_csv(os.path.join('..', 'assets', 'ordered_site_ids.csv'))
+        ordered_site_ids = df.site_id.tolist()
         print('Generating global model submission file...')
         df_test = generate_submission_file(ordered_site_ids=ordered_site_ids, model_id='global',
                                            fitter_id=fitter.__name__,
@@ -283,7 +301,9 @@ def load_ground_truth(num_predictions: int):
     ground_truth_df = ground_truth_df.loc[ground_truth_df.index.repeat(num_predictions)]
     ground_truth_df['forecast_year'] = ground_truth_df.year
     ground_truth_df = ground_truth_df.drop(columns=['year'])
-
+    # Write site_ids to csv
+    pd.DataFrame({'site_id': pd.Series(ground_truth_df.site_id.unique())}).to_csv(
+        os.path.join("..", "assets", "ordered_site_ids.csv"))
     return ground_truth_df
 
 
