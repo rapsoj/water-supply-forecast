@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 
+from consts import AUGUST
+
 path = os.getcwd()
 
 global_mjo_cols = ['mjo20E', 'mjo70E', 'mjo80E', 'mjo100E', 'mjo120E', 'mjo140E', 'mjo160E', 'mjo120W', 'mjo40W',
@@ -107,7 +109,7 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
 
     site_df = interp_df.join(other_cols_df)
     site_df['date'] = feat_dates.reset_index(drop=True)
-    site_df['forecast_year'] = feat_dates.apply(lambda x: x.year + (x.month >= 10)).reset_index(drop=True)
+    site_df['forecast_year'] = feat_dates.apply(lambda x: x.year + (x.month >= AUGUST)).reset_index(drop=True)
 
     # todo make sure this is after the train/test split, don't want leakage
     assert not site_df.isna().any().any(), 'Error - we have nans!'
@@ -156,8 +158,11 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
         .reset_index(drop=True)
 
     # adding temporal feature
-    processed_data['time'] = (processed_data.date -
-                              pd.to_datetime(dict(year=processed_data.date.dt.year, month=1, day=1))).dt.days
+    def calculate_first_of_august(date):
+        year = date.year if date.month >= AUGUST else date.year - 1
+        return pd.Timestamp(year=year, month=AUGUST, day=1)
+
+    processed_data['time'] = processed_data.time.apply(lambda x: (x - calculate_first_of_august(x)).days)
 
     scaler = StandardScaler()
     processed_data.time = scaler.fit_transform(processed_data[['time']])
