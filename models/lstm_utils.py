@@ -22,12 +22,13 @@ class HypParams:
     dropout_prob: float
 
 
-DEF_LSTM_HYPPARAMS = HypParams(lr=1e-3, bs=8, n_epochs=5, n_hidden=1, hidden_size=64, dropout_prob=0.3)
+DEF_LSTM_HYPPARAMS = HypParams(lr=1e-4, bs=2, n_epochs=7, n_hidden=1, hidden_size=512, dropout_prob=0.2)
 
 
 class SequenceDataset(Dataset):
-    def __init__(self, X, y=None):
+    def __init__(self, X: pd.DataFrame, pre_X: pd.DataFrame, y: pd.DataFrame = None):
         self.X = X
+        self.pre_X = pre_X
         self.y = y
 
     def __len__(self):
@@ -51,7 +52,12 @@ class SequenceDataset(Dataset):
 
         init_ind = (X.forecast_year == fy).idxmax()
         # Create sequence from start of year until now
-        sequence = X.loc[init_ind:df_idx].drop(columns=['forecast_year', 'site_id']).values
+        interval_X = X.loc[init_ind:df_idx].drop(columns=['forecast_year', 'site_id'])
+        preint_X = self.pre_X[(self.pre_X.site_id == site_id) & (self.pre_X.forecast_year == fy)] \
+            .drop(columns=['forecast_year', 'site_id'])
+        interval_X = pd.concat([preint_X, interval_X])
+        assert (interval_X.time.diff().iloc[1:] > 0).all(), 'Error - not sorted by time!'
+        sequence = interval_X.values
         if self.y is None:
             return torch.tensor(sequence, dtype=torch.float32)
         return torch.tensor(sequence, dtype=torch.float32), torch.tensor(label.volume, dtype=torch.float32)
@@ -74,8 +80,10 @@ def pad_collate_fn(batch):
 
 
 def features2seqs(X: pd.DataFrame, y: pd.DataFrame = None):
+    pre_X = X[X.date.dt.month > JULY].sort_values(by=['site_id', 'forecast_year', 'time']) \
+        .drop(columns=['date']).reset_index(drop=True)
     X = X[X.date.dt.month <= JULY].drop(columns=['date']).reset_index(drop=True)
-    X.sort_values(by=['site_id', 'forecast_year'], inplace=True)
+    X.sort_values(by=['site_id', 'forecast_year', 'time'], inplace=True)
     if y is not None:
         y = y.iloc[X.index].reset_index(drop=True)
     X = X.reset_index(drop=True)
@@ -84,7 +92,7 @@ def features2seqs(X: pd.DataFrame, y: pd.DataFrame = None):
         assert (X.site_id == y.site_id).all(), 'Error - site id mismatch!'
         assert (X.forecast_year == y.forecast_year).all(), 'Error - forecast year mismatch!'
 
-    return SequenceDataset(X, y)
+    return SequenceDataset(X, pre_X, y)
 
 
 def quantile_loss(y_true, y_pred, quantile: float):
