@@ -66,8 +66,9 @@ class StreamflowModel:
             pred = []
             for sequences in X:
                 means, stds = self.model(sequences)
+                means, stds = means.squeeze(), stds.squeeze()
                 # todo create function for this
-                pred.append(pd.DataFrame({q: (means + norm.ppf(q) * stds).item() for q in DEF_QUANTILES}, index=[0]))
+                pred.append(pd.DataFrame({q: (means + norm.ppf(q) * stds).detach().numpy() for q in DEF_QUANTILES}))
             pred = pd.concat(pred).reset_index(drop=True)
         else:
             pred = pd.Series(self.model.predict(X))

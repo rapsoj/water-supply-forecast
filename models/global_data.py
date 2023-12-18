@@ -7,6 +7,7 @@ from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
 from preprocessing.data_pruning import data_pruning
 
+
 def get_global_data():
     load_from_cache = False
     basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache)
@@ -23,7 +24,6 @@ def get_global_data():
     gt = load_ground_truth(N_PREDS)
 
     pruned_data = data_pruning(processed_data, ground_truth=gt)
-
 
     X, val_X, test_X, y, val_y = train_val_test_split(pruned_data, gt, test_years, validation_years)
 

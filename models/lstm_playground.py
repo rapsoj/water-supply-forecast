@@ -42,7 +42,7 @@ def main():
 
     N_HIDDEN = [1, 2, 3]
     DROPOUT_PROBS = [0.2, 0.3, 0.4, 0.5]
-    HIDDEN_SIZES = [32, 64, 128, 256, 512]
+    HIDDEN_SIZES = [64, 128, 256, 512]
     BATCH_SIZES = [2, 4, 8, 16, 32, 64, 128, 256]
     LEARNING_RATES = [1e-1, 1e-2, 1e-3, 1e-4]
     N_EPOCHS = list(range(6, 15, 3))
