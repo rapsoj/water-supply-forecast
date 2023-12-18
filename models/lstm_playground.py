@@ -44,7 +44,7 @@ def main():
     HIDDEN_SIZES = [32, 64, 128, 256, 512]
     BATCH_SIZES = [2, 4, 8, 16, 32, 64, 128, 256]
     LEARNING_RATES = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5]
-    N_EPOCHS = [5, 10, 15, 20, 25, 30]
+    N_EPOCHS = list(range(2, 8))
 
     # hypparam search
     hyp_params_combs = list(product(LEARNING_RATES, BATCH_SIZES, N_EPOCHS, N_HIDDEN, HIDDEN_SIZES, DROPOUT_PROBS))
