@@ -31,6 +31,7 @@ def main():
     train_emp_aqm = np.mean([mean_pinball_loss(y_vol, [y_vol.quantile(q)] * len(y), alpha=q) for q in DEF_QUANTILES])
     val_emp_aqm = np.mean([mean_pinball_loss(val_y.volume, [y_vol.quantile(q)] * len(val_y), alpha=q)
                            for q in DEF_QUANTILES])
+
     print(f"Empirical quantile's training loss: {train_emp_aqm:.3f}")
     print(f"Empirical quantile's validation loss: {val_emp_aqm:.3f}")
 
