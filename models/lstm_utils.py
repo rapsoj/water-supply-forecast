@@ -22,7 +22,7 @@ class HypParams:
     dropout_prob: float
 
 
-DEF_LSTM_HYPPARAMS = HypParams(lr=1e-3, bs=8, n_epochs=1, n_hidden=1, hidden_size=64, dropout_prob=0.3)
+DEF_LSTM_HYPPARAMS = HypParams(lr=1e-3, bs=8, n_epochs=5, n_hidden=1, hidden_size=64, dropout_prob=0.3)
 
 
 class SequenceDataset(Dataset):
@@ -73,15 +73,16 @@ def pad_collate_fn(batch):
     return padded_sequences, lengths
 
 
-def features2seqs(X: pd.DataFrame, y: pd.Series = None):
+def features2seqs(X: pd.DataFrame, y: pd.DataFrame = None):
     X = X[X.date.dt.month <= JULY].drop(columns=['date']).reset_index(drop=True)
     X.sort_values(by=['site_id', 'forecast_year'], inplace=True)
     if y is not None:
-        y = y.sort_values(by='site_id').iloc[X.index].reset_index(drop=True)
+        y = y.iloc[X.index].reset_index(drop=True)
     X = X.reset_index(drop=True)
 
     if y is not None:
         assert (X.site_id == y.site_id).all(), 'Error - site id mismatch!'
+        assert (X.forecast_year == y.forecast_year).all(), 'Error - forecast year mismatch!'
 
     return SequenceDataset(X, y)
 
@@ -98,6 +99,7 @@ def avg_quantile_loss(pred_means, pred_stds, y_true):
 def calc_val_loss(model: nn.Module, val_set):
     if val_set is None:
         return
+
     model.eval()
     with torch.inference_mode():
         dataloader = DataLoader(val_set, collate_fn=pad_collate_fn)
