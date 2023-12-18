@@ -18,6 +18,8 @@ from consts import DEF_QUANTILES, JULY, N_PREDS
 from models.lstm_utils import features2seqs, pad_collate_fn, train_lstm, DEF_LSTM_HYPPARAMS
 
 
+
+
 def base_feature_adapter(X, pca=None):
     X = (X[X.date.dt.month <= JULY].drop(columns=['date', 'forecast_year']))
     return X
@@ -66,8 +68,9 @@ class StreamflowModel:
             pred = []
             for sequences in X:
                 means, stds = self.model(sequences)
+                means, stds = means.squeeze(), stds.squeeze()
                 # todo create function for this
-                pred.append(pd.DataFrame({q: (means + norm.ppf(q) * stds).item() for q in DEF_QUANTILES}, index=[0]))
+                pred.append(pd.DataFrame({q: (means + norm.ppf(q) * stds).detach().numpy() for q in DEF_QUANTILES}))
             pred = pd.concat(pred).reset_index(drop=True)
         else:
             pred = pd.Series(self.model.predict(X))
@@ -98,6 +101,8 @@ def lstm_fitter(X, y, val_X, val_y, quantile: bool = True):
 
     train_model = LSTMModel(input_size=n_feats)
     full_model = LSTMModel(input_size=n_feats)
+
+
 
     train_model = train_lstm(train_dloader, val_set, train_model, DEF_LSTM_HYPPARAMS.lr, DEF_LSTM_HYPPARAMS.n_epochs)
     # todo try fine-tuning trained model? probably no reason to do that, difficult to validate

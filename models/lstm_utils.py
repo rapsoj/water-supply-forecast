@@ -22,8 +22,8 @@ class HypParams:
     dropout_prob: float
 
 
-DEF_LSTM_HYPPARAMS = HypParams(lr=0.0001, bs=8, n_epochs=20, n_hidden=3, hidden_size=512, dropout_prob=0.3)
-# HypParams(lr=0.0001, bs=32, n_epochs=6, n_hidden=3, hidden_size=256, dropout_prob=0.2)
+DEF_LSTM_HYPPARAMS = HypParams(lr=3e-5, bs=16, n_epochs=50, n_hidden=3, hidden_size=512, dropout_prob=0.4)
+
 class SequenceDataset(Dataset):
     def __init__(self, X: pd.DataFrame, pre_X: pd.DataFrame, y: pd.DataFrame = None):
         self.X = X

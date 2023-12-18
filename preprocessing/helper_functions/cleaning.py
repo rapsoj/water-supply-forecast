@@ -9,6 +9,7 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
 from . import dictionaries
 from consts import LAST_YEAR
 
+
 def import_mjo(current_dir):
     # Import mjo dataset
     folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'teleconnections')
@@ -148,7 +149,7 @@ def import_flow(current_dir):
     folder_path = os.path.join(current_dir, '..', 'assets', 'data')
     df_flow = pd.read_csv(os.path.join(folder_path, "train_monthly_naturalized_flow.csv"))
     df_test_flow = pd.read_csv(os.path.join(folder_path, 'test_monthly_naturalized_flow.csv'))
-    df_flow = pd.concat([df_flow, df_test_flow]) # todo fix leakage
+    df_flow = pd.concat([df_flow, df_test_flow])  # todo fix leakage
     return df_flow
 
 
@@ -247,10 +248,10 @@ def clean_dem(df_dem):
 
 # todo fix importing and cleaning swann
 def import_swann(current_dir):
-
     folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'swann')
     df_swann = pd.read_csv(os.path.join(folder_path, 'swann_swe.csv'))
     return df_swann
+
 
 def clean_swann(df_swann):
     df_swann['time'] = pd.to_datetime(df_swann['time'])
@@ -262,18 +263,22 @@ def clean_swann(df_swann):
     df_swann.drop('time', axis=1, inplace=True)
     return df_swann
 
+
 def import_basins(current_dir):
     folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'hydrobasins')
     df_basins = pd.read_csv(os.path.join(folder_path, 'hydrobasins_summary.csv'))
     return df_basins
 
+
 def clean_basins(df_basins):
     return df_basins
+
 
 def import_acis(current_dir):
     folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'acis')
     df_acis = pd.read_csv(os.path.join(folder_path, 'acis.csv'))
     return df_acis
+
 
 def clean_acis(df_acis):
     df_acis.week_start_date = pd.to_datetime(df_acis.week_start_date) + pd.DateOffset(days=7)
@@ -284,10 +289,12 @@ def clean_acis(df_acis):
     df_acis = df_acis[df_acis.year <= LAST_YEAR]
     return df_acis
 
+
 def import_pdsi(current_dir):
     folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'pdsi')
     df_pdsi = pd.read_csv(os.path.join(folder_path, 'pdsi_summary.csv'))
     return df_pdsi
+
 
 def clean_pdsi(df_pdsi):
     df_pdsi['date'] = pd.to_datetime(df_pdsi['date'])
@@ -296,3 +303,16 @@ def clean_pdsi(df_pdsi):
     df_pdsi['year'] = df_pdsi['date'].dt.year
     df_pdsi.drop('date', axis=1, inplace=True)
     return df_pdsi
+
+def import_era5(current_dir):
+    folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'ERA5L')
+    df_era5 = pd.read_csv(os.path.join(folder_path, 'era5l.csv'))
+    return df_era5
+
+def clean_era5(df_era5):
+    df_era5['period_end'] = pd.to_datetime(df_era5['period_end']) + pd.DateOffset(days=1)
+    df_era5['day'] = df_era5['period_end'].dt.day
+    df_era5['month'] = df_era5['period_end'].dt.month
+    df_era5['year'] = df_era5['period_end'].dt.year
+    df_era5.drop(columns=['period_end', 'period_start'], inplace=True)
+    return df_era5

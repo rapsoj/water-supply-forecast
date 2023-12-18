@@ -33,7 +33,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
     df_basins = cleaning.import_basins(current_dir)
     df_acis = cleaning.import_acis(current_dir)
     df_pdsi = cleaning.import_pdsi(current_dir)
-
+    df_era5 = cleaning.import_era5(current_dir)
     ## Pre-merge cleaning steps
 
     # Cleaning at this stage is only adjustments required to allow merging,
@@ -59,6 +59,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
     df_basins = cleaning.clean_basins(df_basins)
     df_acis = cleaning.clean_acis(df_acis)
     df_pdsi = cleaning.clean_pdsi(df_pdsi)
+    df_era5 = cleaning.clean_era5(df_era5)
     # Merging dataframes
     # Merge on site id, day, LEAD column
     #dataframes = [df_cpc_prec, df_cpc_temp]
@@ -70,7 +71,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
     df_merged = merge.merge_site_id_day(dataframes)
 
     # Merge on day
-    dataframes = [df_mjo, df_pna, df_soi1, df_soi2, df_pdo, df_nino, df_oni, df_merged]
+    dataframes = [df_mjo, df_pna, df_soi1, df_soi2, df_pdo, df_nino, df_oni, df_merged, df_era5]
     for df in dataframes:
         if 'day' in df.columns:
             continue
@@ -79,6 +80,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
 
     # Merge on site_id
     df_merged = merge.merge_site_id([df_merged, df_dem, df_basins])
+
     # Outlier cleaning todo
 
     # Imputation todo
