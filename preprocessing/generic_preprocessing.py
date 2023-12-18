@@ -64,7 +64,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
     #df_merged = merge.merge_site_id_day_lead(dataframes)
 
     # Merge on site id, day
-    dataframes = [df_grace, df_swann, df_flow, df_acis]
+    dataframes = [df_grace, df_swann, df_flow]
     df_flow['day'] = np.nan  # input nan when we don't know which day of the month data was measured
     df_merged = merge.merge_site_id_day(dataframes)
 
