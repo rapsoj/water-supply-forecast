@@ -44,7 +44,7 @@ def main():
     HIDDEN_SIZES = [32, 64, 128, 256, 512]
     BATCH_SIZES = [2, 4, 8, 16, 32, 64, 128, 256]
     LEARNING_RATES = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5]
-    N_EPOCHS = list(range(2, 8))
+    N_EPOCHS = list(range(4, 15, 3))
 
     # hypparam search
     hyp_params_combs = list(product(LEARNING_RATES, BATCH_SIZES, N_EPOCHS, N_HIDDEN, HIDDEN_SIZES, DROPOUT_PROBS))
@@ -53,6 +53,9 @@ def main():
 
     results = []
     for hyp_params in hyp_params_combs:
+        if hyp_params.n_hidden == 1 and hyp_params.dropout_prob != min(DROPOUT_PROBS):
+            continue  # arbitrary dropout prob, prevent recurring computations
+
         dataloader = DataLoader(train_set, batch_size=hyp_params.bs, shuffle=True, collate_fn=pad_collate_fn)
         model = LSTMModel(input_size=n_feats, hidden_size=hyp_params.hidden_size, num_layers=hyp_params.n_hidden,
                           dropout_prob=hyp_params.dropout_prob)
