@@ -96,9 +96,11 @@ def lstm_fitter(X, y, val_X, val_y, quantile: bool = True):
     train_model = LSTMModel(input_size=n_feats)
     full_model = LSTMModel(input_size=n_feats)
 
+    full_model = train_lstm(full_dloader, None, full_model, DEF_LSTM_HYPPARAMS.lr, DEF_LSTM_HYPPARAMS.n_epochs)
+
+
     train_model = train_lstm(train_dloader, val_set, train_model, DEF_LSTM_HYPPARAMS.lr, DEF_LSTM_HYPPARAMS.n_epochs)
     # todo try fine-tuning trained model? probably no reason to do that, difficult to validate
-    full_model = train_lstm(full_dloader, None, full_model, DEF_LSTM_HYPPARAMS.lr, DEF_LSTM_HYPPARAMS.n_epochs)
 
     def lstm_feat_adapter(X):
         dataset = features2seqs(X)
