@@ -1,16 +1,15 @@
 import os
+
 import pandas as pd
 from sklearn.decomposition import PCA
-import numpy as np
-import seaborn as sns
-from consts import FIRST_FULL_GT_YEAR, JULY, LAST_YEAR
 
-def data_pruning(processed_data, ground_truth):
+from consts import FIRST_FULL_GT_YEAR, JULY
 
+
+def data_pruning(processed_data, ground_truth, FEAT_CORR_THRESH: float = .2):
     df = processed_data[(processed_data.forecast_year >= FIRST_FULL_GT_YEAR)
-                                    & (processed_data.date.dt.month <= JULY)
-                                    & ~(processed_data.forecast_year.isin(range(2005,2024,2)))].reset_index(drop=True)
-
+                        & (processed_data.date.dt.month <= JULY)
+                        & ~(processed_data.forecast_year.isin(range(2005, 2024, 2)))].reset_index(drop=True)
     ground_truth = ground_truth.sort_values(by=['site_id', 'forecast_year']).reset_index(drop=True)
 
     assert (df.site_id == ground_truth.site_id).all(), 'Site ids not matching in pruning'
@@ -19,18 +18,18 @@ def data_pruning(processed_data, ground_truth):
 
     df['gt'] = ground_truth.volume
 
-    drop_cols = ['site_id', 'date', 'forecast_year']
+    cols_to_keep = ['site_id', 'date', 'forecast_year', 'time']
 
-    df.drop(drop_cols, axis=1, inplace=True)
+    df.drop(cols_to_keep, axis=1, inplace=True)
     corr_matrix = df.corr()
 
-    indices = list((set(corr_matrix.index[corr_matrix['gt'].abs() >= 0.2]) | set(drop_cols)) - set(['gt']))
+    cols_to_keep = list((set(corr_matrix.index[corr_matrix['gt'].abs() >= FEAT_CORR_THRESH]) | set(cols_to_keep))
+                        - set(['gt']))
 
-    pruned_df = processed_data[indices]
-    return pruned_df
+    return processed_data[cols_to_keep]
 
 
-def data_pca(processed_data, output_file_path: str = 'pruned_data', load_from_cache = True, n_components: int = 30):
+def data_pca(processed_data, output_file_path: str = 'pruned_data', load_from_cache=True, n_components: int = 30):
     if load_from_cache and os.path.exists(output_file_path):
         return pd.read_csv(output_file_path, parse_dates=['date'])
 
@@ -42,4 +41,3 @@ def data_pca(processed_data, output_file_path: str = 'pruned_data', load_from_ca
     for col in drop_cols:
         data_pca[col] = processed_data[col]
     return data_pca
-
