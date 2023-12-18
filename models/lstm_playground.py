@@ -1,6 +1,5 @@
 import os
 import pickle
-from dataclasses import dataclass
 from itertools import product
 from random import shuffle
 
@@ -11,7 +10,7 @@ from torch.utils.data import DataLoader
 
 from consts import DEF_QUANTILES
 from models.fitters import LSTMModel
-from models.lstm_utils import train_lstm, pad_collate_fn, features2seqs, calc_val_loss, HypParams, DEF_LSTM_HYPPARAMS
+from models.lstm_utils import train_lstm, pad_collate_fn, features2seqs, calc_val_loss, HypParams
 
 
 def main():
@@ -61,7 +60,7 @@ def main():
         model = train_lstm(dataloader, val_set, model, lr=hyp_params.lr, num_epochs=hyp_params.n_epochs)
 
         val_loss = calc_val_loss(model, val_set)
-        results.append({'val_loss': val_loss, 'hyp_params': hyp_params})
+        results.append({'val_loss': val_loss} | hyp_params.__dict__)
 
         # append new results to running text file
         with open('lstm_results.txt', 'a+') as f:
