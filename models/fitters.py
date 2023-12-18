@@ -14,7 +14,7 @@ from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 from torch.utils.data import DataLoader
 
 from benchmark.benchmark_results import average_quantile_loss
-from consts import DEF_QUANTILES, JULY
+from consts import DEF_QUANTILES, JULY, N_PREDS
 from models.lstm_utils import features2seqs, pad_collate_fn, train_lstm, DEF_LSTM_HYPPARAMS
 
 
@@ -30,15 +30,14 @@ class LSTMModel(nn.Module):
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=dropout_prob)
         self.fc = nn.Linear(hidden_size, output_size)
 
-    def forward(self, x, lengths):
-        # Pack the padded sequences
-        x_packed = pack_padded_sequence(x, lengths, batch_first=True)
-        out_packed, _ = self.lstm(x_packed)
-        out_padded, _ = pad_packed_sequence(out_packed, batch_first=True)
-        # Apply the linear layer to the unpacked outputs
-        out = self.fc(out_padded)
-        outputs = out[torch.arange(out.size(0)), np.array(lengths) - 1]  # Return the outputs for the last time step
-        means, log_vars = outputs[:, 0], outputs[:, 1]
+    def forward(self, x):
+        out, _ = self.lstm(x)
+        out = self.fc(out)
+
+        # Return the outputs for the relevant time steps
+        outputs = out[torch.arange(out.size(0)), -N_PREDS:]
+
+        means, log_vars = outputs[:, :, 0], outputs[:, :, 1]
         return means, torch.exp(0.5 * log_vars)
 
 
@@ -65,8 +64,8 @@ class StreamflowModel:
             pred = pd.DataFrame({q: q_model.predict(X) for q, q_model in self.model.items()})
         elif isinstance(self.model, nn.Module):
             pred = []
-            for sequences, lengths in X:
-                means, stds = self.model(sequences, lengths)
+            for sequences in X:
+                means, stds = self.model(sequences)
                 # todo create function for this
                 pred.append(pd.DataFrame({q: (means + norm.ppf(q) * stds).item() for q in DEF_QUANTILES}, index=[0]))
             pred = pd.concat(pred).reset_index(drop=True)

@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 
+from consts import OCTOBER, JULY, MID_MONTH_DAY
+
 path = os.getcwd()
 
 global_mjo_cols = ['mjo20E', 'mjo70E', 'mjo80E', 'mjo100E', 'mjo120E', 'mjo140E', 'mjo160E', 'mjo120W', 'mjo40W',
@@ -107,7 +109,7 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
 
     site_df = interp_df.join(other_cols_df)
     site_df['date'] = feat_dates.reset_index(drop=True)
-    site_df['forecast_year'] = feat_dates.apply(lambda x: x.year + (x.month >= 10)).reset_index(drop=True)
+    site_df['forecast_year'] = feat_dates.apply(lambda x: x.year + (x.month >= OCTOBER)).reset_index(drop=True)
 
     # todo make sure this is after the train/test split, don't want leakage
     assert not site_df.isna().any().any(), 'Error - we have nans!'
@@ -125,12 +127,15 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
     data = data.copy()
 
     # monthly measurements are approx at the middle
-    data.day[data.day == -1] = 15
+    data.day[data.day == -1] = MID_MONTH_DAY
 
     # Create dates to work with
     data["date"] = pd.to_datetime(data[date_cols].applymap(int))
     data = data.sort_values('date')
-    data = data.drop(columns=date_cols)
+    # cannot use data outside of water year
+    data = data[(data.date.dt.month <= JULY) | (data.date.dt.month > OCTOBER)] \
+        .drop(columns=date_cols) \
+        .reset_index(drop=True)
 
     # Get site ids
     site_id_str = 'site_id_'
@@ -156,13 +161,15 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
         .reset_index(drop=True)
 
     # adding temporal feature
-    processed_data['time'] = (processed_data.date -
-                              pd.to_datetime(dict(year=processed_data.date.dt.year, month=1, day=1))).dt.days
+    def calculate_first_of_oct(date):
+        year = date.year if date.month >= OCTOBER else date.year - 1
+        return pd.Timestamp(year=year, month=OCTOBER, day=1)
+
+    processed_data['time'] = processed_data.date.apply(lambda x: (x - calculate_first_of_oct(x)).days)
 
     scaler = StandardScaler()
     processed_data.time = scaler.fit_transform(processed_data[['time']])
 
     processed_data.to_csv(output_file_path, index=False)
 
-    # Testing effect on PCR benchmarking by dropping columns
     return processed_data
