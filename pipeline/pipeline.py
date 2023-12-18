@@ -51,8 +51,7 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     print('Running global models...')
 
     test_val_train_global_dfs = run_global_models(train_features, val_features, test_features, \
-                                                  train_gt, val_gt, gt_col, site_ids, using_pca=using_pca,
-                                                  log_transform=True)
+                                                  train_gt, val_gt, gt_col, site_ids, using_pca=using_pca)
 
     print('Running local models...')
 
@@ -241,8 +240,8 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
             train_site_gt = train_gt[train_gt.site_id == site_id]
             val_site = val_features[val_site_id_col == site_id]
             val_site_gt = val_gt[val_gt.site_id == site_id]
-
             test_site = test_features[test_site_id_col == site_id]
+
             train_pred = model(train_site)
             val_pred = train_only_model(val_site)
             test_pred = model(test_site)
@@ -254,7 +253,6 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
                 test_pred = np.exp(inv_scale_data(test_pred, log_mean, log_std))
                 train_site_gt[gt_col] = np.exp(inv_scale_data(train_site_gt[gt_col], log_mean, log_std))
                 val_site_gt[gt_col] = np.exp(inv_scale_data(val_site_gt[gt_col], log_mean, log_std))
-
             else:
                 train_pred = inv_scale_data(train_pred, gt_mean, gt_std)
                 val_pred = inv_scale_data(val_pred, gt_mean, gt_std)

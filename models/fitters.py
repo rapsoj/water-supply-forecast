@@ -49,7 +49,7 @@ class StreamflowModel:
         self._loss = average_quantile_loss if isinstance(self.model, dict) else mean_squared_error
         self.pca = pca
 
-    def __call__(self, X: pd.DataFrame, adapt_feats: bool = True):
+    def __call__(self, X: pd.DataFrame, *args, adapt_feats: bool = True):
         if adapt_feats:
             X = self.adapter(X)
 
@@ -64,9 +64,12 @@ class StreamflowModel:
         if isinstance(self.model, dict):
             pred = pd.DataFrame({q: q_model.predict(X) for q, q_model in self.model.items()})
         elif isinstance(self.model, nn.Module):
-            means, stds = self.model(X)
-            # todo create function for this
-            pred = pd.DataFrame({q: (means + norm.ppf(q) * stds).item() for q in DEF_QUANTILES})
+            pred = []
+            for sequences, lengths in X:
+                means, stds = self.model(sequences, lengths)
+                # todo create function for this
+                pred.append(pd.DataFrame({q: (means + norm.ppf(q) * stds).item() for q in DEF_QUANTILES}, index=[0]))
+            pred = pd.concat(pred).reset_index(drop=True)
         else:
             pred = pd.Series(self.model.predict(X))
 
@@ -86,7 +89,8 @@ def lstm_fitter(X, y, val_X, val_y, quantile: bool = True):
 
     train_set = features2seqs(X, y)
     val_set = features2seqs(val_X, val_y)
-    combined_set = features2seqs(pd.concat([X, val_X]), pd.concat([y, val_y]))
+    combined_set = features2seqs(pd.concat([X, val_X]).reset_index(drop=True),
+                                 pd.concat([y, val_y]).reset_index(drop=True))
 
     n_feats = train_set[0][0].shape[1]
 
