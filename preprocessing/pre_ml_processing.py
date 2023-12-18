@@ -169,5 +169,4 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
 
     processed_data.to_csv(output_file_path, index=False)
 
-    # Testing effect on PCR benchmarking by dropping columns
     return processed_data
