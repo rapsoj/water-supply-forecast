@@ -61,9 +61,12 @@ def main():
         val_loss = calc_val_loss(model, val_set)
         results.append({'val_loss': val_loss} | hyp_params.__dict__)
 
+        res_str = f'val loss: {val_loss:.5f}, {hyp_params}\n'
         # append new results to running text file
         with open('lstm_results.txt', 'a+') as f:
-            f.write(f'val loss: {val_loss:.5f}, {hyp_params}\n')
+            f.write(res_str)
+
+        print(res_str)
 
     pd.DataFrame.from_records(results).to_csv('lstm_results.csv')
 
