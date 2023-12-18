@@ -32,6 +32,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
     df_dem = cleaning.import_dem(current_dir)
     df_basins = cleaning.import_basins(current_dir)
     df_acis = cleaning.import_acis(current_dir)
+    df_pdsi = cleaning.import_pdsi(current_dir)
 
     ## Pre-merge cleaning steps
 
@@ -57,14 +58,14 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
     df_swann = cleaning.clean_swann(df_swann)
     df_basins = cleaning.clean_basins(df_basins)
     df_acis = cleaning.clean_acis(df_acis)
-
+    df_pdsi = cleaning.clean_pdsi(df_pdsi)
     # Merging dataframes
     # Merge on site id, day, LEAD column
     #dataframes = [df_cpc_prec, df_cpc_temp]
     #df_merged = merge.merge_site_id_day_lead(dataframes)
 
     # Merge on site id, day
-    dataframes = [df_grace, df_swann, df_flow, df_acis]
+    dataframes = [df_grace, df_swann, df_flow, df_acis, df_pdsi]
     df_flow['day'] = np.nan  # input nan when we don't know which day of the month data was measured
     df_merged = merge.merge_site_id_day(dataframes)
 
