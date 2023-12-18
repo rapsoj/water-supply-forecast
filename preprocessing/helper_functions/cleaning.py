@@ -283,3 +283,16 @@ def clean_acis(df_acis):
     df_acis.drop('week_start_date', axis=1, inplace=True)
     df_acis = df_acis[df_acis.year <= LAST_YEAR]
     return df_acis
+
+def import_pdsi(current_dir):
+    folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'pdsi')
+    df_pdsi = pd.read_csv(os.path.join(folder_path, 'pdsi_summary.csv'))
+    return df_pdsi
+
+def clean_pdsi(df_pdsi):
+    df_pdsi['date'] = pd.to_datetime(df_pdsi['date'])
+    df_pdsi['day'] = df_pdsi['date'].dt.day
+    df_pdsi['month'] = df_pdsi['date'].dt.month
+    df_pdsi['year'] = df_pdsi['date'].dt.year
+    df_pdsi.drop('date', axis=1, inplace=True)
+    return df_pdsi
