@@ -276,7 +276,7 @@ def import_acis(current_dir):
     return df_acis
 
 def clean_acis(df_acis):
-    df_acis.week_start_date = df_acis.week_start_date.shift(7, freq="D")
+    df_acis.week_start_date = pd.to_datetime(df_acis.week_start_date) + pd.DateOffset(days=7)
     df_acis['day'] = df_acis['week_start_date'].dt.day
     df_acis['month'] = df_acis['week_start_date'].dt.month
     df_acis['year'] = df_acis['week_start_date'].dt.year
