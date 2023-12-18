@@ -269,3 +269,16 @@ def import_basins(current_dir):
 
 def clean_basins(df_basins):
     return df_basins
+
+def import_acis(current_dir):
+    folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'acis')
+    df_acis = pd.read_csv(os.path.join(folder_path, 'acis.csv'))
+    return df_acis
+
+def clean_acis(df_acis):
+    df_acis.week_start_date = df_acis.week_start_date.shift(7, freq="D")
+    df_acis['day'] = df_acis['week_start_date'].dt.day
+    df_acis['month'] = df_acis['week_start_date'].dt.month
+    df_acis['year'] = df_acis['week_start_date'].dt.year
+    df_acis.drop('week_start_date', axis=1, inplace=True)
+    return df_acis

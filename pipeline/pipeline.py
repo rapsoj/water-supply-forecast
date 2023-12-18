@@ -31,7 +31,7 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     #  currently everything is processed together. unsure if necessary
     processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache)
 
-    pruned_data = data_pruning(processed_data, load_from_cache=False)
+    pruned_data = data_pruning(processed_data, load_from_cache=False) # todo merge this with implementation in ey/lstm
 
     # Data sanity check
     # Check types (do we wish to also check that date, forecast_year and site_id are the correct types here?
