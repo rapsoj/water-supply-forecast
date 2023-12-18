@@ -5,11 +5,11 @@ import numpy as np
 import pandas as pd
 
 from models.fit_to_data import Ensemble_Type
-from models.fitters import general_pcr_fitter, xgboost_fitter, general_xgboost_fitter
+from models.fitters import general_pcr_fitter, xgboost_fitter, general_xgboost_fitter, lstm_fitter
 
 os.chdir(os.path.join("..", "outputs"))
 
-fitters = (general_xgboost_fitter,)
+fitters = (lstm_fitter,)
 models = ('global',)
 ensemble_type = Ensemble_Type.BEST_PREDICTION
 ground_truth_df = pd.read_csv(os.path.join("..", "assets", "data", "train.csv"))
