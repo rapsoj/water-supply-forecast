@@ -162,7 +162,7 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
         year = date.year if date.month >= AUGUST else date.year - 1
         return pd.Timestamp(year=year, month=AUGUST, day=1)
 
-    processed_data['time'] = processed_data.time.apply(lambda x: (x - calculate_first_of_august(x)).days)
+    processed_data['time'] = processed_data.date.apply(lambda x: (x - calculate_first_of_august(x)).days)
 
     scaler = StandardScaler()
     processed_data.time = scaler.fit_transform(processed_data[['time']])
