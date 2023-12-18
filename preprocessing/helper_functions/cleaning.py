@@ -303,3 +303,16 @@ def clean_pdsi(df_pdsi):
     df_pdsi['year'] = df_pdsi['date'].dt.year
     df_pdsi.drop('date', axis=1, inplace=True)
     return df_pdsi
+
+def import_era5(current_dir):
+    folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'ERA5L')
+    df_era5 = pd.read_csv(os.path.join(folder_path, 'era5l.csv'))
+    return df_era5
+
+def clean_era5(df_era5):
+    df_era5['period_end'] = pd.to_datetime(df_era5['period_end']) + pd.DateOffset(days=1)
+    df_era5['day'] = df_era5['period_end'].dt.day
+    df_era5['month'] = df_era5['period_end'].dt.month
+    df_era5['year'] = df_era5['period_end'].dt.year
+    df_era5.drop(columns=['period_end', 'period_start'], inplace=True)
+    return df_era5
