@@ -13,7 +13,8 @@ def get_global_data():
 
     processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache)
 
-    assert processed_data.isna().any().sum() == 2, 'Not only volume and wet_cl_smj (@pecos_r_nr_pecos) have Nans'
+    assert processed_data.isna().any().sum() == 3, \
+        'Not only volume, wet_cl_smj (@pecos_r_nr_pecos), and avgt_d (@3 sites) have Nans'
     processed_data = processed_data.fillna(0)
 
     test_years = range(2005, 2024, 2)
