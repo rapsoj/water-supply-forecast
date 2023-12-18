@@ -86,17 +86,19 @@ def features2seqs(X: pd.DataFrame, y: pd.DataFrame = None):
     return SequenceDataset(X, pre_X, y)
 
 
-def quantile_loss(y_true, y_pred, quantile: float):
+def quantile_loss(y_true, y_pred, quantile: float, min_label: float = -np.inf):
+    y_pred = torch.clamp(y_pred, min=min_label)
     assert y_true.shape == y_pred.shape, 'Error - y_true and y_pred have different shapes!'
     return torch.mean(torch.max(quantile * (y_true - y_pred), -(1 - quantile) * (y_true - y_pred)))
 
 
-def avg_quantile_loss(pred_means, pred_stds, y_true):
-    losses = [quantile_loss(y_true, pred_means + norm.ppf(q) * pred_stds, q) for q in DEF_QUANTILES]
+def avg_quantile_loss(pred_means, pred_stds, y_true, min_label: float = -np.inf):
+    losses = [quantile_loss(y_true, pred_means + norm.ppf(q) * pred_stds, q, min_label=min_label)
+              for q in DEF_QUANTILES]
     return torch.mean(torch.stack(losses))
 
 
-def calc_val_loss(model: nn.Module, val_set):
+def calc_val_loss(model: nn.Module, val_set, min_label: float = -np.inf) -> float:
     if val_set is None:
         return
 
@@ -106,13 +108,14 @@ def calc_val_loss(model: nn.Module, val_set):
         val_losses = []
         for sequences, labels in dataloader:
             means, stds = model(sequences)
-            loss = avg_quantile_loss(means, stds, labels)
+            loss = avg_quantile_loss(means, stds, labels, min_label=min_label)
             val_losses.append(loss)
         model.train()
         return np.mean(val_losses)
 
 
-def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, lr: float, num_epochs: int) -> nn.Module:
+def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, lr: float, num_epochs: int,
+               min_label: float = -np.inf) -> nn.Module:
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
     for epoch in range(num_epochs):
@@ -121,7 +124,7 @@ def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, lr
             optimizer.zero_grad()
             means, stds = model(sequences)
             # Ensure labels are also squeezed to match output shape
-            loss = avg_quantile_loss(means, stds, labels)
+            loss = avg_quantile_loss(means, stds, labels, min_label=min_label)
             assert loss.item() > 0, 'Error - loss is negative!'
             loss.backward()
             optimizer.step()
@@ -129,7 +132,7 @@ def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, lr
             train_loss += loss.item() * len(sequences)
 
         train_loss /= len(train_dloader.dataset)
-        val_loss = calc_val_loss(model, val_set)
+        val_loss = calc_val_loss(model, val_set, min_label=min_label)
 
         epoch_str = f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {train_loss:.4f}'
         if val_loss is not None:

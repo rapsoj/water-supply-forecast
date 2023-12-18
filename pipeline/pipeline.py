@@ -17,6 +17,7 @@ from preprocessing.data_pruning import data_pruning
 
 path = os.getcwd()
 
+
 def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
                  validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)), gt_col: str = 'volume',
                  load_from_cache: bool = False, start_year=FIRST_FULL_GT_YEAR, using_pca=False):
@@ -31,7 +32,7 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     #  currently everything is processed together. unsure if necessary
     processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache)
 
-    #pruned_data = data_pruning(processed_data, load_from_cache=False) # todo merge this with implementation in ey/lstm
+    # pruned_data = data_pruning(processed_data, load_from_cache=False) # todo merge this with implementation in ey/lstm
 
     # Data sanity check
     # Check types (do we wish to also check that date, forecast_year and site_id are the correct types here?
@@ -47,7 +48,7 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     pruned_data = data_pruning(processed_data, ground_truth)
 
     # Get training, validation and test sets
-    train_features, val_features, test_features, train_gt, val_gt = \
+    train_features, val_features, test_features, train_gt, val_gt, min_label = \
         train_val_test_split(pruned_data, ground_truth, test_years, validation_years, start_year=start_year)
 
     site_ids = processed_data.site_id.unique()
@@ -55,7 +56,8 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     print('Running global models...')
 
     test_val_train_global_dfs = run_global_models(train_features, val_features, test_features, \
-                                                  train_gt, val_gt, gt_col, site_ids, using_pca=using_pca)
+                                                  train_gt, val_gt, gt_col, site_ids, using_pca=using_pca,
+                                                  min_label=min_label)
 
     print('Running local models...')
 
@@ -190,7 +192,7 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
 
 
 def run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids, using_pca,
-                      fitters=(lstm_fitter,), log_transform=False):
+                      fitters=(lstm_fitter,), log_transform=False, min_label: float = -np.inf):
     train_features = train_features.sort_values(by=['site_id', 'date']).reset_index(
         drop=True)  # Might not be necessary (might already be that way) but just to make sure
     val_features = val_features.sort_values(by=['site_id', 'date']).reset_index(drop=True)
@@ -226,7 +228,8 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
     train_dfs = {}
 
     for fitter in fitters:
-        train_only_model, model = fitter(train_features, train_gt, val_features, val_gt)
+        train_only_model, model = fitter(train_features, train_gt, val_features, val_gt, min_label=min_label,
+                                         using_pca=using_pca)
 
         test_mask = test_features.date.dt.month <= JULY
         test_vals = test_features[test_mask]
@@ -249,6 +252,10 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
             train_pred = model(train_site)
             val_pred = train_only_model(val_site)
             test_pred = model(test_site)
+
+            train_pred = train_pred.clip(min=min_label)
+            val_pred = val_pred.clip(min=min_label)
+            test_pred = test_pred.clip(min=min_label)
 
             # rescaling data
             if log_transform:
@@ -337,8 +344,10 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
            val_feature_df.date.isin(test_feature_df.date).sum() == 0, \
         "Dates are overlapping between train, val, and test sets"
 
+    min_label = min(train_gt_df.volume.min(), val_gt_df.volume.min())
+
     # todo figure out why some things are empty here, e.g. test_gt_df
-    return train_feature_df, val_feature_df, test_feature_df, train_gt_df, val_gt_df
+    return train_feature_df, val_feature_df, test_feature_df, train_gt_df, val_gt_df, min_label
 
 
 if __name__ == '__main__':
