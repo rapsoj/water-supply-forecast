@@ -4,7 +4,6 @@ from itertools import product
 from random import shuffle
 
 import numpy as np
-import pandas as pd
 from sklearn.metrics import mean_pinball_loss
 from torch.utils.data import DataLoader
 
@@ -45,8 +44,8 @@ def main():
     DROPOUT_PROBS = [0.2, 0.3, 0.4, 0.5]
     HIDDEN_SIZES = [32, 64, 128, 256, 512]
     BATCH_SIZES = [2, 4, 8, 16, 32, 64, 128, 256]
-    LEARNING_RATES = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5]
-    N_EPOCHS = list(range(4, 15, 3))
+    LEARNING_RATES = [1e-1, 1e-2, 1e-3, 1e-4]
+    N_EPOCHS = list(range(6, 15, 3))
 
     # hypparam search
     hyp_params_combs = list(product(LEARNING_RATES, BATCH_SIZES, N_EPOCHS, N_HIDDEN, HIDDEN_SIZES, DROPOUT_PROBS))
@@ -54,7 +53,7 @@ def main():
     shuffle(hyp_params_combs)
 
     results = []
-    for hyp_params in [DEF_LSTM_HYPPARAMS]:
+    for hyp_params in hyp_params_combs:
         if hyp_params.n_hidden == 1 and hyp_params.dropout_prob != min(DROPOUT_PROBS):
             continue  # arbitrary dropout prob, prevent recurring computations
 

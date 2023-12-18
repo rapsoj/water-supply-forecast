@@ -9,7 +9,7 @@ from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 
-from consts import JULY, DEF_QUANTILES
+from consts import JULY, DEF_QUANTILES, OCTOBER
 
 
 @dataclass
@@ -31,36 +31,27 @@ class SequenceDataset(Dataset):
         self.pre_X = pre_X
         self.y = y
 
+        self.sites_and_fys = self.X[['site_id', 'forecast_year']].drop_duplicates().values
+
     def __len__(self):
         if self.y is not None:
             assert len(self.X) == len(self.y), 'Error - X and y have different lengths!'
-        return len(self.X)
+        return len(self.sites_and_fys)
 
     def __getitem__(self, idx):
-        idx_row = self.X.iloc[idx]
-        fy = idx_row.forecast_year
-        site_id = idx_row.site_id
-        df_idx = idx_row.name
-        X = self.X[self.X.site_id == site_id]
+        site_id, fy = self.sites_and_fys[idx]
+        X = self.X[(self.X.site_id == site_id) & (self.X.forecast_year == fy)]
 
         if self.y is not None:
-            label = self.y.iloc[idx]
-            assert label.site_id == site_id, 'Error - site id mismatch!'
+            labels = self.y[(self.y.site_id == site_id) & (self.y.forecast_year == fy)]
 
-        assert np.all(X.forecast_year.iloc[:-1].values <= X.forecast_year.iloc[1:].values), \
-            'Error - not sorted by forecast year!'
-
-        init_ind = (X.forecast_year == fy).idxmax()
-        # Create sequence from start of year until now
-        interval_X = X.loc[init_ind:df_idx].drop(columns=['forecast_year', 'site_id'])
-        preint_X = self.pre_X[(self.pre_X.site_id == site_id) & (self.pre_X.forecast_year == fy)] \
-            .drop(columns=['forecast_year', 'site_id'])
-        interval_X = pd.concat([preint_X, interval_X])
+        preint_X = self.pre_X[(self.pre_X.site_id == site_id) & (self.pre_X.forecast_year == fy)]
+        interval_X = pd.concat([preint_X, X]).drop(columns=['forecast_year', 'site_id']).reset_index(drop=True)
         assert (interval_X.time.diff().iloc[1:] > 0).all(), 'Error - not sorted by time!'
         sequence = interval_X.values
         if self.y is None:
             return torch.tensor(sequence, dtype=torch.float32)
-        return torch.tensor(sequence, dtype=torch.float32), torch.tensor(label.volume, dtype=torch.float32)
+        return torch.tensor(sequence, dtype=torch.float32), torch.tensor(labels.volume.values, dtype=torch.float32)
 
 
 def pad_collate_fn(batch):
@@ -73,14 +64,14 @@ def pad_collate_fn(batch):
     else:
         sequences = batch
     padded_sequences = pad_sequence(sequences, batch_first=True)
-    lengths = [len(seq) for seq in sequences]
+
     if batch_has_label:
-        return padded_sequences, labels, lengths
-    return padded_sequences, lengths
+        return padded_sequences, labels
+    return padded_sequences
 
 
 def features2seqs(X: pd.DataFrame, y: pd.DataFrame = None):
-    pre_X = X[X.date.dt.month > JULY].sort_values(by=['site_id', 'forecast_year', 'time']) \
+    pre_X = X[X.date.dt.month >= OCTOBER].sort_values(by=['site_id', 'forecast_year', 'time']) \
         .drop(columns=['date']).reset_index(drop=True)
     X = X[X.date.dt.month <= JULY].drop(columns=['date']).reset_index(drop=True)
     X.sort_values(by=['site_id', 'forecast_year', 'time'], inplace=True)
@@ -96,6 +87,7 @@ def features2seqs(X: pd.DataFrame, y: pd.DataFrame = None):
 
 
 def quantile_loss(y_true, y_pred, quantile: float):
+    assert y_true.shape == y_pred.shape, 'Error - y_true and y_pred have different shapes!'
     return torch.mean(torch.max(quantile * (y_true - y_pred), -(1 - quantile) * (y_true - y_pred)))
 
 
@@ -112,8 +104,8 @@ def calc_val_loss(model: nn.Module, val_set):
     with torch.inference_mode():
         dataloader = DataLoader(val_set, collate_fn=pad_collate_fn)
         val_losses = []
-        for sequences, labels, lengths in dataloader:
-            means, stds = model(sequences, lengths)
+        for sequences, labels in dataloader:
+            means, stds = model(sequences)
             loss = avg_quantile_loss(means, stds, labels)
             val_losses.append(loss)
         model.train()
@@ -125,9 +117,9 @@ def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, lr
 
     for epoch in range(num_epochs):
         train_loss = 0
-        for sequences, labels, lengths in train_dloader:
+        for sequences, labels in train_dloader:
             optimizer.zero_grad()
-            means, stds = model(sequences, lengths)
+            means, stds = model(sequences)
             # Ensure labels are also squeezed to match output shape
             loss = avg_quantile_loss(means, stds, labels)
             assert loss.item() > 0, 'Error - loss is negative!'

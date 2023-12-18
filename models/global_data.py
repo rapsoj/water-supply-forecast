@@ -1,7 +1,7 @@
 import os
 import pickle
 
-from consts import N_PRED_MONTHS, N_PREDS_PER_MONTH, FIRST_FULL_GT_YEAR
+from consts import N_PRED_MONTHS, N_PREDS_PER_MONTH, FIRST_FULL_GT_YEAR, N_PREDS
 from pipeline.pipeline import load_ground_truth, train_val_test_split
 from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
@@ -20,7 +20,7 @@ def get_global_data():
     test_years = range(2005, 2024, 2)
     validation_years = range(FIRST_FULL_GT_YEAR, 2023, 8)
 
-    gt = load_ground_truth(N_PRED_MONTHS * N_PREDS_PER_MONTH)
+    gt = load_ground_truth(N_PREDS)
 
     X, val_X, test_X, y, val_y = train_val_test_split(processed_data, gt, test_years, validation_years)
 
