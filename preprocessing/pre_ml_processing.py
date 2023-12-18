@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 
-from consts import OCTOBER, JULY
+from consts import OCTOBER, JULY, MID_MONTH_DAY
 
 path = os.getcwd()
 
@@ -109,7 +109,7 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
 
     site_df = interp_df.join(other_cols_df)
     site_df['date'] = feat_dates.reset_index(drop=True)
-    site_df['forecast_year'] = feat_dates.apply(lambda x: x.year + (x.month >= AUGUST)).reset_index(drop=True)
+    site_df['forecast_year'] = feat_dates.apply(lambda x: x.year + (x.month >= OCTOBER)).reset_index(drop=True)
 
     # todo make sure this is after the train/test split, don't want leakage
     assert not site_df.isna().any().any(), 'Error - we have nans!'
@@ -126,8 +126,12 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
 
     data = data.copy()
 
+    # cannot use data outside of water year
+    data = data[(data.date.dt.month <= JULY) | (data.date.dt.month > OCTOBER)] \
+        .reset_index(drop=True)
+
     # monthly measurements are approx at the middle
-    data.day[data.day == -1] = 15
+    data.day[data.day == -1] = MID_MONTH_DAY
 
     # Create dates to work with
     data["date"] = pd.to_datetime(data[date_cols].applymap(int))
@@ -162,8 +166,6 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
         year = date.year if date.month >= OCTOBER else date.year - 1
         return pd.Timestamp(year=year, month=OCTOBER, day=1)
 
-    processed_data = processed_data[(processed_data.date.dt.month <= JULY) | (processed_data.date.dt.month > OCTOBER)] \
-        .reset_index(drop=True)
     processed_data['time'] = processed_data.date.apply(lambda x: (x - calculate_first_of_oct(x)).days)
 
     scaler = StandardScaler()
