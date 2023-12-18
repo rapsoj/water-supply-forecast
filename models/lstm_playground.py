@@ -41,7 +41,7 @@ def main():
 
     N_HIDDEN = [1, 2, 3]
     DROPOUT_PROBS = [0.2, 0.3, 0.4, 0.5]
-    HIDDEN_SIZES = [16, 32, 64, 128, 256]
+    HIDDEN_SIZES = [32, 64, 128, 256, 512]
     BATCH_SIZES = [2, 4, 8, 16, 32, 64, 128, 256]
     LEARNING_RATES = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5]
     N_EPOCHS = [5, 10, 15, 20, 25, 30]
@@ -52,7 +52,7 @@ def main():
     shuffle(hyp_params_combs)
 
     results = []
-    for hyp_params in [DEF_LSTM_HYPPARAMS]:
+    for hyp_params in hyp_params_combs:
         dataloader = DataLoader(train_set, batch_size=hyp_params.bs, shuffle=True, collate_fn=pad_collate_fn)
         model = LSTMModel(input_size=n_feats, hidden_size=hyp_params.hidden_size, num_layers=hyp_params.n_hidden,
                           dropout_prob=hyp_params.dropout_prob)
