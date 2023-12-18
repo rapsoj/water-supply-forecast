@@ -67,9 +67,12 @@ def get_global_data():
 
     X, val_X, test_X, y, val_y = train_val_test_split(processed_data, gt, test_years, validation_years)
 
+    y = y.sort_values(['site_id', 'forecast_year']).reset_index(drop=True)
+    val_y = val_y.sort_values(['site_id', 'forecast_year']).reset_index(drop=True)
+
     return X, val_X, test_X, y, val_y
 
 
 res = get_global_data()
-with open('global_data.pkl', 'wb') as f:
+with open(os.path.join('..', 'assets', 'data', 'global_data_for_lstm_debugging.pkl'), 'wb') as f:
     pickle.dump(res, f)

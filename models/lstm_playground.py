@@ -1,19 +1,21 @@
+import os
 import pickle
 from dataclasses import dataclass
 from itertools import product
 from random import shuffle
 
 import numpy as np
+import pandas as pd
 from sklearn.metrics import mean_pinball_loss
 from torch.utils.data import DataLoader
 
 from consts import DEF_QUANTILES
 from models.fitters import LSTMModel
-from models.lstm_utils import train_lstm, pad_collate_fn, features2seqs, calc_val_loss, HypParams
+from models.lstm_utils import train_lstm, pad_collate_fn, features2seqs, calc_val_loss, HypParams, DEF_LSTM_HYPPARAMS
 
 
 def main():
-    with open('global_data.pkl', 'rb') as f:
+    with open(os.path.join('..', 'assets', 'data', 'global_data_for_lstm_debugging.pkl'), 'rb') as f:
         data = pickle.load(f)
 
     # X, y = data['train']
@@ -33,7 +35,6 @@ def main():
     print(f"Empirical quantile's validation loss: {val_emp_aqm:.3f}")
 
     train_set = features2seqs(X, y)
-
     val_set = features2seqs(val_X, val_y)
 
     n_feats = train_set[0][0].shape[1]
@@ -51,7 +52,7 @@ def main():
     shuffle(hyp_params_combs)
 
     results = []
-    for hyp_params in hyp_params_combs:
+    for hyp_params in [DEF_LSTM_HYPPARAMS]:
         dataloader = DataLoader(train_set, batch_size=hyp_params.bs, shuffle=True, collate_fn=pad_collate_fn)
         model = LSTMModel(input_size=n_feats, hidden_size=hyp_params.hidden_size, num_layers=hyp_params.n_hidden,
                           dropout_prob=hyp_params.dropout_prob)
@@ -64,6 +65,8 @@ def main():
         # append new results to running text file
         with open('lstm_results.txt', 'a+') as f:
             f.write(f'val loss: {val_loss:.5f}, {hyp_params}\n')
+
+    pd.DataFrame.from_records(results).to_csv('lstm_results.csv')
 
 
 if __name__ == '__main__':
