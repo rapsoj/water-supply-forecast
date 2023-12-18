@@ -22,7 +22,7 @@ class HypParams:
     dropout_prob: float
 
 
-DEF_LSTM_HYPPARAMS = HypParams(lr=1e-3, bs=8, n_epochs=4, n_hidden=1, hidden_size=64, dropout_prob=0.3)
+DEF_LSTM_HYPPARAMS = HypParams(lr=1e-4, bs=2, n_epochs=7, n_hidden=1, hidden_size=512, dropout_prob=0.5)
 
 
 class SequenceDataset(Dataset):
