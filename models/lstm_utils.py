@@ -31,7 +31,9 @@ class SequenceDataset(Dataset):
         self.y = y
 
     def __len__(self):
-        return len(self.y)
+        if self.y is not None:
+            assert len(self.X) == len(self.y), 'Error - X and y have different lengths!'
+        return len(self.X)
 
     def __getitem__(self, idx):
         idx_row = self.X.iloc[idx]
@@ -58,12 +60,17 @@ class SequenceDataset(Dataset):
 def pad_collate_fn(batch):
     # Sort the batch by sequence length in descending order
     batch.sort(key=lambda x: len(x[0]), reverse=True)
-    sequences, labels = zip(*batch)
-    # Pad the sequences and stack the labels
+    batch_has_label = isinstance(batch[0], tuple)
+    if batch_has_label:
+        sequences, labels = zip(*batch)
+        labels = torch.stack(labels)
+    else:
+        sequences = batch
     padded_sequences = pad_sequence(sequences, batch_first=True)
     lengths = [len(seq) for seq in sequences]
-    labels = torch.stack(labels)
-    return padded_sequences, labels, lengths
+    if batch_has_label:
+        return padded_sequences, labels, lengths
+    return padded_sequences, lengths
 
 
 def features2seqs(X: pd.DataFrame, y: pd.Series = None):
@@ -72,6 +79,9 @@ def features2seqs(X: pd.DataFrame, y: pd.Series = None):
     if y is not None:
         y = y.sort_values(by='site_id').iloc[X.index].reset_index(drop=True)
     X = X.reset_index(drop=True)
+
+    if y is not None:
+        assert (X.site_id == y.site_id).all(), 'Error - site id mismatch!'
 
     return SequenceDataset(X, y)
 
