@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.decomposition import PCA
 import numpy as np
 import seaborn as sns
-from consts import FIRST_FULL_GT_YEAR, JULY
+from consts import FIRST_FULL_GT_YEAR, JULY, LAST_YEAR
 
 def data_pruning(processed_data, ground_truth):
 
