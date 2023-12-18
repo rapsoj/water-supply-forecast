@@ -8,7 +8,7 @@ path = os.getcwd()
 
 
 # Pick your poison: 'test', 'val' or 'train'
-data_set = 'train'
+data_set = 'test'
 
 num_predictions = N_PRED_MONTHS * N_PREDS_PER_MONTH
 validation_years = range(FIRST_FULL_GT_YEAR, 2023, 8)

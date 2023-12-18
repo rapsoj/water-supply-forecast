@@ -59,6 +59,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
     df_basins = cleaning.clean_basins(df_basins)
     df_acis = cleaning.clean_acis(df_acis)
     df_pdsi = cleaning.clean_pdsi(df_pdsi)
+
     # Merging dataframes
     # Merge on site id, day, LEAD column
     #dataframes = [df_cpc_prec, df_cpc_temp]
@@ -79,6 +80,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
 
     # Merge on site_id
     df_merged = merge.merge_site_id([df_merged, df_dem, df_basins])
+
     # Outlier cleaning todo
 
     # Imputation todo
