@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 
-from consts import AUGUST
+from consts import OCTOBER, JULY
 
 path = os.getcwd()
 
@@ -158,11 +158,13 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
         .reset_index(drop=True)
 
     # adding temporal feature
-    def calculate_first_of_august(date):
-        year = date.year if date.month >= AUGUST else date.year - 1
-        return pd.Timestamp(year=year, month=AUGUST, day=1)
+    def calculate_first_of_oct(date):
+        year = date.year if date.month >= OCTOBER else date.year - 1
+        return pd.Timestamp(year=year, month=OCTOBER, day=1)
 
-    processed_data['time'] = processed_data.date.apply(lambda x: (x - calculate_first_of_august(x)).days)
+    processed_data = processed_data[(processed_data.date.dt.month <= JULY) | (processed_data.date.dt.month > OCTOBER)] \
+        .reset_index(drop=True)
+    processed_data['time'] = processed_data.date.apply(lambda x: (x - calculate_first_of_oct(x)).days)
 
     scaler = StandardScaler()
     processed_data.time = scaler.fit_transform(processed_data[['time']])
