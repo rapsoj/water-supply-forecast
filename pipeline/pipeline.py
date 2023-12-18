@@ -17,7 +17,6 @@ from preprocessing.data_pruning import data_pruning
 
 path = os.getcwd()
 
-
 def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
                  validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)), gt_col: str = 'volume',
                  load_from_cache: bool = False, start_year=FIRST_FULL_GT_YEAR, using_pca=False):
