@@ -126,17 +126,16 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
 
     data = data.copy()
 
-    # cannot use data outside of water year
-    data = data[(data.date.dt.month <= JULY) | (data.date.dt.month > OCTOBER)] \
-        .reset_index(drop=True)
-
     # monthly measurements are approx at the middle
     data.day[data.day == -1] = MID_MONTH_DAY
 
     # Create dates to work with
     data["date"] = pd.to_datetime(data[date_cols].applymap(int))
     data = data.sort_values('date')
-    data = data.drop(columns=date_cols)
+    # cannot use data outside of water year
+    data = data[(data.date.dt.month <= JULY) | (data.date.dt.month > OCTOBER)] \
+        .drop(columns=date_cols) \
+        .reset_index(drop=True)
 
     # Get site ids
     site_id_str = 'site_id_'
