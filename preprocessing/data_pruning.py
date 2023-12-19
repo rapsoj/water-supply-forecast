@@ -14,6 +14,7 @@ def data_pruning(processed_data, ground_truth, FEAT_CORR_THRESH: float = .2):
     gt_col = list(set((ground_truth.site_id + ground_truth.forecast_year.astype(str))))
     df = df[(df.site_id + df.forecast_year.astype(str)).isin(gt_col)]
 
+    # todo delete this?
     ft_col = list(set((df.site_id + df.forecast_year.astype(str))))
     ground_truth = ground_truth[(ground_truth.site_id + ground_truth.forecast_year.astype(str)).isin(ft_col)]
     ground_truth = ground_truth.sort_values(by=['site_id', 'forecast_year']).reset_index(drop=True)
@@ -40,7 +41,8 @@ def data_pruning(processed_data, ground_truth, FEAT_CORR_THRESH: float = .2):
     cols_to_keep = list((set(corr_matrix.index[corr_matrix['gt'].abs() >= FEAT_CORR_THRESH]) | set(cols_to_keep))
                         - set(['gt']))
 
-    return processed_data[cols_to_keep], ground_truth
+    rel_processed = processed_data[(processed_data.site_id + processed_data.forecast_year.astype(str)).isin(gt_col)]
+    return rel_processed[cols_to_keep], ground_truth
 
 
 def data_pca(processed_data, output_file_path: str = 'pruned_data', load_from_cache=True, n_components: int = 30):
