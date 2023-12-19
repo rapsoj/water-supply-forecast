@@ -343,5 +343,4 @@ def clean_usgs(df_usgs):
     df_usgs['month'] = df_usgs['week_start_date'].dt.month
     df_usgs['year'] = df_usgs['week_start_date'].dt.year
     df_usgs.drop('week_start_date', axis=1, inplace=True)
-    df_acis = df_usgs[df_usgs.year <= LAST_YEAR]
     return df_usgs
