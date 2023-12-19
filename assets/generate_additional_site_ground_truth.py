@@ -36,14 +36,12 @@ monthly_flow.volume[monthly_flow.volume.isna()] = monthly_flow[monthly_flow.volu
 
 gt = monthly_flow.groupby(['site_id', 'year'], as_index=False).volume.sum()
 
-#site_ids = [metadata.nrcs_name[metadata.nrcs_id == x].iloc[0] for x in gt.nrcs_id]
+site_ids = gt.site_id.unique()
 
-#gt['site_id'] = pd.Series(data=site_ids)
 gt = gt[gt.year >= FIRST_FULL_GT_YEAR]
 gt = gt[gt.volume != 0]
 
-#gt.site_id = gt.site_id.str.lower() \
-#    .replace('[ ]', '_', regex=True)
+gt.site_id = gt.site_id.str.lower() \
+    .replace('[ ]', '_', regex=True)
 
-#gt = gt.drop(columns='nrcs_id')
 gt.to_csv(os.path.join(path, '..', 'assets', 'data', 'additional_train.csv'))

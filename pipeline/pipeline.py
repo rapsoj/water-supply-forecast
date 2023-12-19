@@ -27,7 +27,7 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     torch.random.manual_seed(0)
 
     print('Loading data')
-    basic_preprocessed_df = get_processed_dataset(load_from_cache=True,
+    basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache,
                                                   use_additional_sites=use_additional_sites)
 
     # todo add explicit forecasting functionality, split train/test for forecasting earlier.
@@ -335,8 +335,8 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
                          start_year: int = FIRST_FULL_GT_YEAR):
     feature_df = feature_df.copy()
     gt_df = gt_df.copy()
-
-    test_feature_mask = feature_df.forecast_year.isin(test_years)
+    ordered_site_ids = pd.read_csv(os.path.join("..", "assets", "ordered_site_ids"))
+    test_feature_mask = feature_df.forecast_year.isin(test_years) & feature_df.site_id.isin(ordered_site_ids)
     test_gt_mask = gt_df.forecast_year.isin(test_years)
 
     test_feature_df = feature_df[test_feature_mask].reset_index(drop=True)
@@ -361,7 +361,3 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
 
     # todo figure out why some things are empty here, e.g. test_gt_df
     return train_feature_df, val_feature_df, test_feature_df, train_gt_df, val_gt_df
-
-
-if __name__ == '__main__':
-    run_pipeline()
