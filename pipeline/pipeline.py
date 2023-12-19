@@ -324,7 +324,7 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
                          start_year: int = FIRST_FULL_GT_YEAR):
     feature_df = feature_df.copy()
     gt_df = gt_df.copy()
-    ordered_site_ids = pd.read_csv(os.path.join("..", "assets", "ordered_site_ids"))
+    ordered_site_ids = pd.read_csv(os.path.join("..", "assets", "ordered_site_ids.csv"))
     test_feature_mask = feature_df.forecast_year.isin(test_years) & feature_df.site_id.isin(ordered_site_ids)
     test_gt_mask = gt_df.forecast_year.isin(test_years)
 
