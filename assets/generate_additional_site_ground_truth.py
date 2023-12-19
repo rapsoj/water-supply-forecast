@@ -12,7 +12,7 @@ metadata = pd.read_csv(os.path.join(path, '..', 'assets', 'data', 'additional_si
 
 monthly_flow = monthly_flow[(monthly_flow.month <= JULY) & (monthly_flow.month >= APRIL)]
 
-outlier_sites = []  # todo manually find high/low streamflow sites
+outlier_sites = [np.nan]  # todo manually find high/low streamflow sites
 
 monthly_flow = monthly_flow[~monthly_flow.nrcs_id.isin(outlier_sites)]
 
