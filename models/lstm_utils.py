@@ -117,8 +117,7 @@ def calc_val_loss(model: nn.Module, val_set):
 
 def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, hyperparams: HypParams) -> nn.Module:
     optimizer = optim.Adam(model.parameters(), lr=hyperparams.lr)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=hyperparams.lr_step_size, gamma=hyperparams.lr_gamma,
-                                          verbose=True)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=hyperparams.lr_step_size, gamma=hyperparams.lr_gamma)
 
     for epoch in range(hyperparams.n_epochs):
         train_loss = 0
