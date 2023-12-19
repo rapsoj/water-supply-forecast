@@ -304,10 +304,12 @@ def clean_pdsi(df_pdsi):
     df_pdsi.drop('date', axis=1, inplace=True)
     return df_pdsi
 
+
 def import_era5(current_dir):
     folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'ERA5L')
     df_era5 = pd.read_csv(os.path.join(folder_path, 'era5l.csv'))
     return df_era5
+
 
 def clean_era5(df_era5):
     df_era5['period_end'] = pd.to_datetime(df_era5['period_end']) + pd.DateOffset(days=1)
@@ -317,15 +319,20 @@ def clean_era5(df_era5):
     df_era5.drop(columns=['period_end', 'period_start'], inplace=True)
     return df_era5
 
+
 def import_usgs(current_dir):
     folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'usgs_streamflow')
     df_usgs = pd.read_csv(os.path.join(folder_path, 'usgs_streamflow.csv'))
     return df_usgs
 
-def clean_usgs(df_usgs):
-    df_usgs['datetime'] = pd.to_datetime(df_usgs['datetime'])
-    df_usgs['day'] = df_usgs['datetime'].dt.day
-    df_usgs['month'] = df_usgs['datetime'].dt.month
-    df_usgs['year'] = df_usgs['datetime'].dt.year
-    df_usgs.drop('datetime', axis=1, inplace=True)
+
+def clean_usgs(df_usgs, additional_data_format: bool = False):
+    if additional_data_format:
+        raise NotImplementedError
+
+    df_usgs.week_start_date = pd.to_datetime(df_usgs.week_start_date) + pd.DateOffset(days=7)
+    df_usgs['day'] = df_usgs['week_start_date'].dt.day
+    df_usgs['month'] = df_usgs['week_start_date'].dt.month
+    df_usgs['year'] = df_usgs['week_start_date'].dt.year
+    df_usgs.drop('week_start_date', axis=1, inplace=True)
     return df_usgs
