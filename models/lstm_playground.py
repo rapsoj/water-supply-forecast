@@ -42,14 +42,17 @@ def main():
     n_feats = train_set[0][0].shape[1]
 
     N_HIDDEN = [1, 2, 3]
-    DROPOUT_PROBS = [0.2, 0.3, 0.4, 0.5]
-    HIDDEN_SIZES = [64, 128, 256, 512]
+    DROPOUT_PROBS = [0.3, 0.4, 0.5]
+    HIDDEN_SIZES = [128, 256, 512]
     BATCH_SIZES = [16, 32, 64, 128, 256]
-    LEARNING_RATES = [1e-2, 1e-3, 1e-4, 1e-5]
+    LEARNING_RATES = [1e-2, 1e-3, 1e-4]
     N_EPOCHS = [50]
+    GAMMAS = [0.5, 1e-1]
+    SCHEDULER_STEP_SIZES = [10, 20, 30, 40]
 
     # hypparam search
-    hyp_params_combs = list(product(LEARNING_RATES, BATCH_SIZES, N_EPOCHS, N_HIDDEN, HIDDEN_SIZES, DROPOUT_PROBS))
+    hyp_params_combs = list(product(LEARNING_RATES, SCHEDULER_STEP_SIZES, GAMMAS, BATCH_SIZES, N_EPOCHS, N_HIDDEN,
+                                    HIDDEN_SIZES, DROPOUT_PROBS))
     hyp_params_combs = [HypParams(*hyp_params) for hyp_params in hyp_params_combs]
     shuffle(hyp_params_combs)
 
