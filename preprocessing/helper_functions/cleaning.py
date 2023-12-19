@@ -256,14 +256,18 @@ def import_swann(current_dir, additional_sites):
     return df_swann
 
 
-def clean_swann(df_swann):
-    df_swann['week_start_date'] = pd.to_datetime(df_swann['week_start_date']) + pd.DateOffset(days=7)
+def clean_swann(df_swann, additional_sites=False):
+    if additional_sites:
+        key = 'week_start_date'
+    else:
+        key = 'time'
+    df_swann[key] = pd.to_datetime(df_swann[key]) + pd.DateOffset(days=7)
 
     # Extract day, month, and year into separate columns
-    df_swann['day'] = df_swann['week_start_date'].dt.day
-    df_swann['month'] = df_swann['week_start_date'].dt.month
-    df_swann['year'] = df_swann['week_start_date'].dt.year
-    df_swann.drop('week_start_date', axis=1, inplace=True)
+    df_swann['day'] = df_swann[key].dt.day
+    df_swann['month'] = df_swann[key].dt.month
+    df_swann['year'] = df_swann[key].dt.year
+    df_swann.drop(key, axis=1, inplace=True)
     return df_swann
 
 
@@ -329,9 +333,10 @@ def import_usgs(current_dir):
     return df_usgs
 
 def clean_usgs(df_usgs):
-    df_usgs['datetime'] = pd.to_datetime(df_usgs['datetime'])
-    df_usgs['day'] = df_usgs['datetime'].dt.day
-    df_usgs['month'] = df_usgs['datetime'].dt.month
-    df_usgs['year'] = df_usgs['datetime'].dt.year
-    df_usgs.drop('datetime', axis=1, inplace=True)
+    df_usgs.week_start_date = pd.to_datetime(df_usgs.week_start_date) + pd.DateOffset(days=7)
+    df_usgs['day'] = df_usgs['week_start_date'].dt.day
+    df_usgs['month'] = df_usgs['week_start_date'].dt.month
+    df_usgs['year'] = df_usgs['week_start_date'].dt.year
+    df_usgs.drop('week_start_date', axis=1, inplace=True)
+    df_acis = df_usgs[df_usgs.year <= LAST_YEAR]
     return df_usgs
