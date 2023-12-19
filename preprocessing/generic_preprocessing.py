@@ -22,8 +22,12 @@ additional_sites_output_path: str = 'additional_sites_transformed_vars.csv',
 
         df_swann = cleaning.import_swann(current_dir, additional_sites)
         df_basins = cleaning.import_basins(current_dir, additional_sites)
-        df_swann = cleaning.clean_swann(df_swann)
+        df_swann = cleaning.clean_swann(df_swann, additional_sites=additional_sites)
         df_basins = cleaning.clean_basins(df_basins)
+        df_flow = cleaning.import_flow(current_dir)
+        df_flow = cleaning.clean_flow(df_flow)
+
+
 
         dfs2merge = [df_swann, df_basins]
 
