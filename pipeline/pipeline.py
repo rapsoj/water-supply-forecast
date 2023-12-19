@@ -361,3 +361,6 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
 
     # todo figure out why some things are empty here, e.g. test_gt_df
     return train_feature_df, val_feature_df, test_feature_df, train_gt_df, val_gt_df
+
+if __name__ == "__main__":
+    run_pipeline()
