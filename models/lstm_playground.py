@@ -55,9 +55,6 @@ def main():
 
     results = []
     for hyp_params in hyp_params_combs:
-        if hyp_params.n_hidden == 1 and hyp_params.dropout_prob != min(DROPOUT_PROBS):
-            continue  # arbitrary dropout prob, prevent recurring computations
-
         dataloader = DataLoader(train_set, batch_size=hyp_params.bs, shuffle=True, collate_fn=pad_collate_fn)
         model = LSTMModel(input_size=n_feats, hidden_size=hyp_params.hidden_size, num_layers=hyp_params.n_hidden,
                           dropout_prob=hyp_params.dropout_prob)
