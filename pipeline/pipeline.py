@@ -47,7 +47,9 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     ground_truth = load_ground_truth(num_predictions=N_PRED_MONTHS * N_PREDS_PER_MONTH, additional_sites=use_additional_sites)
 
     # todo match features and gt data as to make sure every feature row has a corresponding label
-
+    # get pairs
+    pairs = list(zip(ground_truth.site_id, ground_truth.forecast_year))
+    processed_data = processed_data[(processed_data.site_id, processed_data.forecast_year).isin(pairs)]
 
     pruned_data = data_pruning(processed_data, ground_truth)
 
