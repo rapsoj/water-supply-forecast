@@ -27,8 +27,8 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     torch.random.manual_seed(0)
 
     print('Loading data')
-    basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache,
-                                                  additional_sites=use_additional_sites)
+    basic_preprocessed_df = get_processed_dataset(load_from_cache=True,
+                                                  use_additional_sites=use_additional_sites)
 
     # todo add explicit forecasting functionality, split train/test for forecasting earlier.
     #  currently everything is processed together. unsure if necessary

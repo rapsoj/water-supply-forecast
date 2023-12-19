@@ -12,16 +12,20 @@ current_dir = os.getcwd()
 
 def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
                           additional_sites_output_path: str = 'additional_sites_transformed_vars.csv',
-                          load_from_cache: bool = False, additional_sites: bool = True) -> pd.DataFrame:
-    if load_from_cache and os.path.exists(output_file_path):
-        return pd.read_csv(output_file_path)
+                          load_from_cache: bool = False, use_additional_sites: bool = True) -> pd.DataFrame:
 
-    if additional_sites:
+    if (load_from_cache):
+        if (not use_additional_sites) and os.path.exists(output_file_path):
+            return pd.read_csv(output_file_path)
+        elif use_additional_sites and os.path.exists(additional_sites_output_path):
+            return pd.read_csv(additional_sites_output_path)
+
+    if use_additional_sites:
         # todo add global data
         # todo add original data+check that its labels line up with the inferred ones
 
-        df_swann = cleaning.import_swann(current_dir, additional_sites)
-        df_basins = cleaning.import_basins(current_dir, additional_sites)
+        df_swann = cleaning.import_swann(current_dir, use_additional_sites)
+        df_basins = cleaning.import_basins(current_dir, use_additional_sites)
         df_mjo = cleaning.import_mjo(current_dir)
         df_nino = cleaning.import_nino(current_dir)
         df_oni = cleaning.import_oni(current_dir)
@@ -32,7 +36,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
         df_flow = cleaning.import_flow(current_dir)
 
 
-        df_swann = cleaning.clean_swann(df_swann, additional_sites=additional_sites)
+        df_swann = cleaning.clean_swann(df_swann, additional_sites=use_additional_sites)
         df_basins = cleaning.clean_basins(df_basins)
         df_mjo = cleaning.clean_mjo(df_mjo)
         df_nino = cleaning.clean_nino(df_nino)
@@ -77,8 +81,8 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
         df_pdsi = cleaning.import_pdsi(current_dir)
         df_era5 = cleaning.import_era5(current_dir)
         df_usgs = cleaning.import_usgs(current_dir)
-        df_swann = cleaning.import_swann(current_dir, additional_sites)
-        df_basins = cleaning.import_basins(current_dir, additional_sites)
+        df_swann = cleaning.import_swann(current_dir, use_additional_sites)
+        df_basins = cleaning.import_basins(current_dir, use_additional_sites)
         ## Pre-merge cleaning steps
 
         # Cleaning at this stage is only adjustments required to allow merging,
@@ -141,7 +145,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
     trans_vars = scaling.preprocess_dataframe(df_merged)
 
     # Output the DataFrame to a CSV file
-    if additional_sites:
+    if use_additional_sites:
         trans_vars.to_csv(additional_sites_output_path, index=False)
     else:
         trans_vars.to_csv(output_file_path, index=False)
