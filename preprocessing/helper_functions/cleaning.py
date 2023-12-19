@@ -156,6 +156,7 @@ def import_flow(current_dir, additional_sites=False):
 
 def clean_flow(df_flow):
     # Clean flows training dataset
+    df_flow['day'] = np.nan
     return df_flow
 
 
@@ -343,4 +344,5 @@ def clean_usgs(df_usgs):
     df_usgs['month'] = df_usgs['week_start_date'].dt.month
     df_usgs['year'] = df_usgs['week_start_date'].dt.year
     df_usgs.drop('week_start_date', axis=1, inplace=True)
+    df_usgs = df_usgs[df_usgs.year <= LAST_YEAR]
     return df_usgs

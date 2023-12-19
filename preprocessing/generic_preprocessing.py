@@ -22,14 +22,42 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
 
         df_swann = cleaning.import_swann(current_dir, additional_sites)
         df_basins = cleaning.import_basins(current_dir, additional_sites)
+        df_mjo = cleaning.import_mjo(current_dir)
+        df_nino = cleaning.import_nino(current_dir)
+        df_oni = cleaning.import_oni(current_dir)
+        df_pdo = cleaning.import_pdo(current_dir)
+        df_pna = cleaning.import_pna(current_dir)
+        df_soi1 = cleaning.import_soi1(current_dir)
+        df_soi2 = cleaning.import_soi2(current_dir)
+        df_flow = cleaning.import_flow(current_dir)
+
+
         df_swann = cleaning.clean_swann(df_swann, additional_sites=additional_sites)
         df_basins = cleaning.clean_basins(df_basins)
-        df_flow = cleaning.import_flow(current_dir)
+        df_mjo = cleaning.clean_mjo(df_mjo)
+        df_nino = cleaning.clean_nino(df_nino)
+        df_oni = cleaning.clean_oni(df_oni)
+        df_pdo = cleaning.clean_pdo(df_pdo)
+        df_pna = cleaning.clean_pna(df_pna)
+        df_soi1 = cleaning.clean_soi1(df_soi1)
+        df_soi2 = cleaning.clean_soi2(df_soi2)
         df_flow = cleaning.clean_flow(df_flow)
 
-        dfs2merge = [df_swann, df_basins]
 
-        df_merged = merge.merge_site_id(dfs2merge)
+        dfs2merge_on_day_site_id = [df_swann, df_flow]
+        df_merged_day_site = merge.merge_site_id_day(dfs2merge_on_day_site_id)
+
+        dfs2merge_on_day = [df_mjo, df_nino, df_oni, df_pdo, df_pna, df_soi1, df_soi2, df_merged_day_site]
+        for df in dfs2merge_on_day:
+            if 'day' in df.columns:
+                continue
+            df['day'] = np.nan
+        df_merged_day = merge.merge_day(dfs2merge_on_day)
+        df_basins = df_basins[df_basins.site_id.isin(df_merged_day.site_id)]
+
+        dfs2merge_on_site_id = [df_merged_day, df_basins]
+
+        df_merged = merge.merge_site_id(dfs2merge_on_site_id)
     else:
         # Importing steps
         df_mjo = cleaning.import_mjo(current_dir)
