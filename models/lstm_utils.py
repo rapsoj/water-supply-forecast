@@ -115,12 +115,12 @@ def calc_val_loss(model: nn.Module, val_set):
         return np.mean(val_losses)
 
 
-def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, lr: float, num_epochs: int,
-               step_size: int, gamma: float) -> nn.Module:
-    optimizer = optim.Adam(model.parameters(), lr=lr)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma, verbose=True)
+def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, hyperparams: HypParams) -> nn.Module:
+    optimizer = optim.Adam(model.parameters(), lr=hyperparams.lr)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=hyperparams.lr_step_size, gamma=hyperparams.lr_gamma,
+                                          verbose=True)
 
-    for epoch in range(num_epochs):
+    for epoch in range(hyperparams.n_epochs):
         train_loss = 0
         for sequences, labels in train_dloader:
             optimizer.zero_grad()
@@ -138,7 +138,7 @@ def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, lr
 
         scheduler.step()
 
-        epoch_str = f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {train_loss:.4f}'
+        epoch_str = f'Epoch [{epoch + 1}/{hyperparams.n_epochs}], Training Loss: {train_loss:.4f}'
         if val_loss is not None:
             epoch_str += f', Val Loss: {val_loss.item():.4f}'
         print(epoch_str)
