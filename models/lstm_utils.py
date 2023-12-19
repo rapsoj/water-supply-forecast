@@ -24,6 +24,7 @@ class HypParams:
 
 DEF_LSTM_HYPPARAMS = HypParams(lr=3e-5, bs=16, n_epochs=50, n_hidden=3, hidden_size=512, dropout_prob=0.4)
 
+
 class SequenceDataset(Dataset):
     def __init__(self, X: pd.DataFrame, pre_X: pd.DataFrame, y: pd.DataFrame = None):
         self.X = X
