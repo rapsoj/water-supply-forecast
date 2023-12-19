@@ -62,7 +62,7 @@ def main():
         model = LSTMModel(input_size=n_feats, hidden_size=hyp_params.hidden_size, num_layers=hyp_params.n_hidden,
                           dropout_prob=hyp_params.dropout_prob)
 
-        model = train_lstm(dataloader, val_set, model, lr=hyp_params.lr, num_epochs=hyp_params.n_epochs)
+        model = train_lstm(dataloader, val_set, model, hyp_params)
 
         val_loss = calc_val_loss(model, val_set)
         results.append({'val_loss': val_loss} | hyp_params.__dict__)
