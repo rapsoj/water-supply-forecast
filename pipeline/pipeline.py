@@ -20,17 +20,20 @@ path = os.getcwd()
 
 def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
                  validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)), gt_col: str = 'volume',
-                 load_from_cache: bool = False, start_year=FIRST_FULL_GT_YEAR, using_pca=False):
+                 load_from_cache: bool = False, start_year=FIRST_FULL_GT_YEAR, using_pca=False,
+                 use_additional_sites: bool = True):
     np.random.seed(0)
     random.seed(0)
     torch.random.manual_seed(0)
 
     print('Loading data')
-    basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache)
+    basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache,
+                                                  additional_sites=use_additional_sites)
 
     # todo add explicit forecasting functionality, split train/test for forecasting earlier.
     #  currently everything is processed together. unsure if necessary
-    processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache)
+    processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache,
+                                        additional_sites=use_additional_sites)
 
     # pruned_data = data_pruning(processed_data, load_from_cache=False) # todo merge this with implementation in ey/lstm
 

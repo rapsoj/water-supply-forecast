@@ -120,9 +120,13 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
 
 
 def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed_data.csv',
-                       load_from_cache: bool = False) -> tuple:
-    if load_from_cache and os.path.exists(output_file_path):
-        return pd.read_csv(output_file_path, parse_dates=['date'])
+                       additional_sites_output_path: str = 'additional_sites_processed_data.csv',
+                       load_from_cache: bool = False, use_additional_sites: bool = True) -> tuple:
+    if load_from_cache:
+        if not use_additional_sites and os.path.exists(output_file_path):
+            return pd.read_csv(output_file_path, parse_dates=['date'])
+        if use_additional_sites and os.path.exists(additional_sites_output_path):
+            return pd.read_csv(additional_sites_output_path, parse_dates=['date'])
 
     data = data.copy()
 
@@ -170,6 +174,9 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
     scaler = StandardScaler()
     processed_data.time = scaler.fit_transform(processed_data[['time']])
 
-    processed_data.to_csv(output_file_path, index=False)
+    if not use_additional_sites:
+        processed_data.to_csv(output_file_path, index=False)
+    else:
+        processed_data.to_csv(additional_sites_output_path, index=False)
 
     return processed_data
