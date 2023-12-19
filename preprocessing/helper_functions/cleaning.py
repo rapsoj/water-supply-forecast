@@ -338,11 +338,13 @@ def import_usgs(current_dir):
     return df_usgs
 
 
-def clean_usgs(df_usgs):
+def clean_usgs(df_usgs, additional_data_format: bool = False):
+    if additional_data_format:
+        raise NotImplementedError
+
     df_usgs.week_start_date = pd.to_datetime(df_usgs.week_start_date) + pd.DateOffset(days=7)
     df_usgs['day'] = df_usgs['week_start_date'].dt.day
     df_usgs['month'] = df_usgs['week_start_date'].dt.month
     df_usgs['year'] = df_usgs['week_start_date'].dt.year
     df_usgs.drop('week_start_date', axis=1, inplace=True)
-    df_usgs = df_usgs[df_usgs.year <= LAST_YEAR]
     return df_usgs
