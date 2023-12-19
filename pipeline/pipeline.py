@@ -47,13 +47,7 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     ground_truth = load_ground_truth(num_predictions=N_PRED_MONTHS * N_PREDS_PER_MONTH,
                                      additional_sites=use_additional_sites)
 
-    # todo match features and gt data as to make sure every feature row has a corresponding label
-    # get pairs
-    #pairs = np.unique(list((ground_truth.site_id, ground_truth.forecast_year)))
-
-
-
-    pruned_data = data_pruning(processed_data, ground_truth)
+    pruned_data, ground_truth = data_pruning(processed_data, ground_truth)
 
     # Get training, validation and test sets
     train_features, val_features, test_features, train_gt, val_gt = \
@@ -356,6 +350,7 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
 
     # todo figure out why some things are empty here, e.g. test_gt_df
     return train_feature_df, val_feature_df, test_feature_df, train_gt_df, val_gt_df
+
 
 if __name__ == "__main__":
     run_pipeline()

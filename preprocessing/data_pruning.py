@@ -20,7 +20,10 @@ def data_pruning(processed_data, ground_truth, FEAT_CORR_THRESH: float = .2):
 
     gt_map = ground_truth.drop_duplicates().set_index(['site_id', 'forecast_year']).volume.to_dict()
     ground_truth_vol = df.apply(lambda x: gt_map[(x.site_id, x.forecast_year)], axis='columns').reset_index(drop=True)
-    ground_truth = pd.DataFrame({'volume': ground_truth_vol.reset_index(drop=True), 'site_id': df.site_id.reset_index(drop=True),'forecast_year': df.forecast_year.reset_index(drop=True)})
+    # todo do this in a non hacky way
+    ground_truth = pd.DataFrame(
+        {'volume': ground_truth_vol.reset_index(drop=True), 'site_id': df.site_id.reset_index(drop=True),
+         'forecast_year': df.forecast_year.reset_index(drop=True)})
 
     df = df.reset_index(drop=True)
     assert (df.site_id == ground_truth.site_id).all(), 'Site ids not matching in pruning'
@@ -37,7 +40,7 @@ def data_pruning(processed_data, ground_truth, FEAT_CORR_THRESH: float = .2):
     cols_to_keep = list((set(corr_matrix.index[corr_matrix['gt'].abs() >= FEAT_CORR_THRESH]) | set(cols_to_keep))
                         - set(['gt']))
 
-    return processed_data[cols_to_keep]
+    return processed_data[cols_to_keep], ground_truth
 
 
 def data_pca(processed_data, output_file_path: str = 'pruned_data', load_from_cache=True, n_components: int = 30):
