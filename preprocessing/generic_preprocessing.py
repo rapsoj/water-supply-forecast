@@ -20,11 +20,18 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
             return pd.read_csv(additional_sites_output_path)
 
     if additional_sites:
+        # todo add global data
+        # todo add original data+check that its labels line up with the inferred ones
+
         df_swann = cleaning.import_swann(current_dir, additional_sites)
         df_basins = cleaning.import_basins(current_dir, additional_sites)
         df_swann = cleaning.clean_swann(df_swann)
         df_basins = cleaning.clean_basins(df_basins)
-        df_merged = merge.merge_site_id([df_swann, df_basins])
+
+        dfs2merge = [df_swann, df_basins]
+        dfs2merge = [df.rename(columns={'nrcs_id': 'site_id'}) for df in dfs2merge]
+
+        df_merged = merge.merge_site_id(dfs2merge)
     else:
         # Importing steps
         df_mjo = cleaning.import_mjo(current_dir)
