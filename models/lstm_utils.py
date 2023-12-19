@@ -15,6 +15,8 @@ from consts import JULY, DEF_QUANTILES, OCTOBER
 @dataclass
 class HypParams:
     lr: float
+    lr_step_size: int
+    lr_gamma: float
     bs: int
     n_epochs: int
     n_hidden: int
@@ -22,7 +24,8 @@ class HypParams:
     dropout_prob: float
 
 
-DEF_LSTM_HYPPARAMS = HypParams(lr=1e-3, bs=32, n_epochs=75, n_hidden=2, hidden_size=512, dropout_prob=0.3)
+DEF_LSTM_HYPPARAMS = HypParams(lr=1e-3, lr_step_size=40, lr_gamma=0.1, bs=32, n_epochs=50, n_hidden=2, hidden_size=512,
+                               dropout_prob=0.3)
 
 
 class SequenceDataset(Dataset):
@@ -112,9 +115,10 @@ def calc_val_loss(model: nn.Module, val_set):
         return np.mean(val_losses)
 
 
-def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, lr: float, num_epochs: int) -> nn.Module:
+def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, lr: float, num_epochs: int,
+               step_size: int, gamma: float) -> nn.Module:
     optimizer = optim.Adam(model.parameters(), lr=lr)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma, verbose=True)
 
     for epoch in range(num_epochs):
         train_loss = 0
@@ -132,7 +136,7 @@ def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, lr
         train_loss /= len(train_dloader.dataset)
         val_loss = calc_val_loss(model, val_set)
 
-        scheduler.step(train_loss)  # todo see how to do this during training
+        scheduler.step()
 
         epoch_str = f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {train_loss:.4f}'
         if val_loss is not None:

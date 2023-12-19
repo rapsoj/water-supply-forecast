@@ -18,8 +18,6 @@ from consts import DEF_QUANTILES, JULY, N_PREDS
 from models.lstm_utils import features2seqs, pad_collate_fn, train_lstm, DEF_LSTM_HYPPARAMS
 
 
-
-
 def base_feature_adapter(X, pca=None):
     X = (X[X.date.dt.month <= JULY].drop(columns=['date', 'forecast_year']))
     return X
@@ -102,11 +100,12 @@ def lstm_fitter(X, y, val_X, val_y, quantile: bool = True):
     train_model = LSTMModel(input_size=n_feats)
     full_model = LSTMModel(input_size=n_feats)
 
-
-
-    train_model = train_lstm(train_dloader, val_set, train_model, DEF_LSTM_HYPPARAMS.lr, DEF_LSTM_HYPPARAMS.n_epochs)
+    # todo give hyperparams as this dataclass instead of independently
+    train_model = train_lstm(train_dloader, val_set, train_model, DEF_LSTM_HYPPARAMS.lr, DEF_LSTM_HYPPARAMS.n_epochs,
+                             DEF_LSTM_HYPPARAMS.lr_step_size, DEF_LSTM_HYPPARAMS.lr_gamma)
     # todo try fine-tuning trained model? probably no reason to do that, difficult to validate
-    full_model = train_lstm(full_dloader, None, full_model, DEF_LSTM_HYPPARAMS.lr, DEF_LSTM_HYPPARAMS.n_epochs)
+    full_model = train_lstm(full_dloader, None, full_model, DEF_LSTM_HYPPARAMS.lr, DEF_LSTM_HYPPARAMS.n_epochs,
+                            DEF_LSTM_HYPPARAMS.lr_step_size, DEF_LSTM_HYPPARAMS.lr_gamma)
 
     def lstm_feat_adapter(X):
         dataset = features2seqs(X)
@@ -117,7 +116,7 @@ def lstm_fitter(X, y, val_X, val_y, quantile: bool = True):
     train_model.eval()
     full_model.eval()
     return StreamflowModel(train_model, adapter=lstm_feat_adapter), \
-           StreamflowModel(full_model, adapter=lstm_feat_adapter)
+        StreamflowModel(full_model, adapter=lstm_feat_adapter)
 
 
 def general_xgboost_fitter(X, y, val_X, val_y, MAX_N_PCS=30, quantile: bool = True, using_pca=True):
