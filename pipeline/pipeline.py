@@ -20,7 +20,7 @@ path = os.getcwd()
 
 def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
                  validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)), gt_col: str = 'volume',
-                 load_from_cache: bool = False, start_year=FIRST_FULL_GT_YEAR, using_pca=False,
+                 load_from_cache: bool = True, start_year=FIRST_FULL_GT_YEAR, using_pca=False,
                  use_additional_sites: bool = True):
     np.random.seed(0)
     random.seed(0)
@@ -50,11 +50,7 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     # todo match features and gt data as to make sure every feature row has a corresponding label
     # get pairs
     #pairs = np.unique(list((ground_truth.site_id, ground_truth.forecast_year)))
-    gt_col = list(set((ground_truth.site_id + ground_truth.forecast_year.astype(str))))
-    processed_data = processed_data[(processed_data.site_id + processed_data.forecast_year.astype(str)).isin(gt_col)]
 
-    ft_col = list(set((processed_data.site_id + processed_data.forecast_year.astype(str))))
-    ground_truth = ground_truth[(ground_truth.site_id + ground_truth.forecast_year.astype(str)).isin(ft_col)]
 
 
     pruned_data = data_pruning(processed_data, ground_truth)

@@ -10,8 +10,19 @@ def data_pruning(processed_data, ground_truth, FEAT_CORR_THRESH: float = .2):
     df = processed_data[(processed_data.forecast_year >= FIRST_FULL_GT_YEAR)
                         & (processed_data.date.dt.month <= JULY)
                         & ~(processed_data.forecast_year.isin(range(2005, 2024, 2)))].reset_index(drop=True)
+
+    gt_col = list(set((ground_truth.site_id + ground_truth.forecast_year.astype(str))))
+    df = df[(df.site_id + df.forecast_year.astype(str)).isin(gt_col)]
+
+    ft_col = list(set((df.site_id + df.forecast_year.astype(str))))
+    ground_truth = ground_truth[(ground_truth.site_id + ground_truth.forecast_year.astype(str)).isin(ft_col)]
     ground_truth = ground_truth.sort_values(by=['site_id', 'forecast_year']).reset_index(drop=True)
 
+    gt_map = ground_truth.drop_duplicates().set_index(['site_id', 'forecast_year']).volume.to_dict()
+    ground_truth_vol = df.apply(lambda x: gt_map[(x.site_id, x.forecast_year)], axis='columns').reset_index(drop=True)
+    ground_truth = pd.DataFrame({'volume': ground_truth_vol.reset_index(drop=True), 'site_id': df.site_id.reset_index(drop=True),'forecast_year': df.forecast_year.reset_index(drop=True)})
+
+    df = df.reset_index(drop=True)
     assert (df.site_id == ground_truth.site_id).all(), 'Site ids not matching in pruning'
     assert (df.forecast_year == ground_truth.forecast_year).all(), 'Forecast years not matching in pruning'
     assert (df.date.dt.year == ground_truth.forecast_year).all(), 'Forecast years and dates not matching in pruning'
