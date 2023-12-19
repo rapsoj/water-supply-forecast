@@ -101,11 +101,9 @@ def lstm_fitter(X, y, val_X, val_y, quantile: bool = True):
     full_model = LSTMModel(input_size=n_feats)
 
     # todo give hyperparams as this dataclass instead of independently
-    train_model = train_lstm(train_dloader, val_set, train_model, DEF_LSTM_HYPPARAMS.lr, DEF_LSTM_HYPPARAMS.n_epochs,
-                             DEF_LSTM_HYPPARAMS.lr_step_size, DEF_LSTM_HYPPARAMS.lr_gamma)
+    train_model = train_lstm(train_dloader, val_set, train_model, hyperparams=DEF_LSTM_HYPPARAMS)
     # todo try fine-tuning trained model? probably no reason to do that, difficult to validate
-    full_model = train_lstm(full_dloader, None, full_model, DEF_LSTM_HYPPARAMS.lr, DEF_LSTM_HYPPARAMS.n_epochs,
-                            DEF_LSTM_HYPPARAMS.lr_step_size, DEF_LSTM_HYPPARAMS.lr_gamma)
+    full_model = train_lstm(full_dloader, None, full_model, hyperparams=DEF_LSTM_HYPPARAMS)
 
     def lstm_feat_adapter(X):
         dataset = features2seqs(X)
