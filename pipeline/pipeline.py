@@ -32,7 +32,7 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     # todo add explicit forecasting functionality, split train/test for forecasting earlier.
     #  currently everything is processed together. unsure if necessary
     processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache,
-                                        additional_sites=use_additional_sites)
+                                        use_additional_sites=use_additional_sites)
 
 
     # Data sanity check
@@ -48,8 +48,14 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
     # todo match features and gt data as to make sure every feature row has a corresponding label
     # get pairs
-    pairs = list(zip(ground_truth.site_id, ground_truth.forecast_year))
-    processed_data = processed_data[(processed_data.site_id, processed_data.forecast_year).isin(pairs)]
+    #pairs = np.unique(list((ground_truth.site_id, ground_truth.forecast_year)))
+    gt_col = list(set((ground_truth.site_id + ground_truth.forecast_year.astype(str))))
+    #feature_cols = processed_data[['site_id', 'forecast_year']]
+    processed_data = processed_data[(processed_data.site_id + processed_data.forecast_year.astype(str)).isin(gt_col)]
+
+    ft_col = list(set((processed_data.site_id + processed_data.forecast_year.astype(str))))
+    ground_truth = ground_truth[(ground_truth.site_id + ground_truth.forecast_year.astype(str)).isin(gt_col)]
+
 
     pruned_data = data_pruning(processed_data, ground_truth)
 
