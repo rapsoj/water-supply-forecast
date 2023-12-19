@@ -20,7 +20,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
         df_basins = cleaning.import_basins(current_dir, additional_sites)
         df_swann = cleaning.clean_swann(df_swann)
         df_basins = cleaning.clean_basins(df_basins)
-        df_merged = merge.merge_site_id(df_swann, df_basins)
+        df_merged = merge.merge_site_id([df_swann, df_basins])
     else:
         # Importing steps
         df_mjo = cleaning.import_mjo(current_dir)

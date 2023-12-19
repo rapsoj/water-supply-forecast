@@ -249,7 +249,7 @@ def clean_dem(df_dem):
 # todo fix importing and cleaning swann
 def import_swann(current_dir, additional_sites):
     if additional_sites:
-        folder_path = os.path.join(current_dir, '..', 'assets', 'additional_data')
+        folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'additional_sites')
     else:
         folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'swann')
     df_swann = pd.read_csv(os.path.join(folder_path, 'swann_swe.csv'))
@@ -257,19 +257,19 @@ def import_swann(current_dir, additional_sites):
 
 
 def clean_swann(df_swann):
-    df_swann['time'] = pd.to_datetime(df_swann['time'])
+    df_swann['week_start_date'] = pd.to_datetime(df_swann['week_start_date']) + pd.DateOffset(days=7)
 
     # Extract day, month, and year into separate columns
-    df_swann['day'] = df_swann['time'].dt.day
-    df_swann['month'] = df_swann['time'].dt.month
-    df_swann['year'] = df_swann['time'].dt.year
-    df_swann.drop('time', axis=1, inplace=True)
+    df_swann['day'] = df_swann['week_start_date'].dt.day
+    df_swann['month'] = df_swann['week_start_date'].dt.month
+    df_swann['year'] = df_swann['week_start_date'].dt.year
+    df_swann.drop('week_start_date', axis=1, inplace=True)
     return df_swann
 
 
 def import_basins(current_dir, additional_data):
     if additional_data:
-        folder_path = os.path.join(current_dir, '..', 'assets', 'additional_data')
+        folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'additional_sites')
     else:
         folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'hydrobasins')
     df_basins = pd.read_csv(os.path.join(folder_path, 'hydrobasins_summary.csv'))
