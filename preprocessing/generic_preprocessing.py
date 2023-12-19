@@ -11,7 +11,7 @@ current_dir = os.getcwd()
 
 
 def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
-additional_sites_output_path: str = 'additional_sites_transformed_vars.csv',
+                          additional_sites_output_path: str = 'additional_sites_transformed_vars.csv',
                           load_from_cache: bool = False, additional_sites: bool = True) -> pd.DataFrame:
     if load_from_cache and os.path.exists(output_file_path):
         return pd.read_csv(output_file_path)
@@ -26,8 +26,6 @@ additional_sites_output_path: str = 'additional_sites_transformed_vars.csv',
         df_basins = cleaning.clean_basins(df_basins)
         df_flow = cleaning.import_flow(current_dir)
         df_flow = cleaning.clean_flow(df_flow)
-
-
 
         dfs2merge = [df_swann, df_basins]
 
