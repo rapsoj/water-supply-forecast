@@ -114,6 +114,7 @@ def calc_val_loss(model: nn.Module, val_set):
 
 def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, lr: float, num_epochs: int) -> nn.Module:
     optimizer = optim.Adam(model.parameters(), lr=lr)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
     for epoch in range(num_epochs):
         train_loss = 0
@@ -130,6 +131,8 @@ def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, lr
 
         train_loss /= len(train_dloader.dataset)
         val_loss = calc_val_loss(model, val_set)
+
+        scheduler.step(val_loss)  # todo see how to do this during training
 
         epoch_str = f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {train_loss:.4f}'
         if val_loss is not None:
