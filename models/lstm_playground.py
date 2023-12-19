@@ -4,6 +4,7 @@ from itertools import product
 from random import shuffle
 
 import numpy as np
+import pandas as pd
 from sklearn.metrics import mean_pinball_loss
 from torch.utils.data import DataLoader
 
@@ -43,9 +44,9 @@ def main():
     N_HIDDEN = [1, 2, 3]
     DROPOUT_PROBS = [0.2, 0.3, 0.4, 0.5]
     HIDDEN_SIZES = [64, 128, 256, 512]
-    BATCH_SIZES = [2, 4, 8, 16, 32, 64, 128, 256]
-    LEARNING_RATES = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5]
-    N_EPOCHS = list(range(15, 25, 3))
+    BATCH_SIZES = [16, 32, 64, 128, 256]
+    LEARNING_RATES = [1e-2, 1e-3, 1e-4, 1e-5]
+    N_EPOCHS = [50]
 
     # hypparam search
     hyp_params_combs = list(product(LEARNING_RATES, BATCH_SIZES, N_EPOCHS, N_HIDDEN, HIDDEN_SIZES, DROPOUT_PROBS))
@@ -68,12 +69,12 @@ def main():
 
         res_str = f'val loss: {val_loss:.5f}, {hyp_params}\n'
         # append new results to running text file
-        # with open('lstm_results.txt', 'a+') as f:
-        #     f.write(res_str)
+        with open('lstm_results.txt', 'a+') as f:
+            f.write(res_str)
 
         print(res_str)
 
-    # pd.DataFrame.from_records(results).to_csv('lstm_results.csv')
+    pd.DataFrame.from_records(results).to_csv('lstm_results.csv')
 
 
 if __name__ == '__main__':
