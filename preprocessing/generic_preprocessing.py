@@ -11,7 +11,7 @@ current_dir = os.getcwd()
 
 
 def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
-                          load_from_cache: bool = False, additional_sites=True) -> pd.DataFrame:
+                          load_from_cache: bool = False, additional_sites=False) -> pd.DataFrame:
     if load_from_cache and os.path.exists(output_file_path):
         return pd.read_csv(output_file_path)
 
