@@ -15,6 +15,8 @@ from consts import JULY, DEF_QUANTILES, OCTOBER
 @dataclass
 class HypParams:
     lr: float
+    lr_step_size: int
+    lr_gamma: float
     bs: int
     n_epochs: int
     n_hidden: int
@@ -22,7 +24,8 @@ class HypParams:
     dropout_prob: float
 
 
-DEF_LSTM_HYPPARAMS = HypParams(lr=1e-3, bs=32, n_epochs=75, n_hidden=2, hidden_size=512, dropout_prob=0.3)
+DEF_LSTM_HYPPARAMS = HypParams(lr=1e-3, lr_step_size=40, lr_gamma=0.1, bs=32, n_epochs=50, n_hidden=2, hidden_size=512,
+                               dropout_prob=0.3)
 
 
 class SequenceDataset(Dataset):
@@ -112,14 +115,13 @@ def calc_val_loss(model: nn.Module, val_set):
         return np.mean(val_losses)
 
 
-# todo add loading model from checkpoint
-def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, lr: float, num_epochs: int,
+def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, hyperparams: HypParams,
                save_path: str = None, save_every: int = 10) -> nn.Module:
-    optimizer = optim.Adam(model.parameters(), lr=lr)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True)
+    optimizer = optim.Adam(model.parameters(), lr=hyperparams.lr)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=hyperparams.lr_step_size, gamma=hyperparams.lr_gamma)
 
     epoch = 0
-    while epoch < num_epochs:
+    while epoch < hyperparams.n_epochs:
         train_loss = 0
         for sequences, labels in train_dloader:
             optimizer.zero_grad()
@@ -135,9 +137,9 @@ def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, lr
         train_loss /= len(train_dloader.dataset)
         val_loss = calc_val_loss(model, val_set)
 
-        scheduler.step(train_loss)  # todo see how to do this during training
+        scheduler.step()
 
-        epoch_str = f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {train_loss:.4f}'
+        epoch_str = f'Epoch [{epoch + 1}/{hyperparams.n_epochs}], Training Loss: {train_loss:.4f}'
         if val_loss is not None:
             epoch_str += f', Val Loss: {val_loss.item():.4f}'
         print(epoch_str)
