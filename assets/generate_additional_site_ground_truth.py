@@ -1,4 +1,6 @@
 import os
+
+import numpy as np
 import pandas as pd
 from consts import JULY, APRIL, FIRST_FULL_GT_YEAR, NUM_MONTHS_IN_SEASON
 
@@ -10,8 +12,15 @@ metadata = pd.read_csv(os.path.join(path, '..', 'assets', 'data', 'additional_si
 
 monthly_flow = monthly_flow[(monthly_flow.month <= JULY) & (monthly_flow.month >= APRIL)]
 
-nan_sites = []
+nan_sites = monthly_flow.groupby('nrcs_id') \
+    .volume \
+    .apply(lambda x: x.name if x.isna().all() else np.nan) \
+    .dropna() \
+    .values
 outlier_sites = []  # todo manually find high/low streamflow sites
+
+monthly_flow = monthly_flow[(~monthly_flow.nrcs_id.isin(nan_sites)) |
+                            (~monthly_flow.nrcs_id.isin(outlier_sites))]
 
 
 def fill_sitewise_monthly_mean(row: pd.Series, sitewise_month_means: dict) -> pd.DataFrame:
