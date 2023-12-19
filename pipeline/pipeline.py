@@ -51,11 +51,10 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     # get pairs
     #pairs = np.unique(list((ground_truth.site_id, ground_truth.forecast_year)))
     gt_col = list(set((ground_truth.site_id + ground_truth.forecast_year.astype(str))))
-    #feature_cols = processed_data[['site_id', 'forecast_year']]
     processed_data = processed_data[(processed_data.site_id + processed_data.forecast_year.astype(str)).isin(gt_col)]
 
     ft_col = list(set((processed_data.site_id + processed_data.forecast_year.astype(str))))
-    ground_truth = ground_truth[(ground_truth.site_id + ground_truth.forecast_year.astype(str)).isin(gt_col)]
+    ground_truth = ground_truth[(ground_truth.site_id + ground_truth.forecast_year.astype(str)).isin(ft_col)]
 
 
     pruned_data = data_pruning(processed_data, ground_truth)
