@@ -295,11 +295,12 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
     return test_dfs, val_dfs, train_dfs
 
 
-def load_ground_truth(num_predictions: int):
+def load_ground_truth(num_predictions: int, additional_sites: bool = False) -> pd.DataFrame:
     ground_truth_df = pd.read_csv(os.path.join("..", "assets", "data", "train.csv"))
-    additional_ground_truth_df = pd.read_csv(os.path.join("..", "assets", "data", "additional_train.csv"))
+    if additional_sites:
+        additional_ground_truth_df = pd.read_csv(os.path.join("..", "assets", "data", "additional_train.csv"))
 
-    ground_truth_df = pd.concat([ground_truth_df, additional_ground_truth_df])
+        ground_truth_df = pd.concat([ground_truth_df, additional_ground_truth_df])
 
     # todo improve how we retrieve data for different sites, retrieving as much data as we can for each
     year_mask = (ground_truth_df.year >= FIRST_FULL_GT_YEAR)
