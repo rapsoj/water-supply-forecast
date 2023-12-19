@@ -316,3 +316,16 @@ def clean_era5(df_era5):
     df_era5['year'] = df_era5['period_end'].dt.year
     df_era5.drop(columns=['period_end', 'period_start'], inplace=True)
     return df_era5
+
+def import_usgs(current_dir):
+    folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'usgs_streamflow')
+    df_usgs = pd.read_csv(os.path.join(folder_path, 'usgs_streamflow.csv'))
+    return df_usgs
+
+def clean_usgs(df_usgs):
+    df_usgs['datetime'] = pd.to_datetime(df_usgs['datetime'])
+    df_usgs['day'] = df_usgs['datetime'].dt.day
+    df_usgs['month'] = df_usgs['datetime'].dt.month
+    df_usgs['year'] = df_usgs['datetime'].dt.year
+    df_usgs.drop('datetime', axis=1, inplace=True)
+    return df_usgs
