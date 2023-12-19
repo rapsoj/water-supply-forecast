@@ -247,8 +247,11 @@ def clean_dem(df_dem):
 
 
 # todo fix importing and cleaning swann
-def import_swann(current_dir):
-    folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'swann')
+def import_swann(current_dir, additional_sites):
+    if additional_sites:
+        folder_path = os.path.join(current_dir, '..', 'assets', 'additional_data')
+    else:
+        folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'swann')
     df_swann = pd.read_csv(os.path.join(folder_path, 'swann_swe.csv'))
     return df_swann
 
@@ -264,8 +267,11 @@ def clean_swann(df_swann):
     return df_swann
 
 
-def import_basins(current_dir):
-    folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'hydrobasins')
+def import_basins(current_dir, additional_data):
+    if additional_data:
+        folder_path = os.path.join(current_dir, '..', 'assets', 'additional_data')
+    else:
+        folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'hydrobasins')
     df_basins = pd.read_csv(os.path.join(folder_path, 'hydrobasins_summary.csv'))
     return df_basins
 
