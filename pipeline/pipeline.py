@@ -17,6 +17,7 @@ from preprocessing.data_pruning import data_pruning
 
 path = os.getcwd()
 
+
 def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
                  validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)), gt_col: str = 'volume',
                  load_from_cache: bool = False, start_year=FIRST_FULL_GT_YEAR, using_pca=False,
@@ -32,8 +33,7 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     # todo add explicit forecasting functionality, split train/test for forecasting earlier.
     #  currently everything is processed together. unsure if necessary
     processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache,
-                                        additional_sites=use_additional_sites)
-
+                                        use_additional_sites=use_additional_sites)
 
     # Data sanity check
     # Check types (do we wish to also check that date, forecast_year and site_id are the correct types here?
@@ -44,7 +44,8 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     # assert len(processed_data.site_id[processed_data.SNWD_DAILY.isna()].unique()) == 1, \
     #    "More than 1 site has NaNs in SNWD_DAILY (should only be american river folsom)"
 
-    ground_truth = load_ground_truth(num_predictions=N_PRED_MONTHS * N_PREDS_PER_MONTH, additional_sites=use_additional_sites)
+    ground_truth = load_ground_truth(num_predictions=N_PRED_MONTHS * N_PREDS_PER_MONTH,
+                                     additional_sites=use_additional_sites)
 
     # todo match features and gt data as to make sure every feature row has a corresponding label
     # get pairs
