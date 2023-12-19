@@ -11,16 +11,23 @@ current_dir = os.getcwd()
 
 
 def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
-                          load_from_cache: bool = False, additional_sites=False) -> pd.DataFrame:
+additional_sites_output_path: str = 'additional_sites_transformed_vars.csv',
+                          load_from_cache: bool = False, additional_sites: bool = True) -> pd.DataFrame:
     if load_from_cache and os.path.exists(output_file_path):
         return pd.read_csv(output_file_path)
 
     if additional_sites:
+        # todo add global data
+        # todo add original data+check that its labels line up with the inferred ones
+
         df_swann = cleaning.import_swann(current_dir, additional_sites)
         df_basins = cleaning.import_basins(current_dir, additional_sites)
         df_swann = cleaning.clean_swann(df_swann)
         df_basins = cleaning.clean_basins(df_basins)
-        df_merged = merge.merge_site_id([df_swann, df_basins])
+
+        dfs2merge = [df_swann, df_basins]
+
+        df_merged = merge.merge_site_id(dfs2merge)
     else:
         # Importing steps
         df_mjo = cleaning.import_mjo(current_dir)
@@ -32,9 +39,9 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
         df_soi2 = cleaning.import_soi2(current_dir)
         df_flow = cleaning.import_flow(current_dir)
         df_grace = cleaning.import_grace(current_dir)
-        #df_snotel = cleaning.import_snotel(current_dir)
-        #df_cpc_prec = cleaning.import_cpc_prec(current_dir)
-        #df_cpc_temp = cleaning.import_cpc_temp(current_dir)
+        # df_snotel = cleaning.import_snotel(current_dir)
+        # df_cpc_prec = cleaning.import_cpc_prec(current_dir)
+        # df_cpc_temp = cleaning.import_cpc_temp(current_dir)
         df_dem = cleaning.import_dem(current_dir)
         df_acis = cleaning.import_acis(current_dir)
         df_pdsi = cleaning.import_pdsi(current_dir)
@@ -42,12 +49,12 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
         df_usgs = cleaning.import_usgs(current_dir)
         df_swann = cleaning.import_swann(current_dir, additional_sites)
         df_basins = cleaning.import_basins(current_dir, additional_sites)
-    ## Pre-merge cleaning steps
+        ## Pre-merge cleaning steps
 
-    # Cleaning at this stage is only adjustments required to allow merging,
-    # More serious cleaning follows in later stages.
+        # Cleaning at this stage is only adjustments required to allow merging,
+        # More serious cleaning follows in later stages.
 
-    # Import dictionaries used to transform month variable to numeric
+        # Import dictionaries used to transform month variable to numeric
 
         # Run functions
         df_mjo = cleaning.clean_mjo(df_mjo)
@@ -59,9 +66,9 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
         df_soi2 = cleaning.clean_soi2(df_soi2)
         df_flow = cleaning.clean_flow(df_flow)
         df_grace = cleaning.clean_grace(df_grace)
-        #df_snotel = cleaning.clean_snotel(df_snotel)
-        #df_cpc_prec = cleaning.clean_cpc_prec(df_cpc_prec)
-        #df_cpc_temp = cleaning.clean_cpc_temp(df_cpc_temp)
+        # df_snotel = cleaning.clean_snotel(df_snotel)
+        # df_cpc_prec = cleaning.clean_cpc_prec(df_cpc_prec)
+        # df_cpc_temp = cleaning.clean_cpc_temp(df_cpc_temp)
         df_dem = cleaning.clean_dem(df_dem)
 
         df_acis = cleaning.clean_acis(df_acis)
@@ -70,10 +77,10 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
         df_usgs = cleaning.clean_usgs(df_usgs)
         df_swann = cleaning.clean_swann(df_swann)
         df_basins = cleaning.clean_basins(df_basins)
-    # Merging dataframes
-    # Merge on site id, day, LEAD column
-    #dataframes = [df_cpc_prec, df_cpc_temp]
-    #df_merged = merge.merge_site_id_day_lead(dataframes)
+        # Merging dataframes
+        # Merge on site id, day, LEAD column
+        # dataframes = [df_cpc_prec, df_cpc_temp]
+        # df_merged = merge.merge_site_id_day_lead(dataframes)
 
         # Merge on site id, day
         dataframes = [df_grace, df_swann, df_flow, df_acis, df_pdsi, df_usgs]
@@ -104,7 +111,10 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
     trans_vars = scaling.preprocess_dataframe(df_merged)
 
     # Output the DataFrame to a CSV file
-    trans_vars.to_csv(output_file_path, index=False)
+    if additional_sites:
+        trans_vars.to_csv(additional_sites_output_path, index=False)
+    else:
+        trans_vars.to_csv(output_file_path, index=False)
 
     return trans_vars
 
