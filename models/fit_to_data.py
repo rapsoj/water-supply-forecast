@@ -81,7 +81,7 @@ def ensemble_models(preds: dict, ensemble_name: str, ensemble_type: Ensemble_Typ
                 print(f'{site_id}: {site_keys[best_site_idx]}')
 
     final_pred = final_pred.reset_index(drop=True)
-
-    final_pred = final_pred.groupby(final_pred.issue_date.dt.year) \
-        .apply(lambda x: x.sort_values(['site_id', 'issue_date']))  # todo implement other ensemble types of models
+    if not final_pred.empty:
+        final_pred = final_pred.groupby(final_pred.issue_date.dt.year) \
+            .apply(lambda x: x.sort_values(['site_id', 'issue_date']))  # todo implement other ensemble types of models
     return {f'{ensemble_name}': final_pred}
