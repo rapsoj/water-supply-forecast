@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
-from pipeline.pipeline import load_ground_truth
+from pipeline.pipeline import get_processed_data_and_ground_truth
 from consts import N_PRED_MONTHS, N_PREDS_PER_MONTH, FIRST_FULL_GT_YEAR, JULY
 from models.fitters import base_feature_adapter
 from scipy.stats import pearsonr
@@ -49,34 +49,25 @@ def analyze_data_sitewise():
 
     corr_matrix = df.corr()
     l_corr = np.triu(corr_matrix)
-    sns.heatmap(corr_matrix, annot=True, mask=l_corr, annot_kws={"fontsize":6}, xticklabels=True, yticklabels=True, cmap='viridis')
+    plt.plot(l_corr['gt'])
     plt.show()
+    #sns.heatmap(corr_matrix, annot=True, mask=l_corr, annot_kws={"fontsize":6}, xticklabels=True, yticklabels=True, cmap='viridis')
+    #plt.show()
 
 def analyze_data_globally():
-    basic_preprocessed_df = get_processed_dataset(load_from_cache=True)
 
-    # todo add explicit forecasting functionality, split train/test for forecasting earlier.
-    #  currently everything is processed together. unsure if necessary
-    processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=True)
-    df = processed_data[(processed_data.forecast_year >= FIRST_FULL_GT_YEAR)
-                        & (processed_data.date.dt.month <= JULY)
-                        & ~(processed_data.forecast_year.isin(range(2005, 2024, 2)))].reset_index(drop=True)
-
-    ground_truth = load_ground_truth(N_PRED_MONTHS * N_PREDS_PER_MONTH)
-
-    ground_truth = ground_truth.sort_values(by=['site_id', 'forecast_year']).reset_index(drop=True)
-
-    assert (df.site_id == ground_truth.site_id).all(), 'Site ids not matching in pruning'
-    assert (df.forecast_year == ground_truth.forecast_year).all(), 'Forecast years not matching in pruning'
-    assert (df.date.dt.year == ground_truth.forecast_year).all(), 'Forecast years and dates not matching in pruning'
-
-    df['gt'] = ground_truth.volume
+    df, ground_truth = get_processed_data_and_ground_truth()
+    df = df.reset_index(drop=True)
+    ground_truth = ground_truth.reset_index(drop=True)
+    df['ground_truth'] = ground_truth.volume
 
     drop_cols = ['site_id', 'date', 'forecast_year']
 
     df.drop(drop_cols, axis=1, inplace=True)
     corr_matrix = df.corr()
     l_corr = np.triu(corr_matrix)
+    plt.plot(corr_matrix['ground_truth'])
+    plt.show()
     #sns.heatmap(corr_matrix, annot=True, mask=l_corr, annot_kws={"fontsize":6}, xticklabels=True, yticklabels=True, cmap='viridis')
     #plt.show()
 

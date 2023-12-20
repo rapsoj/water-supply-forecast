@@ -43,26 +43,9 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     torch.random.manual_seed(0)
 
     print('Loading data')
-    basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache,
-                                                  use_additional_sites=use_additional_sites)
-
-    # todo add explicit forecasting functionality, split train/test for forecasting earlier.
-    #  currently everything is processed together. unsure if necessary
-    processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache,
-                                        use_additional_sites=use_additional_sites)
-
-    # Data sanity check
-    assert all([data_type == float for data_type in processed_data
-               .drop(columns=['date', 'forecast_year', 'site_id']).dtypes]), "All features are not floats"
-    # assert len(processed_data.site_id[processed_data.volume.isna()].unique()) == 3, \
-    #    "More than 3 sites having NaNs in volume (should only be the California sites)"
-    # assert len(processed_data.site_id[processed_data.SNWD_DAILY.isna()].unique()) == 1, \
-    #    "More than 1 site has NaNs in SNWD_DAILY (should only be american river folsom)"
-
-    ground_truth = load_ground_truth(num_predictions=N_PRED_MONTHS * N_PREDS_PER_MONTH,
-                                     additional_sites=use_additional_sites)
-
-    processed_data, ground_truth = make_gt_and_features_siteyear_consistent(processed_data, ground_truth, test_years)
+    processed_data, ground_truth = get_processed_data_and_ground_truth(load_from_cache=load_from_cache,
+                                                                       use_additional_sites=use_additional_sites,
+                                                                       test_years=test_years)
 
     processed_data, ground_truth = extract_n_sites(processed_data, ground_truth, n_sites)
 
@@ -398,9 +381,31 @@ def make_gt_and_features_siteyear_consistent(processed_data: pd.DataFrame, groun
 
     # That was all fun playing around with the params, let's retrieve the relevant data
     rel_processed_data = processed_data[(processed_data.site_id + processed_data.forecast_year.astype(str)).isin(gt_col)
-                                        | (processed_data.forecast_year.isin(test_years))]
+                                        | (processed_data.forecast_year.isin(test_years))].reset_index(drop=True)
 
     return rel_processed_data, ground_truth
+
+
+def get_processed_data_and_ground_truth(load_from_cache=True, use_additional_sites=True,
+                                        test_years: tuple = tuple(np.arange(2005, 2024, 2))):
+    basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache,
+                                                  use_additional_sites=use_additional_sites)
+
+    # todo add explicit forecasting functionality, split train/test for forecasting earlier.
+    #  currently everything is processed together. unsure if necessary
+    processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache,
+                                        use_additional_sites=use_additional_sites)
+
+    # Data sanity check
+    assert all([data_type == float for data_type in processed_data
+               .drop(columns=['date', 'forecast_year', 'site_id']).dtypes]), "All features are not floats"
+
+    ground_truth = load_ground_truth(num_predictions=N_PRED_MONTHS * N_PREDS_PER_MONTH,
+                                     additional_sites=use_additional_sites)
+
+    processed_data, ground_truth = make_gt_and_features_siteyear_consistent(processed_data, ground_truth, test_years)
+
+    return processed_data, ground_truth
 
 
 if __name__ == "__main__":
