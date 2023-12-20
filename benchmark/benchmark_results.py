@@ -42,11 +42,11 @@ def generate_submission_file(ordered_site_ids, model_id: str, fitter_id: str, se
         if site_id == DETROIT:
             site_submission = site_submission[site_submission.issue_date.dt.month != JULY]
         final_submission_df = pd.concat([final_submission_df, site_submission])
-
-    final_submission_df.site_id = final_submission_df.site_id.astype("category")
-    final_submission_df.site_id = final_submission_df.site_id.cat.set_categories(ordered_site_ids)
-    final_submission_df = final_submission_df.groupby(final_submission_df.issue_date.dt.year) \
-        .apply(lambda x: x.sort_values(['site_id', 'issue_date']))
+    if not final_submission_df.empty:
+        final_submission_df.site_id = final_submission_df.site_id.astype("category")
+        final_submission_df.site_id = final_submission_df.site_id.cat.set_categories(ordered_site_ids)
+        final_submission_df = final_submission_df.groupby(final_submission_df.issue_date.dt.year) \
+            .apply(lambda x: x.sort_values(['site_id', 'issue_date']))
 
     final_submission_df.to_csv(f'final_pred_{model_id}_{fitter_id}.csv', index=False)
     return final_submission_df
@@ -139,7 +139,7 @@ def benchmark_results(train_pred: [pd.Series, pd.DataFrame], train_gt: pd.Series
     avg_q_losses = pd.DataFrame(avg_q_losses, index=np.arange(0, 1))
     quantile_losses = pd.DataFrame(quantile_losses)
 
-    perc_in_interval = pd.DataFrame(perc_in_interval)
+    perc_in_interval = pd.DataFrame(perc_in_interval, index=(0,)) # todo figure out why need index here
     perc_in_interval = perc_in_interval.mean(axis='rows')
     avg_q_losses.to_csv(f'{benchmark_id}_avg_q_losses.csv', index=False)
     quantile_losses.to_csv(f'{benchmark_id}_all_q_losses.csv', index=False)
