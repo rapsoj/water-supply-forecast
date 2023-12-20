@@ -25,12 +25,17 @@ class HypParams:
     dropout_prob: float
 
 
-DEF_LSTM_HYPPARAMS = HypParams(lr=1e-3, lr_step_size=35, lr_gamma=0.1, bs=32, n_epochs=1, n_hidden=2, hidden_size=512,
+DEF_LSTM_HYPPARAMS = HypParams(lr=1e-3, lr_step_size=35, lr_gamma=0.1, bs=32, n_epochs=50, n_hidden=2, hidden_size=512,
                                dropout_prob=0.3)
 
 
 class SequenceDataset(Dataset):
     def __init__(self, X: pd.DataFrame, pre_X: pd.DataFrame, y: pd.DataFrame = None):
+        assert not X.isna().any().any(), 'Error - X contains NaNs!'
+        assert not pre_X.isna().any().any(), 'Error - pre_X contains NaNs!'
+        if y is not None:
+            assert not y.isna().any().any(), 'Error - y contains NaNs!'
+
         self.X = X
         self.pre_X = pre_X
         self.y = y
