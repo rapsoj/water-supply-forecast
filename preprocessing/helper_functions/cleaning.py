@@ -332,16 +332,17 @@ def clean_era5(df_era5):
     return df_era5
 
 
-def import_usgs(current_dir):
-    folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'usgs_streamflow')
+def import_usgs(current_dir, using_additional_sites):
+    if using_additional_sites:
+        folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'additional_sites')
+
+    else:
+        folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'usgs_streamflow')
     df_usgs = pd.read_csv(os.path.join(folder_path, 'usgs_streamflow.csv'))
     return df_usgs
 
 
-def clean_usgs(df_usgs, additional_data_format: bool = False):
-    if additional_data_format:
-        raise NotImplementedError
-
+def clean_usgs(df_usgs):
     df_usgs.week_start_date = pd.to_datetime(df_usgs.week_start_date) + pd.DateOffset(days=7)
     df_usgs['day'] = df_usgs['week_start_date'].dt.day
     df_usgs['month'] = df_usgs['week_start_date'].dt.month
