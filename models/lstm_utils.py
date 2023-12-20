@@ -15,6 +15,8 @@ from consts import JULY, DEF_QUANTILES, OCTOBER
 @dataclass
 class HypParams:
     lr: float
+    lr_step_size: int
+    lr_gamma: float
     bs: int
     n_epochs: int
     n_hidden: int
@@ -22,7 +24,8 @@ class HypParams:
     dropout_prob: float
 
 
-DEF_LSTM_HYPPARAMS = HypParams(lr=1e-4, bs=16, n_epochs=50, n_hidden=3, hidden_size=512, dropout_prob=0.4)
+DEF_LSTM_HYPPARAMS = HypParams(lr=1e-3, lr_step_size=40, lr_gamma=0.1, bs=32, n_epochs=1, n_hidden=2, hidden_size=512,
+                               dropout_prob=0.3)
 
 
 class SequenceDataset(Dataset):
@@ -112,10 +115,13 @@ def calc_val_loss(model: nn.Module, val_set):
         return np.mean(val_losses)
 
 
-def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, lr: float, num_epochs: int) -> nn.Module:
-    optimizer = optim.Adam(model.parameters(), lr=lr)
+def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, hyperparams: HypParams,
+               save_path: str = None, save_every: int = 10) -> nn.Module:
+    optimizer = optim.Adam(model.parameters(), lr=hyperparams.lr)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=hyperparams.lr_step_size, gamma=hyperparams.lr_gamma)
 
-    for epoch in range(num_epochs):
+    epoch = 0
+    while epoch < hyperparams.n_epochs:
         train_loss = 0
         for sequences, labels in train_dloader:
             optimizer.zero_grad()
@@ -131,9 +137,41 @@ def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, lr
         train_loss /= len(train_dloader.dataset)
         val_loss = calc_val_loss(model, val_set)
 
-        epoch_str = f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {train_loss:.4f}'
+        scheduler.step()
+
+        epoch_str = f'Epoch [{epoch + 1}/{hyperparams.n_epochs}], Training Loss: {train_loss:.4f}'
         if val_loss is not None:
             epoch_str += f', Val Loss: {val_loss.item():.4f}'
         print(epoch_str)
 
+        epoch += 1
+        if save_path is not None and epoch % save_every == 0:
+            print('Saving model...')
+
+            save_checkpoint(model, optimizer, scheduler, epoch, save_path)
+
+    if save_path is not None:
+        print('Saving final model...')
+
+        save_checkpoint(model, optimizer, scheduler, epoch, save_path)
+
     return model
+
+
+def save_checkpoint(model: nn.Module, optimizer, scheduler, epoch, filename: str = "checkpoint.pth.tar"):
+    checkpoint = {
+        'epoch': epoch,
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+        'scheduler_state_dict': scheduler.state_dict()
+    }
+    torch.save(checkpoint, filename)
+
+
+def load_checkpoint(model: nn.Module, optimizer, scheduler, filename="checkpoint.pth.tar") -> int:
+    checkpoint = torch.load(filename)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+    epoch = checkpoint['epoch']
+    return epoch

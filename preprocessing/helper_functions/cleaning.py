@@ -1,13 +1,10 @@
 import os
-import csv
-import pandas as pd
+
 import numpy as np
-from functools import reduce
-import calendar
-from datetime import datetime
-from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
-from . import dictionaries
+import pandas as pd
+
 from consts import LAST_YEAR
+from preprocessing.helper_functions.dictionaries import month_to_num, month_to_num_up
 
 
 def import_mjo(current_dir):
@@ -94,7 +91,7 @@ def clean_pdo(df_pdo):
     df_pdo = pd.melt(df_pdo, id_vars=['Year'], var_name='Month', value_name='pdo')
     df_pdo = df_pdo.rename(columns={'Year': 'year', 'Month': 'month'})
     df_pdo['pdo'] = df_pdo['pdo'].replace(99.99, np.nan)  # Remove future values (missing)
-    df_pdo['month'] = df_pdo['month'].map(dictionaries.month_to_num)
+    df_pdo['month'] = df_pdo['month'].map(month_to_num)
     return df_pdo
 
 
@@ -108,7 +105,7 @@ def import_pna(current_dir):
 def clean_pna(df_pna):
     # Basic cleaning for pna dataset
     df_pna = pd.melt(df_pna, id_vars=['year'], var_name='month', value_name='pna')
-    df_pna['month'] = df_pna['month'].map(dictionaries.month_to_num)
+    df_pna['month'] = df_pna['month'].map(month_to_num)
     return df_pna
 
 
@@ -131,7 +128,7 @@ def clean_soi1(df_soi1):
     df_soi1.columns = df_soi1.columns.str.strip()
     df_soi1 = pd.melt(df_soi1, id_vars=['YEAR'], var_name='month', value_name='soi_anom')
     df_soi1 = df_soi1.rename(columns={'YEAR': 'year'})
-    df_soi1['month'] = df_soi1['month'].map(dictionaries.month_to_num_up)
+    df_soi1['month'] = df_soi1['month'].map(month_to_num_up)
     return df_soi1
 
 
@@ -140,13 +137,17 @@ def clean_soi2(df_soi2):
     df_soi2.columns = df_soi2.columns.str.strip()
     df_soi2 = pd.melt(df_soi2, id_vars=['YEAR'], var_name='month', value_name='soi_sd')
     df_soi2 = df_soi2.rename(columns={'YEAR': 'year'})
-    df_soi2['month'] = df_soi2['month'].map(dictionaries.month_to_num_up)
+    df_soi2['month'] = df_soi2['month'].map(month_to_num_up)
     return df_soi2
 
 
-def import_flow(current_dir):
+def import_flow(current_dir, additional_sites=False):
     # Import flows training dataset
-    folder_path = os.path.join(current_dir, '..', 'assets', 'data')
+    if additional_sites:
+        folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'additional_sites')
+    else:
+        folder_path = os.path.join(current_dir, '..', 'assets', 'data')
+
     df_flow = pd.read_csv(os.path.join(folder_path, "train_monthly_naturalized_flow.csv"))
     df_test_flow = pd.read_csv(os.path.join(folder_path, 'test_monthly_naturalized_flow.csv'))
     df_flow = pd.concat([df_flow, df_test_flow])  # todo fix leakage
@@ -155,6 +156,7 @@ def import_flow(current_dir):
 
 def clean_flow(df_flow):
     # Clean flows training dataset
+    df_flow['day'] = np.nan
     return df_flow
 
 
@@ -249,27 +251,31 @@ def clean_dem(df_dem):
 # todo fix importing and cleaning swann
 def import_swann(current_dir, additional_sites):
     if additional_sites:
-        folder_path = os.path.join(current_dir, '..', 'assets', 'additional_data')
+        folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'additional_sites')
     else:
         folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'swann')
     df_swann = pd.read_csv(os.path.join(folder_path, 'swann_swe.csv'))
     return df_swann
 
 
-def clean_swann(df_swann):
-    df_swann['time'] = pd.to_datetime(df_swann['time'])
+def clean_swann(df_swann, additional_sites=False):
+    if additional_sites:
+        key = 'week_start_date'
+    else:
+        key = 'time'
+    df_swann[key] = pd.to_datetime(df_swann[key]) + pd.DateOffset(days=7)
 
     # Extract day, month, and year into separate columns
-    df_swann['day'] = df_swann['time'].dt.day
-    df_swann['month'] = df_swann['time'].dt.month
-    df_swann['year'] = df_swann['time'].dt.year
-    df_swann.drop('time', axis=1, inplace=True)
+    df_swann['day'] = df_swann[key].dt.day
+    df_swann['month'] = df_swann[key].dt.month
+    df_swann['year'] = df_swann[key].dt.year
+    df_swann.drop(key, axis=1, inplace=True)
     return df_swann
 
 
 def import_basins(current_dir, additional_data):
     if additional_data:
-        folder_path = os.path.join(current_dir, '..', 'assets', 'additional_data')
+        folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'additional_sites')
     else:
         folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'hydrobasins')
     df_basins = pd.read_csv(os.path.join(folder_path, 'hydrobasins_summary.csv'))
@@ -310,10 +316,12 @@ def clean_pdsi(df_pdsi):
     df_pdsi.drop('date', axis=1, inplace=True)
     return df_pdsi
 
+
 def import_era5(current_dir):
     folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'ERA5L')
     df_era5 = pd.read_csv(os.path.join(folder_path, 'era5l.csv'))
     return df_era5
+
 
 def clean_era5(df_era5):
     df_era5['period_end'] = pd.to_datetime(df_era5['period_end']) + pd.DateOffset(days=1)
@@ -323,15 +331,20 @@ def clean_era5(df_era5):
     df_era5.drop(columns=['period_end', 'period_start'], inplace=True)
     return df_era5
 
+
 def import_usgs(current_dir):
     folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'usgs_streamflow')
     df_usgs = pd.read_csv(os.path.join(folder_path, 'usgs_streamflow.csv'))
     return df_usgs
 
-def clean_usgs(df_usgs):
-    df_usgs['datetime'] = pd.to_datetime(df_usgs['datetime'])
-    df_usgs['day'] = df_usgs['datetime'].dt.day
-    df_usgs['month'] = df_usgs['datetime'].dt.month
-    df_usgs['year'] = df_usgs['datetime'].dt.year
-    df_usgs.drop('datetime', axis=1, inplace=True)
+
+def clean_usgs(df_usgs, additional_data_format: bool = False):
+    if additional_data_format:
+        raise NotImplementedError
+
+    df_usgs.week_start_date = pd.to_datetime(df_usgs.week_start_date) + pd.DateOffset(days=7)
+    df_usgs['day'] = df_usgs['week_start_date'].dt.day
+    df_usgs['month'] = df_usgs['week_start_date'].dt.month
+    df_usgs['year'] = df_usgs['week_start_date'].dt.year
+    df_usgs.drop('week_start_date', axis=1, inplace=True)
     return df_usgs

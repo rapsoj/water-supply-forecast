@@ -17,21 +17,25 @@ from preprocessing.data_pruning import data_pruning
 
 path = os.getcwd()
 
+
 def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
                  validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)), gt_col: str = 'volume',
-                 load_from_cache: bool = True, start_year=FIRST_FULL_GT_YEAR, using_pca=False):
+                 load_from_cache: bool = False, start_year=FIRST_FULL_GT_YEAR, using_pca=False,
+                 use_additional_sites: bool = True):
     np.random.seed(0)
     random.seed(0)
     torch.random.manual_seed(0)
 
     print('Loading data')
-    basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache)
+    basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache,
+                                                  use_additional_sites=use_additional_sites)
 
     # todo add explicit forecasting functionality, split train/test for forecasting earlier.
     #  currently everything is processed together. unsure if necessary
-    processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache)
+    processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache,
+                                        use_additional_sites=use_additional_sites)
 
-    #pruned_data = data_pruning(processed_data, load_from_cache=False) # todo merge this with implementation in ey/lstm
+
 
     # Data sanity check
     # Check types (do we wish to also check that date, forecast_year and site_id are the correct types here?
@@ -42,9 +46,12 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     # assert len(processed_data.site_id[processed_data.SNWD_DAILY.isna()].unique()) == 1, \
     #    "More than 1 site has NaNs in SNWD_DAILY (should only be american river folsom)"
 
-    ground_truth = load_ground_truth(num_predictions=N_PRED_MONTHS * N_PREDS_PER_MONTH)
+    ground_truth = load_ground_truth(num_predictions=N_PRED_MONTHS * N_PREDS_PER_MONTH,
+                                     additional_sites=use_additional_sites)
 
-    pruned_data = data_pruning(processed_data, ground_truth)
+    processed_data, ground_truth = matched_gt_features(processed_data, ground_truth, test_years)
+
+    pruned_data, ground_truth = data_pruning(processed_data, ground_truth)
 
     # Get training, validation and test sets
     train_features, val_features, test_features, train_gt, val_gt = \
@@ -70,6 +77,8 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
         label = labels[idx]
 
         full_dfs = df  # | global/local
+
+        print(f'Dataset: {label}')
 
         final_df_dict = ensemble_models(full_dfs, 'final', ensemble_type=Ensemble_Type.BEST_PREDICTION)
         final_df = final_df_dict['final']
@@ -221,7 +230,6 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
     train_features = train_features.fillna(0)
     val_features = val_features.fillna(0)
     test_features = test_features.fillna(0)
-    test_features.to_csv(os.path.join(path, '..', 'pipeline', 'test_features_hacky.csv'), index=False)
     test_dfs = {}
     val_dfs = {}
     train_dfs = {}
@@ -231,7 +239,6 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
 
         test_mask = test_features.date.dt.month <= JULY
         test_vals = test_features[test_mask]
-        test_vals.to_csv(os.path.join(path, '..', 'pipeline', 'test_vals_hacky.csv'), index=False)
         test_dates = test_vals.date.reset_index(drop=True).unique()
         val_mask = val_features.date.dt.month <= JULY
         val_vals = val_features[val_mask]
@@ -297,18 +304,25 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
     return test_dfs, val_dfs, train_dfs
 
 
-def load_ground_truth(num_predictions: int):
+def load_ground_truth(num_predictions: int, additional_sites: bool = False) -> pd.DataFrame:
     ground_truth_df = pd.read_csv(os.path.join("..", "assets", "data", "train.csv"))
+
+    if additional_sites:
+        additional_ground_truth_df = pd.read_csv(os.path.join("..", "assets", "data", "additional_train.csv"))
+        ordered_site_ids = pd.read_csv(os.path.join("..", "assets", "ordered_site_ids.csv"))
+        additional_ground_truth_df = additional_ground_truth_df[~additional_ground_truth_df.site_id.isin(ordered_site_ids.site_id)]
+        ground_truth_df = pd.concat([ground_truth_df, additional_ground_truth_df])
 
     # todo improve how we retrieve data for different sites, retrieving as much data as we can for each
     year_mask = (ground_truth_df.year >= FIRST_FULL_GT_YEAR)
     ground_truth_df = ground_truth_df[year_mask].reset_index(drop=True)
+
     ground_truth_df = ground_truth_df.loc[ground_truth_df.index.repeat(num_predictions)]
+
     ground_truth_df['forecast_year'] = ground_truth_df.year
+
     ground_truth_df = ground_truth_df.drop(columns=['year'])
-    # Write site_ids to csv
-    pd.DataFrame({'site_id': pd.Series(ground_truth_df.site_id.unique())}).to_csv(
-        os.path.join("..", "assets", "ordered_site_ids.csv"))
+
     return ground_truth_df
 
 
@@ -316,9 +330,10 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
                          start_year: int = FIRST_FULL_GT_YEAR):
     feature_df = feature_df.copy()
     gt_df = gt_df.copy()
+    ordered_site_ids = pd.read_csv(os.path.join("..", "assets", "ordered_site_ids.csv"))
 
-    test_feature_mask = feature_df.forecast_year.isin(test_years)
-    test_gt_mask = gt_df.forecast_year.isin(test_years)
+    test_feature_mask = feature_df.forecast_year.isin(test_years) & feature_df.site_id.isin(ordered_site_ids.site_id)
+    test_gt_mask = gt_df.forecast_year.isin(test_years) & gt_df.site_id.isin(ordered_site_ids.site_id)
 
     test_feature_df = feature_df[test_feature_mask].reset_index(drop=True)
 
@@ -328,8 +343,12 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
     val_feature_df = feature_df[val_mask].reset_index(drop=True)
     val_gt_df = gt_df[val_gt_mask].reset_index(drop=True)
 
-    train_mask = ~val_mask & ~test_feature_mask & (feature_df.forecast_year >= start_year)
-    train_gt_mask = ~val_gt_mask & ~test_gt_mask & (gt_df.forecast_year >= start_year)
+
+    # Specifically get the years here since you have the extra criterion of sites in the test_mask which can cause additional sites being added on test years to train features
+    test_features_years_mask = feature_df.forecast_year.isin(test_years)
+    test_gt_years_mask = gt_df.forecast_year.isin(test_years)
+    train_mask = ~val_mask & ~test_features_years_mask & (feature_df.forecast_year >= start_year)
+    train_gt_mask = ~val_gt_mask & ~test_gt_years_mask & (gt_df.forecast_year >= start_year)
 
     # todo filter this in a more dynamic way, getting the minimum year
     train_feature_df = feature_df[train_mask]
@@ -343,6 +362,37 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
     # todo figure out why some things are empty here, e.g. test_gt_df
     return train_feature_df, val_feature_df, test_feature_df, train_gt_df, val_gt_df
 
+def matched_gt_features(processed_data: pd.DataFrame, ground_truth: pd.DataFrame, test_years) -> (pd.DataFrame, pd.DataFrame):
+    df = processed_data[(processed_data.forecast_year >= FIRST_FULL_GT_YEAR)
+                        & (processed_data.date.dt.month <= JULY)].reset_index(drop=True)
 
-if __name__ == '__main__':
+    gt_col = list(set((ground_truth.site_id + ground_truth.forecast_year.astype(str))))
+    df = df[(df.site_id + df.forecast_year.astype(str)).isin(gt_col)].reset_index(drop=True)
+
+    ft_col = list(set((df.site_id + df.forecast_year.astype(str))))
+    ground_truth = ground_truth[(ground_truth.site_id + ground_truth.forecast_year.astype(str)).isin(ft_col)]
+    ground_truth = ground_truth.sort_values(by=['site_id', 'forecast_year']).reset_index(drop=True)
+
+    #gt_map = ground_truth.drop_duplicates().set_index(['site_id', 'forecast_year']).volume.to_dict()
+    #ground_truth_vol = df.apply(lambda x: gt_map[(x.site_id, x.forecast_year)], axis='columns').reset_index(
+    #    drop=True)
+
+    # todo do this in a non hacky way
+    #ground_truth = pd.DataFrame(
+    #    {'volume': ground_truth_vol.reset_index(drop=True), 'site_id': df.site_id.reset_index(drop=True),
+    #     'forecast_year': df.forecast_year.reset_index(drop=True)})
+
+
+    assert (df.site_id == ground_truth.site_id).all(), 'Site ids not matching in pruning'
+    assert (df.forecast_year == ground_truth.forecast_year).all(), 'Forecast years not matching in pruning'
+    assert (df.date.dt.year == ground_truth.forecast_year).all(), 'Forecast years and dates not matching in pruning'
+
+    # That was all fun playing around with the params, let's give back what we want (including test years)
+    rel_processed = processed_data[(processed_data.site_id + processed_data.forecast_year.astype(str)).isin(gt_col)
+                                   | (processed_data.forecast_year.isin(test_years))]
+
+    return rel_processed, ground_truth
+
+
+if __name__ == "__main__":
     run_pipeline()
