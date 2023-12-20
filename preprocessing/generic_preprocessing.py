@@ -13,7 +13,6 @@ current_dir = os.getcwd()
 def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
                           additional_sites_output_path: str = 'additional_sites_transformed_vars.csv',
                           load_from_cache: bool = False, use_additional_sites: bool = True) -> pd.DataFrame:
-
     if load_from_cache:
         if (not use_additional_sites) and os.path.exists(output_file_path):
             return pd.read_csv(output_file_path)
@@ -21,9 +20,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
             return pd.read_csv(additional_sites_output_path)
 
     if use_additional_sites:
-        # todo add global data
         # todo add original data+check that its labels line up with the inferred ones
-
         df_swann = cleaning.import_swann(current_dir, use_additional_sites)
         df_basins = cleaning.import_basins(current_dir, use_additional_sites)
         df_mjo = cleaning.import_mjo(current_dir)
@@ -35,8 +32,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
         df_soi2 = cleaning.import_soi2(current_dir)
         df_flow = cleaning.import_flow(current_dir)
 
-
-        df_swann = cleaning.clean_swann(df_swann, additional_sites=use_additional_sites)
+        df_swann = cleaning.clean_swann(df_swann, use_additional_sites=use_additional_sites)
         df_basins = cleaning.clean_basins(df_basins)
         df_mjo = cleaning.clean_mjo(df_mjo)
         df_nino = cleaning.clean_nino(df_nino)
@@ -46,7 +42,6 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
         df_soi1 = cleaning.clean_soi1(df_soi1)
         df_soi2 = cleaning.clean_soi2(df_soi2)
         df_flow = cleaning.clean_flow(df_flow)
-
 
         dfs2merge_on_day_site_id = [df_swann, df_flow]
         df_merged_day_site = merge.merge_site_id_day(dfs2merge_on_day_site_id)
@@ -81,8 +76,8 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
         df_pdsi = cleaning.import_pdsi(current_dir)
         df_era5 = cleaning.import_era5(current_dir)
         df_usgs = cleaning.import_usgs(current_dir)
-        df_swann = cleaning.import_swann(current_dir, use_additional_sites)
-        df_basins = cleaning.import_basins(current_dir, use_additional_sites)
+        df_swann = cleaning.import_swann(current_dir)
+        df_basins = cleaning.import_basins(current_dir)
         ## Pre-merge cleaning steps
 
         # Cleaning at this stage is only adjustments required to allow merging,

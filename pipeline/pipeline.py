@@ -1,3 +1,8 @@
+import sys
+
+# for when running in github codespaces, shouldn't affect anything otherwise
+sys.path.append('/workspaces/water-supply-forecast')
+
 import os
 import random
 
