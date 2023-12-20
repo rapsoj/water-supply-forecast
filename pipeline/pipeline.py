@@ -38,7 +38,7 @@ def extract_n_sites(data: pd.DataFrame, ground_truth: pd.DataFrame, n_sites: int
 def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)),
                  validation_sites: tuple = tuple(ORDERED_SITE_IDS),
                  gt_col: str = 'volume',
-                 load_from_cache: bool = False, start_year=FIRST_FULL_GT_YEAR, using_pca=False,
+                 load_from_cache: bool = True, start_year=FIRST_FULL_GT_YEAR, using_pca=False,
                  use_additional_sites: bool = True, n_sites: int = DEBUG_N_SITES, yearwise_validation = False):
     np.random.seed(0)
     random.seed(0)
@@ -47,7 +47,7 @@ def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2
     print('Loading data')
     processed_data, ground_truth = get_processed_data_and_ground_truth(load_from_cache=load_from_cache,
                                                                        use_additional_sites=use_additional_sites)
-
+    print('Extracting sites')
     processed_data, ground_truth = extract_n_sites(processed_data, ground_truth, n_sites)
 
     pruned_data = prune_data(processed_data, ground_truth)
@@ -236,15 +236,7 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
     for fitter in fitters:
         train_only_model, model = fitter(train_features, train_gt, val_features, val_gt)
 
-        test_mask = test_features.date.dt.month <= JULY
-        test_vals = test_features[test_mask]
-        test_dates = test_vals.date.reset_index(drop=True).unique()
-        val_mask = val_features.date.dt.month <= JULY
-        val_vals = val_features[val_mask]
-        val_dates = val_vals.date.reset_index(drop=True).unique()
-        train_mask = train_features.date.dt.month <= JULY
-        train_vals = train_features[train_mask]
-        train_dates = train_vals.date.reset_index(drop=True).unique()
+
 
         for site_id in site_ids:
             results_id = f'global_{fitter.__name__}_{site_id}'
@@ -253,6 +245,18 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
             val_site = val_features[val_site_id_col == site_id]
             val_site_gt = val_gt[val_gt.site_id == site_id]
             test_site = test_features[test_site_id_col == site_id]
+
+            # Get relevant dates
+            test_mask = test_site.date.dt.month <= JULY
+            test_vals = test_site[test_mask]
+            test_dates = test_vals.date.reset_index(drop=True).unique()
+            val_mask = val_site.date.dt.month <= JULY
+            val_vals = val_site[val_mask]
+            val_dates = val_vals.date.reset_index(drop=True).unique()
+            train_mask = train_site.date.dt.month <= JULY
+            train_vals = train_site[train_mask]
+            train_dates = train_vals.date.reset_index(drop=True).unique()
+
 
             # todo fix this for sitewise validation tests
             train_pred = pd.DataFrame()
