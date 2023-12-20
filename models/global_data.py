@@ -12,7 +12,7 @@ from preprocessing.data_pruning import prune_data
 
 
 def get_global_data():
-    load_from_cache = False
+    load_from_cache = True
     use_additional_sites = True
     yearwise_validation = False
     validation_sites = CORE_SITES

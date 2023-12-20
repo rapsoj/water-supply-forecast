@@ -41,7 +41,7 @@ def extract_n_sites(data: pd.DataFrame, ground_truth: pd.DataFrame, n_sites: int
 def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)),
                  validation_sites: tuple = tuple(CORE_SITES),
                  gt_col: str = 'volume',
-                 load_from_cache: bool = False, start_year=FIRST_FULL_GT_YEAR, using_pca=False,
+                 load_from_cache: bool = True, start_year=FIRST_FULL_GT_YEAR, using_pca=False,
                  use_additional_sites: bool = True, n_sites: int = DEBUG_N_SITES, yearwise_validation=False):
     np.random.seed(0)
     random.seed(0)
@@ -453,6 +453,9 @@ def get_processed_data_and_ground_truth(load_from_cache=True, use_additional_sit
 
     ground_truth = load_ground_truth(num_predictions=N_PRED_MONTHS * N_PREDS_PER_MONTH,
                                      additional_sites=use_additional_sites)
+
+    assert processed_data.site_id.nunique() >= len(CORE_SITES), "Not enough sites in processed data"
+    assert ground_truth.site_id.nunique() >= len(CORE_SITES), "Not enough sites in ground truth"
 
     processed_data, ground_truth = make_gt_and_features_siteyear_consistent(processed_data, ground_truth)
 
