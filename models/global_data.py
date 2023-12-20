@@ -5,7 +5,7 @@ from consts import N_PRED_MONTHS, N_PREDS_PER_MONTH, FIRST_FULL_GT_YEAR, N_PREDS
 from pipeline.pipeline import load_ground_truth, train_val_test_split
 from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
-from preprocessing.data_pruning import data_pruning
+from preprocessing.data_pruning import prune_data
 
 
 def get_global_data():
@@ -26,7 +26,7 @@ def get_global_data():
 
     gt = load_ground_truth(N_PREDS)
 
-    pruned_data = data_pruning(processed_data, ground_truth=gt)
+    pruned_data = prune_data(processed_data, ground_truth=gt)
 
     X, val_X, test_X, y, val_y = train_val_test_split(pruned_data, gt, test_years, validation_years)
 
