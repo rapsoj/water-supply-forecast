@@ -48,7 +48,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
         df_flow = cleaning.clean_flow(df_flow)
 
 
-        dfs2merge_on_day_site_id = [df_swann[df_swann.site_id=='animas_r_at_durango'], df_flow[df_flow.site_id=='animas_r_at_durango']]
+        dfs2merge_on_day_site_id = [df_swann, df_flow]
         df_merged_day_site = merge.merge_site_id_day(dfs2merge_on_day_site_id)
 
         dfs2merge_on_day = [df_mjo, df_nino, df_oni, df_pdo, df_pna, df_soi1, df_soi2, df_merged_day_site]

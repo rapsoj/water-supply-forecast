@@ -359,6 +359,8 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
            val_feature_df.date.isin(test_feature_df.date).sum() == 0, \
         "Dates are overlapping between train, val, and test sets"
 
+    assert test_feature_df.size > 0, "No test features"
+
     # todo figure out why some things are empty here, e.g. test_gt_df
     return train_feature_df, val_feature_df, test_feature_df, train_gt_df, val_gt_df
 
@@ -372,16 +374,6 @@ def matched_gt_features(processed_data: pd.DataFrame, ground_truth: pd.DataFrame
     ft_col = list(set((df.site_id + df.forecast_year.astype(str))))
     ground_truth = ground_truth[(ground_truth.site_id + ground_truth.forecast_year.astype(str)).isin(ft_col)]
     ground_truth = ground_truth.sort_values(by=['site_id', 'forecast_year']).reset_index(drop=True)
-
-    #gt_map = ground_truth.drop_duplicates().set_index(['site_id', 'forecast_year']).volume.to_dict()
-    #ground_truth_vol = df.apply(lambda x: gt_map[(x.site_id, x.forecast_year)], axis='columns').reset_index(
-    #    drop=True)
-
-    # todo do this in a non hacky way
-    #ground_truth = pd.DataFrame(
-    #    {'volume': ground_truth_vol.reset_index(drop=True), 'site_id': df.site_id.reset_index(drop=True),
-    #     'forecast_year': df.forecast_year.reset_index(drop=True)})
-
 
     assert (df.site_id == ground_truth.site_id).all(), 'Site ids not matching in pruning'
     assert (df.forecast_year == ground_truth.forecast_year).all(), 'Forecast years not matching in pruning'
