@@ -10,9 +10,12 @@ from preprocessing.data_pruning import data_pruning
 
 def get_global_data():
     load_from_cache = False
-    basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache)
+    use_additional_sites = False
+    basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache,
+                                                  use_additional_sites=use_additional_sites)
 
-    processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache)
+    processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache,
+                                        use_additional_sites=use_additional_sites)
 
     assert processed_data.isna().any().sum() == 4, \
         'Not only volume, wet_cl_smj (@pecos_r_nr_pecos), 00060_Mean (@4 sites), and avgt_d (@3 sites) have Nans'
