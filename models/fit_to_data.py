@@ -37,44 +37,48 @@ def ensemble_models(preds: dict, ensemble_name: str, ensemble_type: Ensemble_Typ
         [(preds[pred_keys[i]].site_id == preds[pred_keys[i + 1]].site_id).all() for i in range(0, len(pred_keys) - 1)]), \
         'Mismatch between local and global site columns!'
 
-    ordered_site_ids = preds[pred_keys[0]].site_id.drop_duplicates().tolist()
+    #ordered_site_ids = preds[pred_keys[0]].site_id.drop_duplicates().tolist()
 
     if ensemble_type == Ensemble_Type.AVERAGE:
         final_pred = pd.DataFrame()
         for model_name, pred in preds.items():
-            site_id_col = pred.site_id
-            date_col = pred.issue_date
-            if final_pred.empty:
-                final_pred = pred
-            else:
-                final_pred = final_pred.drop(columns=['site_id', 'issue_date'])
+            if not pred.empty:
+                site_id_col = pred.site_id
+                date_col = pred.issue_date
+                if final_pred.empty:
+                    final_pred = pred
+                else:
+                    final_pred = final_pred.drop(columns=['site_id', 'issue_date'])
 
-                pred = pred.drop(columns=['site_id', 'issue_date']) / len(pred)
+                    pred = pred.drop(columns=['site_id', 'issue_date']) / len(pred)
 
-                final_pred = pred.add(final_pred, fill_value=0)
-                final_pred['site_id'] = site_id_col
-                final_pred['issue_date'] = date_col
+                    final_pred = pred.add(final_pred, fill_value=0)
+                    final_pred['site_id'] = site_id_col
+                    final_pred['issue_date'] = date_col
 
-                # Reorder columns
-                cols = final_pred.columns.to_list()
-                cols = cols[-1:] + cols[:-1]
-                cols = cols[-1:] + cols[:-1]
-                final_pred = final_pred[cols]
+                    # Reorder columns
+                    cols = final_pred.columns.to_list()
+                    cols = cols[-1:] + cols[:-1]
+                    cols = cols[-1:] + cols[:-1]
+                    final_pred = final_pred[cols]
     elif ensemble_type == Ensemble_Type.BEST_PREDICTION:
-        keys = list(preds.keys())
         final_pred = pd.DataFrame()
-        for site_id in preds[keys[0]].site_id.unique():
-            site_id_preds = {model: pred[pred.site_id == site_id] for model, pred in preds.items()}
-            site_keys = list(site_id_preds.keys())
+        preds = {model: pred for model, pred in preds.items() if not pred.empty}
+        keys = list(preds.keys())
+        # Remove possibly empty train and val dfs
+        if len(keys) > 0:
+            for site_id in preds[keys[0]].site_id.unique():
+                site_id_preds = {model: pred[pred.site_id == site_id] for model, pred in preds.items()}
+                site_keys = list(site_id_preds.keys())
 
-            # Find best prediction by looking through the validation loss
-            losses = [(pd.read_csv(os.path.join('..', 'outputs', f'{model}_{site_id}_avg_q_losses.csv'))).val[0] for
-                      model, _ in preds.items()]
-            best_site_idx = np.argmin(losses)
-            best_pred = site_id_preds[site_keys[best_site_idx]]
+                # Find best prediction by looking through the validation loss
+                losses = [(pd.read_csv(os.path.join('..', 'outputs', f'{model}_{site_id}_avg_q_losses.csv'))).val[0] for
+                          model, _ in preds.items()]
+                best_site_idx = np.argmin(losses)
+                best_pred = site_id_preds[site_keys[best_site_idx]]
 
-            final_pred = pd.concat((final_pred, best_pred))
-            print(f'{site_id}: {site_keys[best_site_idx]}')
+                final_pred = pd.concat((final_pred, best_pred))
+                print(f'{site_id}: {site_keys[best_site_idx]}')
 
     final_pred = final_pred.reset_index(drop=True)
 

@@ -91,6 +91,15 @@ def log_values(x: pd.Series):
     log_std = np.std(log_x)
     return log_x, log_mean, log_std
 
+def scaled_data_sitewise(ground_truth: pd.DataFrame, gt_col: str):
+    gt = ground_truth.copy()
+    gt_means = gt.groupby('site_id')[gt_col].mean().to_dict()
+    gt_stds = gt.groupby('site_id')[gt_col].std().to_dict()
+    gt['gt_mean'] = gt['site_id'].map(gt_means)
+    gt['gt_std'] = gt['site_id'].map(gt_stds)
+    gt[gt_col] = gt[gt_col] - gt['gt_mean']
+    gt[gt_col] = gt[gt_col] / gt_stds
+    return gt, gt_means, gt_stds
 
 def scale_data(inp, mean, std):
     return (inp - mean) / std
@@ -227,8 +236,8 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
         train_gt[gt_col] = scale_data(train_gt[gt_col], gt_mean, gt_std)
         val_gt[gt_col] = scale_data(val_gt[gt_col], gt_mean, gt_std)
 
-        train_gt[gt_col] = scaled_data_sitewise(train_gt, gt_mean, gt_std)
-        val_gt[gt_col] = scaled_data_sitewise(val_gt, gt_mean, gt_std)
+        #train_gt = scaled_data_sitewise(train_gt, gt_col)
+        #val_gt = scaled_data_sitewise(val_gt, gt_col)
 
     # todo perhaps find a better way of treating NaN values (Californian sites for volume + SNOTEL)
     train_features = train_features.fillna(0)
@@ -314,24 +323,17 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
         df_test = generate_submission_file(ordered_site_ids=ORDERED_SITE_IDS, model_id='global',
                                            fitter_id=fitter.__name__,
                                            set_id='pred')
-        if not yearwise_validation:
-            # Here we generate files only with the sites which actually exist in the set, different from before when we were generating the files with only the old sites
-            validation_sites = val_features.site_id.unique()
-            df_val = generate_submission_file(ordered_site_ids=validation_sites, model_id='global',
-                                              fitter_id=fitter.__name__,
-                                              set_id='val')
-            train_sites = train_features.site_id.unique()
+        train_ordered_site_ids = pd.Series(ORDERED_SITE_IDS)
+        train_ordered_site_ids = train_ordered_site_ids[train_ordered_site_ids.isin(train_features.site_id.unique())]
+        val_ordered_site_ids = pd.Series(ORDERED_SITE_IDS)
+        val_ordered_site_ids = val_ordered_site_ids[val_ordered_site_ids.isin(val_features.site_id.unique())]
 
-            df_train = generate_submission_file(ordered_site_ids=train_sites, model_id='global',
-                                                fitter_id=fitter.__name__,
-                                                set_id='train')
-        else:
-            df_val = generate_submission_file(ordered_site_ids=ORDERED_SITE_IDS, model_id='global',
-                                              fitter_id=fitter.__name__,
-                                              set_id='val')
-            df_train = generate_submission_file(ordered_site_ids=ORDERED_SITE_IDS, model_id='global',
-                                                fitter_id=fitter.__name__,
-                                                set_id='train')
+        df_val = generate_submission_file(ordered_site_ids=val_ordered_site_ids, model_id='global',
+                                          fitter_id=fitter.__name__,
+                                          set_id='val')
+        df_train = generate_submission_file(ordered_site_ids=train_ordered_site_ids, model_id='global',
+                                            fitter_id=fitter.__name__,
+                                            set_id='train')
         test_dfs[f'global_{fitter.__name__}'] = df_test
         val_dfs[f'global_{fitter.__name__}'] = df_val
         train_dfs[f'global_{fitter.__name__}'] = df_train
