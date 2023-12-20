@@ -146,15 +146,15 @@ def clean_soi2(df_soi2):
     return df_soi2
 
 
-def import_flow(current_dir, additional_sites=False):
+def import_flow(current_dir, use_additional_sites=False):
     # Import flows training dataset
-    if additional_sites:
+    folder_path = os.path.join(current_dir, '..', 'assets', 'data')
+    df_test_flow = pd.read_csv(os.path.join(folder_path, 'test_monthly_naturalized_flow.csv'))
+
+    if use_additional_sites:
         folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'additional_sites')
-    else:
-        folder_path = os.path.join(current_dir, '..', 'assets', 'data')
 
     df_flow = pd.read_csv(os.path.join(folder_path, "train_monthly_naturalized_flow.csv"))
-    df_test_flow = pd.read_csv(os.path.join(folder_path, 'test_monthly_naturalized_flow.csv'))
     df_flow = pd.concat([df_flow, df_test_flow])  # todo fix leakage
     return df_flow
 

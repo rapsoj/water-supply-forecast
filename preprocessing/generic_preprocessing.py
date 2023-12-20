@@ -4,6 +4,7 @@ import os
 import numpy as np
 import pandas as pd
 
+from consts import CORE_SITES
 from preprocessing.helper_functions import cleaning, scaling, merge
 
 ## Import datasets
@@ -30,7 +31,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
         df_pna = cleaning.import_pna(current_dir)
         df_soi1 = cleaning.import_soi1(current_dir)
         df_soi2 = cleaning.import_soi2(current_dir)
-        df_flow = cleaning.import_flow(current_dir)
+        df_flow = cleaning.import_flow(current_dir, use_additional_sites=use_additional_sites)
         df_usgs = cleaning.import_usgs(current_dir, use_additional_sites=use_additional_sites)
 
         df_swann = cleaning.clean_swann(df_swann, use_additional_sites=use_additional_sites)
@@ -146,6 +147,9 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
         trans_vars.to_csv(additional_sites_output_path, index=False)
     else:
         trans_vars.to_csv(output_file_path, index=False)
+
+    site_ids = trans_vars.site_id.unique()
+    assert all(site_id in site_ids for site_id in CORE_SITES), 'Error - not all core sites are in the data!'
 
     return trans_vars
 
