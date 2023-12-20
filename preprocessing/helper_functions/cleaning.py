@@ -249,7 +249,7 @@ def clean_dem(df_dem):
 
 
 # todo fix importing and cleaning swann
-def import_swann(current_dir, use_additional_sites: bool=False):
+def import_swann(current_dir, use_additional_sites: bool = False):
     if use_additional_sites:
         folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'additional_sites')
     else:
@@ -258,7 +258,7 @@ def import_swann(current_dir, use_additional_sites: bool=False):
     return df_swann
 
 
-def clean_swann(df_swann, use_additional_sites: bool=False):
+def clean_swann(df_swann, use_additional_sites: bool = False):
     if use_additional_sites:
         key = 'week_start_date'
     else:
@@ -273,7 +273,7 @@ def clean_swann(df_swann, use_additional_sites: bool=False):
     return df_swann
 
 
-def import_basins(current_dir, use_additional_sites: bool=False):
+def import_basins(current_dir, use_additional_sites: bool = False):
     if use_additional_sites:
         folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'additional_sites')
     else:
@@ -332,10 +332,9 @@ def clean_era5(df_era5):
     return df_era5
 
 
-def import_usgs(current_dir, using_additional_sites):
-    if using_additional_sites:
+def import_usgs(current_dir, use_additional_sites):
+    if use_additional_sites:
         folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'additional_sites')
-
     else:
         folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'usgs_streamflow')
     df_usgs = pd.read_csv(os.path.join(folder_path, 'usgs_streamflow.csv'))
