@@ -11,7 +11,7 @@ N_PREDS_PER_MONTH = 4
 N_PRED_MONTHS = 7
 N_PREDS = N_PRED_MONTHS * N_PREDS_PER_MONTH
 CODESPACE_RUN = False
-DEBUG_N_SITES = 50
+DEBUG_N_SITES = 100
 MIN_N_SITES = 26
 CORE_SITES = ('hungry_horse_reservoir_inflow', 'snake_r_nr_heise', 'pueblo_reservoir_inflow', 'sweetwater_r_nr_alcova',
               'missouri_r_at_toston', 'animas_r_at_durango', 'yampa_r_nr_maybell', 'libby_reservoir_inflow',

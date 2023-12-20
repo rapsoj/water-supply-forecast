@@ -13,7 +13,7 @@ from preprocessing.data_pruning import prune_data
 
 def get_global_data():
     load_from_cache = False
-    use_additional_sites = False
+    use_additional_sites = True
 
     n_sites = 50
 
