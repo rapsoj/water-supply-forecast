@@ -39,10 +39,9 @@ def extract_n_sites(data: pd.DataFrame, ground_truth: pd.DataFrame, n_sites: int
 
 
 def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)),
-                 validation_sites: tuple = tuple(CORE_SITES),
-                 gt_col: str = 'volume',
-                 load_from_cache: bool = False, start_year=FIRST_FULL_GT_YEAR, using_pca=False,
-                 use_additional_sites: bool = True, n_sites: int = DEBUG_N_SITES, yearwise_validation=False):
+                 validation_sites: tuple = tuple(CORE_SITES), gt_col: str = 'volume', load_from_cache: bool = False,
+                 start_year=FIRST_FULL_GT_YEAR, use_additional_sites: bool = True, n_sites: int = DEBUG_N_SITES,
+                 yearwise_validation=True):
     np.random.seed(0)
     random.seed(0)
     torch.random.manual_seed(0)
@@ -51,7 +50,8 @@ def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2
     processed_data, ground_truth = get_processed_data_and_ground_truth(load_from_cache=load_from_cache,
                                                                        use_additional_sites=use_additional_sites)
     print('Extracting sites')
-    processed_data, ground_truth = extract_n_sites(processed_data, ground_truth, n_sites)
+    processed_data, ground_truth = extract_n_sites(processed_data, ground_truth,
+                                                   n_sites if use_additional_sites else len(CORE_SITES))
 
     pruned_data = prune_data(processed_data, ground_truth)
 
@@ -60,12 +60,9 @@ def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2
         train_val_test_split(pruned_data, ground_truth, validation_years, validation_sites=validation_sites,
                              start_year=start_year, yearwise_validation=yearwise_validation)
 
-    site_ids = pruned_data.site_id.unique()
-
     print('Running global models...')
 
-    test_val_train_global_dfs = run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col,
-                                                  using_pca=using_pca, site_ids=site_ids)
+    test_val_train_global_dfs = run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col)
 
     print('Running local models...')
 
@@ -210,8 +207,8 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
     return test_dfs, val_dfs, train_dfs
 
 
-def run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids, using_pca,
-                      fitters=(lstm_fitter,), log_transform=False, yearwise_validation=False):
+def run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, fitters=(lstm_fitter,),
+                      log_transform=False):
     train_features = train_features.sort_values(by=['site_id', 'date']).reset_index(
         drop=True)  # Might not be necessary (might already be that way) but just to make sure
     val_features = val_features.sort_values(by=['site_id', 'date']).reset_index(drop=True)
