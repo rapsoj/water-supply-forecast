@@ -45,8 +45,6 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
         df_flow = cleaning.clean_flow(df_flow)
         df_usgs = cleaning.clean_usgs(df_usgs)
 
-
-
         dfs2merge_on_day_site_id = [df_swann, df_flow, df_usgs]
         df_merged_day_site = merge.merge_site_id_day(dfs2merge_on_day_site_id)
 

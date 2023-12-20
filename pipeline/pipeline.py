@@ -13,7 +13,7 @@ import torch
 from benchmark.benchmark_results import benchmark_results, cache_preds, generate_submission_file, \
     cache_merged_submission_file
 from consts import (JULY, FIRST_FULL_GT_YEAR, N_PREDS_PER_MONTH, N_PRED_MONTHS, DEBUG_N_SITES,
-                    MIN_N_SITES, CORE_SITES, TEST_YEARS, ORDERED_SITE_IDS)
+                    MIN_N_SITES, CORE_SITES, TEST_YEARS, CORE_SITES)
 from models.fit_to_data import Ensemble_Type
 from models.fit_to_data import ensemble_models
 from models.fitters import general_pcr_fitter, general_xgboost_fitter, lstm_fitter
@@ -39,7 +39,7 @@ def extract_n_sites(data: pd.DataFrame, ground_truth: pd.DataFrame, n_sites: int
 
 
 def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)),
-                 validation_sites: tuple = tuple(ORDERED_SITE_IDS),
+                 validation_sites: tuple = tuple(CORE_SITES),
                  gt_col: str = 'volume',
                  load_from_cache: bool = True, start_year=FIRST_FULL_GT_YEAR, using_pca=False,
                  use_additional_sites: bool = True, n_sites: int = DEBUG_N_SITES, yearwise_validation=False):
@@ -57,8 +57,8 @@ def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2
 
     # Get training, validation and test sets
     train_features, val_features, test_features, train_gt, val_gt = \
-        train_val_test_split(pruned_data, ground_truth, validation_years, validation_sites, start_year=start_year,
-                             yearwise_validation=yearwise_validation)
+        train_val_test_split(pruned_data, ground_truth, validation_years, validation_sites=validation_sites,
+                             start_year=start_year, yearwise_validation=yearwise_validation)
 
     site_ids = pruned_data.site_id.unique()
 
@@ -185,11 +185,11 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
             cache_preds(pred=train_pred, cache_id=results_id, site_id=site_id, pred_dates=train_dates, set_id='train')
 
         print('Generating local model submission file...')
-        test_df = generate_submission_file(ordered_site_ids=ORDERED_SITE_IDS, model_id='local',
+        test_df = generate_submission_file(ordered_site_ids=CORE_SITES, model_id='local',
                                            fitter_id=fitter.__name__, set_id='pred')
-        val_df = generate_submission_file(ordered_site_ids=ORDERED_SITE_IDS, model_id='local',
+        val_df = generate_submission_file(ordered_site_ids=CORE_SITES, model_id='local',
                                           fitter_id=fitter.__name__, set_id='val')
-        train_df = generate_submission_file(ordered_site_ids=ORDERED_SITE_IDS, model_id='local',
+        train_df = generate_submission_file(ordered_site_ids=CORE_SITES, model_id='local',
                                             fitter_id=fitter.__name__, set_id='train')
 
         test_dfs[f'local_{fitter.__name__}'] = test_df
@@ -306,7 +306,7 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
                             set_id='train')
 
         print('Generating global model submission file...')
-        df_test = generate_submission_file(ordered_site_ids=ORDERED_SITE_IDS, model_id='global',
+        df_test = generate_submission_file(ordered_site_ids=CORE_SITES, model_id='global',
                                            fitter_id=fitter.__name__,
                                            set_id='pred')
         if not yearwise_validation:
@@ -321,10 +321,10 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
                                                 fitter_id=fitter.__name__,
                                                 set_id='train')
         else:
-            df_val = generate_submission_file(ordered_site_ids=ORDERED_SITE_IDS, model_id='global',
+            df_val = generate_submission_file(ordered_site_ids=CORE_SITES, model_id='global',
                                               fitter_id=fitter.__name__,
                                               set_id='val')
-            df_train = generate_submission_file(ordered_site_ids=ORDERED_SITE_IDS, model_id='global',
+            df_train = generate_submission_file(ordered_site_ids=CORE_SITES, model_id='global',
                                                 fitter_id=fitter.__name__,
                                                 set_id='train')
         test_dfs[f'global_{fitter.__name__}'] = df_test
@@ -341,7 +341,7 @@ def load_ground_truth(num_predictions: int, additional_sites: bool = False) -> p
         additional_ground_truth_df = pd.read_csv(os.path.join("..", "assets", "data", "additional_train.csv"))
 
         additional_ground_truth_df = additional_ground_truth_df[
-            ~additional_ground_truth_df.site_id.isin(ORDERED_SITE_IDS)]
+            ~additional_ground_truth_df.site_id.isin(CORE_SITES)]
         ground_truth_df = pd.concat([ground_truth_df, additional_ground_truth_df])
 
     # todo improve how we retrieve data for different sites, retrieving as much data as we can for each
@@ -358,12 +358,12 @@ def load_ground_truth(num_predictions: int, additional_sites: bool = False) -> p
 
 
 def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, validation_years: tuple,
-                         validation_sites: tuple,
+                         validation_sites: tuple = None,
                          start_year: int = FIRST_FULL_GT_YEAR, yearwise_validation: bool = False):
     feature_df = feature_df.copy()
     gt_df = gt_df.copy()
 
-    test_feature_mask = feature_df.forecast_year.isin(TEST_YEARS) & feature_df.site_id.isin(ORDERED_SITE_IDS)
+    test_feature_mask = feature_df.forecast_year.isin(TEST_YEARS) & feature_df.site_id.isin(CORE_SITES)
 
     test_feature_df = feature_df[test_feature_mask].reset_index(drop=True)
     if yearwise_validation:
@@ -372,7 +372,7 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, validati
 
         val_feature_df = feature_df[val_mask].reset_index(drop=True)
         val_gt_df = gt_df[val_gt_mask].reset_index(drop=True)
-    else:
+    else:  # use sitewise validation
         val_mask = feature_df.site_id.isin(validation_sites) & ~feature_df.forecast_year.isin(TEST_YEARS)
         val_gt_mask = gt_df.site_id.isin(validation_sites) & ~gt_df.forecast_year.isin(TEST_YEARS)
 

@@ -1,5 +1,6 @@
 import pandas as pd
 import os
+
 path = os.getcwd()
 
 DEF_QUANTILES = (0.1, 0.5, 0.9)
@@ -24,7 +25,6 @@ CORE_SITES = ('hungry_horse_reservoir_inflow', 'snake_r_nr_heise', 'pueblo_reser
               'dillon_reservoir_inflow', 'ruedi_reservoir_inflow', 'fontenelle_reservoir_inflow', 'weber_r_nr_oakley',
               'san_joaquin_river_millerton_reservoir', 'merced_river_yosemite_at_pohono_bridge',
               'american_river_folsom_lake', 'colville_r_at_kettle_falls', 'stehekin_r_at_stehekin',
-              'detroit_lake_inflow', 'virgin_r_at_virtin', 'skagit_ross_reservoir', 'boysen_reservoir_inflow',
+              'detroit_lake_inflow', 'virgin_r_at_virtin',
+              'skagit_ross_reservoir', 'boysen_reservoir_inflow',
               'pecos_r_nr_pecos', 'owyhee_r_bl_owyhee_dam')
-
-ORDERED_SITE_IDS = pd.read_csv(os.path.join(path, '..', 'assets', 'ordered_site_ids.csv')).site_id.tolist()

@@ -14,6 +14,8 @@ from preprocessing.data_pruning import prune_data
 def get_global_data():
     load_from_cache = False
     use_additional_sites = True
+    yearwise_validation = False
+
 
     n_sites = 50
 
@@ -31,7 +33,8 @@ def get_global_data():
 
     # Get training, validation and test sets
     X, val_X, test_X, y, val_y = \
-        train_val_test_split(pruned_data, ground_truth, test_years, validation_years, start_year=start_year)
+        train_val_test_split(pruned_data, ground_truth, validation_years, validation_sites=validation_sites,
+                             start_year=start_year, yearwise_validation=yearwise_validation)
 
     y = y.sort_values(['site_id', 'forecast_year']).reset_index(drop=True)
     val_y = val_y.sort_values(['site_id', 'forecast_year']).reset_index(drop=True)
@@ -40,5 +43,5 @@ def get_global_data():
 
 
 res = get_global_data()
-with open(os.path.join('..', 'assets', 'data', 'global_data_for_lstm_debugging.pkl'), 'wb') as f:
+with open(os.path.join('..', 'assets', 'data', 'global_data_for_lstm_debugging_50sites.pkl'), 'wb') as f:
     pickle.dump(res, f)
