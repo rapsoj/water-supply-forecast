@@ -4,6 +4,7 @@ import os
 import numpy as np
 import pandas as pd
 
+from consts import CORE_SITES
 from preprocessing.helper_functions import cleaning, scaling, merge
 
 ## Import datasets
@@ -30,7 +31,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
         df_pna = cleaning.import_pna(current_dir)
         df_soi1 = cleaning.import_soi1(current_dir)
         df_soi2 = cleaning.import_soi2(current_dir)
-        df_flow = cleaning.import_flow(current_dir)
+        df_flow = cleaning.import_flow(current_dir, use_additional_sites=use_additional_sites)
         df_usgs = cleaning.import_usgs(current_dir, use_additional_sites=use_additional_sites)
 
         df_swann = cleaning.clean_swann(df_swann, use_additional_sites=use_additional_sites)
@@ -44,8 +45,6 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
         df_soi2 = cleaning.clean_soi2(df_soi2)
         df_flow = cleaning.clean_flow(df_flow)
         df_usgs = cleaning.clean_usgs(df_usgs)
-
-
 
         dfs2merge_on_day_site_id = [df_swann, df_flow, df_usgs]
         df_merged_day_site = merge.merge_site_id_day(dfs2merge_on_day_site_id)

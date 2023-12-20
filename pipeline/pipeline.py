@@ -13,10 +13,10 @@ import torch
 from benchmark.benchmark_results import benchmark_results, cache_preds, generate_submission_file, \
     cache_merged_submission_file
 from consts import (JULY, FIRST_FULL_GT_YEAR, N_PREDS_PER_MONTH, N_PRED_MONTHS, DEBUG_N_SITES,
-                    MIN_N_SITES, CORE_SITES, TEST_YEARS, ORDERED_SITE_IDS)
+                    MIN_N_SITES, TEST_YEARS, CORE_SITES)
 from models.fit_to_data import Ensemble_Type
 from models.fit_to_data import ensemble_models
-from models.fitters import general_pcr_fitter, general_xgboost_fitter, lstm_fitter
+from models.fitters import general_xgboost_fitter, lstm_fitter
 from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
 from preprocessing.data_pruning import prune_data
@@ -32,11 +32,14 @@ def extract_n_sites(data: pd.DataFrame, ground_truth: pd.DataFrame, n_sites: int
     data = data[data.site_id.isin(keeping_sites)]
     ground_truth = ground_truth[ground_truth.site_id.isin(keeping_sites)]
 
+    assert data.site_id.nunique() == n_sites, f'Number of sites is {data.site_id.nunique()}'
+    assert ground_truth.site_id.nunique() == n_sites, f'Number of sites is {ground_truth.site_id.nunique()}'
+
     return data, ground_truth
 
 
 def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)),
-                 validation_sites: tuple = tuple(ORDERED_SITE_IDS),
+                 validation_sites: tuple = tuple(CORE_SITES),
                  gt_col: str = 'volume',
                  load_from_cache: bool = False, start_year=FIRST_FULL_GT_YEAR, using_pca=False,
                  use_additional_sites: bool = True, n_sites: int = DEBUG_N_SITES, yearwise_validation = False):
@@ -56,8 +59,8 @@ def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2
 
     # Get training, validation and test sets
     train_features, val_features, test_features, train_gt, val_gt = \
-        train_val_test_split(pruned_data, ground_truth, validation_years, validation_sites, start_year=start_year,
-                             yearwise_validation=yearwise_validation)
+        train_val_test_split(pruned_data, ground_truth, validation_years, validation_sites=validation_sites,
+                             start_year=start_year, yearwise_validation=yearwise_validation)
 
     site_ids = pruned_data.site_id.unique()
 
@@ -93,6 +96,7 @@ def log_values(x: pd.Series):
     log_std = np.std(log_x)
     return log_x, log_mean, log_std
 
+
 def scaled_data_sitewise(ground_truth: pd.DataFrame, gt_col: str):
     gt = ground_truth.copy()
     gt_means = gt.groupby('site_id')[gt_col].mean().to_dict()
@@ -112,6 +116,7 @@ def inv_scaled_data_sitewise(df: pd.DataFrame, gt_col: str, gt_means: dict, gt_s
     gt[gt_col] = gt[gt_col] + gt['gt_mean']
     gt.drop(columns=['gt_mean', 'gt_std'], inplace=True)
     return gt, gt_means, gt_stds
+
 
 def scale_data(inp, mean, std):
     return (inp - mean) / std
@@ -185,7 +190,6 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
         test_site = test_features[test_features.site_id == site_id].reset_index(drop=True)
         test_site = test_site.drop(columns=drop_cols, errors='ignore')
 
-
         train_site_gt[gt_col] = scale_data(train_site_gt[gt_col], gt_mean, gt_std)
         val_site_gt[gt_col] = scale_data(val_site_gt[gt_col], gt_mean, gt_std)
 
@@ -242,13 +246,12 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
             cache_preds(pred=val_pred, cache_id=results_id, site_id=site_id, pred_dates=val_dates, set_id='val')
             cache_preds(pred=train_pred, cache_id=results_id, site_id=site_id, pred_dates=train_dates, set_id='train')
 
-
         print('Generating local model submission file...')
-        test_df = generate_submission_file(ordered_site_ids=ORDERED_SITE_IDS, model_id='local',
+        test_df = generate_submission_file(ordered_site_ids=CORE_SITES, model_id='local',
                                            fitter_id=fitter.__name__, set_id='pred')
-        val_df = generate_submission_file(ordered_site_ids=ORDERED_SITE_IDS, model_id='local',
+        val_df = generate_submission_file(ordered_site_ids=CORE_SITES, model_id='local',
                                           fitter_id=fitter.__name__, set_id='val')
-        train_df = generate_submission_file(ordered_site_ids=ORDERED_SITE_IDS, model_id='local',
+        train_df = generate_submission_file(ordered_site_ids=CORE_SITES, model_id='local',
                                             fitter_id=fitter.__name__, set_id='train')
 
         test_dfs[f'local_{fitter.__name__}'] = test_df
@@ -259,7 +262,7 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
 
 
 def run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids, using_pca,
-                      fitters=(lstm_fitter,), log_transform=False, sitewise_scaling: bool = True):
+                      fitters=(lstm_fitter,), log_transform=False, yearwise_validation=False):
     train_features = train_features.sort_values(by=['site_id', 'date']).reset_index(
         drop=True)  # Might not be necessary (might already be that way) but just to make sure
     val_features = val_features.sort_values(by=['site_id', 'date']).reset_index(drop=True)
@@ -291,6 +294,9 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
             train_gt[gt_col] = scale_data(train_gt[gt_col], gt_mean, gt_std)
             val_gt[gt_col] = scale_data(val_gt[gt_col], gt_mean, gt_std)
 
+        # train_gt = scaled_data_sitewise(train_gt, gt_col)
+        # val_gt = scaled_data_sitewise(val_gt, gt_col)
+
     # todo perhaps find a better way of treating NaN values (Californian sites for volume + SNOTEL)
     train_features = train_features.fillna(0)
     val_features = val_features.fillna(0)
@@ -301,8 +307,6 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
 
     for fitter in fitters:
         train_only_model, model = fitter(train_features, train_gt, val_features, val_gt)
-
-
 
         for site_id in CORE_SITES:
             results_id = f'global_{fitter.__name__}_{site_id}'
@@ -322,7 +326,6 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
             train_mask = train_site.date.dt.month <= JULY
             train_vals = train_site[train_mask]
             train_dates = train_vals.date.reset_index(drop=True).unique()
-
 
             # todo fix this for sitewise validation tests
             train_pred = pd.DataFrame()
@@ -366,16 +369,15 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
             if not val_pred.empty:
                 cache_preds(pred=val_pred, cache_id=results_id, site_id=site_id, pred_dates=val_dates, set_id='val')
             if not train_pred.empty:
-                cache_preds(pred=train_pred, cache_id=results_id, site_id=site_id, pred_dates=train_dates, set_id='train')
-
-
+                cache_preds(pred=train_pred, cache_id=results_id, site_id=site_id, pred_dates=train_dates,
+                            set_id='train')
         print('Generating global model submission file...')
-        df_test = generate_submission_file(ordered_site_ids=ORDERED_SITE_IDS, model_id='global',
+        df_test = generate_submission_file(ordered_site_ids=CORE_SITES, model_id='global',
                                            fitter_id=fitter.__name__,
                                            set_id='pred')
-        train_ordered_site_ids = pd.Series(ORDERED_SITE_IDS)
+        train_ordered_site_ids = pd.Series(CORE_SITES)
         train_ordered_site_ids = train_ordered_site_ids[train_ordered_site_ids.isin(train_features.site_id.unique())]
-        val_ordered_site_ids = pd.Series(ORDERED_SITE_IDS)
+        val_ordered_site_ids = pd.Series(CORE_SITES)
         val_ordered_site_ids = val_ordered_site_ids[val_ordered_site_ids.isin(val_features.site_id.unique())]
 
         df_val = generate_submission_file(ordered_site_ids=val_ordered_site_ids, model_id='global',
@@ -398,7 +400,7 @@ def load_ground_truth(num_predictions: int, additional_sites: bool = False) -> p
         additional_ground_truth_df = pd.read_csv(os.path.join("..", "assets", "data", "additional_train.csv"))
 
         additional_ground_truth_df = additional_ground_truth_df[
-            ~additional_ground_truth_df.site_id.isin(ORDERED_SITE_IDS)]
+            ~additional_ground_truth_df.site_id.isin(CORE_SITES)]
         ground_truth_df = pd.concat([ground_truth_df, additional_ground_truth_df])
 
     # todo improve how we retrieve data for different sites, retrieving as much data as we can for each
@@ -414,13 +416,13 @@ def load_ground_truth(num_predictions: int, additional_sites: bool = False) -> p
     return ground_truth_df
 
 
-def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, validation_years: tuple, validation_sites: tuple,
+def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, validation_years: tuple,
+                         validation_sites: tuple = None,
                          start_year: int = FIRST_FULL_GT_YEAR, yearwise_validation: bool = False):
     feature_df = feature_df.copy()
     gt_df = gt_df.copy()
 
-    test_feature_mask = feature_df.forecast_year.isin(TEST_YEARS) & feature_df.site_id.isin(ORDERED_SITE_IDS)
-    test_gt_mask = gt_df.forecast_year.isin(TEST_YEARS) & gt_df.site_id.isin(ORDERED_SITE_IDS)
+    test_feature_mask = feature_df.forecast_year.isin(TEST_YEARS) & feature_df.site_id.isin(CORE_SITES)
 
     test_feature_df = feature_df[test_feature_mask].reset_index(drop=True)
     if yearwise_validation:
@@ -429,7 +431,7 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, validati
 
         val_feature_df = feature_df[val_mask].reset_index(drop=True)
         val_gt_df = gt_df[val_gt_mask].reset_index(drop=True)
-    else:
+    else:  # use sitewise validation
         val_mask = feature_df.site_id.isin(validation_sites) & ~feature_df.forecast_year.isin(TEST_YEARS)
         val_gt_mask = gt_df.site_id.isin(validation_sites) & ~gt_df.forecast_year.isin(TEST_YEARS)
 
@@ -506,7 +508,13 @@ def get_processed_data_and_ground_truth(load_from_cache=True, use_additional_sit
     ground_truth = load_ground_truth(num_predictions=N_PRED_MONTHS * N_PREDS_PER_MONTH,
                                      additional_sites=use_additional_sites)
 
+    assert processed_data.site_id.nunique() >= len(CORE_SITES), "Not enough sites in processed data"
+    assert ground_truth.site_id.nunique() >= len(CORE_SITES), "Not enough sites in ground truth"
+
     processed_data, ground_truth = make_gt_and_features_siteyear_consistent(processed_data, ground_truth)
+
+    assert processed_data.site_id.nunique() >= len(CORE_SITES), "Not enough sites in processed data"
+    assert ground_truth.site_id.nunique() >= len(CORE_SITES), "Not enough sites in ground truth"
 
     return processed_data, ground_truth
 
