@@ -37,7 +37,6 @@ def extract_n_sites(data: pd.DataFrame, ground_truth: pd.DataFrame, n_sites: int
 
     return data, ground_truth
 
-
 def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)),
                  validation_sites: tuple = tuple(CORE_SITES),
                  gt_col: str = 'volume',
@@ -51,8 +50,7 @@ def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2
     processed_data, ground_truth = get_processed_data_and_ground_truth(load_from_cache=load_from_cache,
                                                                        use_additional_sites=use_additional_sites)
     print('Extracting sites')
-    processed_data.to_csv('jess_input_features.csv')
-    ground_truth.to_csv('jess_gt')
+
     processed_data, ground_truth = extract_n_sites(processed_data, ground_truth, n_sites)
 
     pruned_data = prune_data(processed_data, ground_truth)

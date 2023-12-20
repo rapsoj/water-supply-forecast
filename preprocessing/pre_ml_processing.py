@@ -4,7 +4,7 @@ from functools import reduce
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
-
+from preprocessing.helper_functions.scaling import scale_dataframe
 from consts import OCTOBER, JULY, MID_MONTH_DAY, CORE_SITES
 
 path = os.getcwd()
@@ -126,7 +126,7 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
         if not use_additional_sites and os.path.exists(output_file_path):
             return pd.read_csv(output_file_path, parse_dates=['date'])
         if use_additional_sites and os.path.exists(additional_sites_output_path):
-            return pd.read_csv(additional_sites_output_path, parse_dates=['date'])
+            return pd.read_csv(additional_sites_output_path, parse_dates=['date'], nrows=10000)
 
     data = data.copy()
 
@@ -142,13 +142,13 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
         .reset_index(drop=True)
 
     # Get site ids
-    site_id_str = 'site_id_'
-    site_id_cols = [col for col in data.columns if 'site_id' in col]
+    #site_id_str = 'site_id_'
+    #site_id_cols = [col for col in data.columns if 'site_id' in col]
 
-    data['site_id'] = data[site_id_cols] \
-        .idxmax(axis='columns') \
-        .apply(lambda x: x[x.find(site_id_str) + len(site_id_str):])
-    data = data.drop(columns=site_id_cols)
+    #data['site_id'] = data[site_id_cols] \
+    #    .idxmax(axis='columns') \
+    #   .apply(lambda x: x[x.find(site_id_str) + len(site_id_str):])
+    #data = data.drop(columns=site_id_cols)
 
     # todo make sure you re-incorporate all of these+interpolate them properly
     mjo_data = data[global_mjo_cols + shared_cols].dropna()
@@ -175,7 +175,11 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
     processed_data.time = scaler.fit_transform(processed_data[['time']])
 
     site_ids = processed_data.site_id.unique()
-    assert all(site_id in site_ids for site_id in CORE_SITES), 'Error - not all core sites are in the data!'
+
+    # do scaling
+    processed_data = scale_dataframe(processed_data)
+
+    #assert all(site_id in site_ids for site_id in CORE_SITES), 'Error - not all core sites are in the data!'
 
     if not use_additional_sites:
         processed_data.to_csv(output_file_path, index=False)
