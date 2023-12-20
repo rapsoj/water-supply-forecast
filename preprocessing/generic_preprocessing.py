@@ -48,7 +48,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
         df_flow = cleaning.clean_flow(df_flow)
 
 
-        dfs2merge_on_day_site_id = [df_swann[:5000], df_flow[:5000]]
+        dfs2merge_on_day_site_id = [df_swann, df_flow]
         df_merged_day_site = merge.merge_site_id_day(dfs2merge_on_day_site_id)
 
         dfs2merge_on_day = [df_mjo, df_nino, df_oni, df_pdo, df_pna, df_soi1, df_soi2, df_merged_day_site]
@@ -81,8 +81,8 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
         df_pdsi = cleaning.import_pdsi(current_dir)
         df_era5 = cleaning.import_era5(current_dir)
         df_usgs = cleaning.import_usgs(current_dir)
-        df_swann = cleaning.import_swann(current_dir, use_additional_sites)
-        df_basins = cleaning.import_basins(current_dir, use_additional_sites)
+        df_swann = cleaning.import_swann(current_dir)
+        df_basins = cleaning.import_basins(current_dir)
         ## Pre-merge cleaning steps
 
         # Cleaning at this stage is only adjustments required to allow merging,

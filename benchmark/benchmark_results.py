@@ -3,10 +3,12 @@ import pandas as pd
 from scipy.stats import norm
 from sklearn.metrics import mean_pinball_loss
 import os
-from consts import DEF_QUANTILES
-from consts import JULY, DETROIT
+from consts import DEF_QUANTILES, JULY, DETROIT, CODESPACE_RUN
 
-os.chdir(os.path.join('..', 'outputs'))
+if CODESPACE_RUN:
+    os.chdir('outputs')
+else:
+    os.chdir(os.path.join('..', 'outputs'))
 
 # todo be smarter than using an error threshold
 def calc_predictive_std(gt: pd.Series, preds: pd.Series) -> float:
