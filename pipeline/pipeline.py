@@ -62,7 +62,7 @@ def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2
     print('Running global models...')
 
     test_val_train_global_dfs = run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col,
-                                                  using_pca=using_pca)
+                                                  using_pca=using_pca, site_ids=site_ids)
 
     print('Running local models...')
 
@@ -124,6 +124,7 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
         val_site_gt = val_gt[val_gt.site_id == site_id].reset_index(drop=True)
         test_site = test_features[test_features.site_id == site_id].reset_index(drop=True)
         test_site = test_site.drop(columns=drop_cols, errors='ignore')
+
 
         train_site_gt[gt_col] = scale_data(train_site_gt[gt_col], gt_mean, gt_std)
         val_site_gt[gt_col] = scale_data(val_site_gt[gt_col], gt_mean, gt_std)
@@ -216,12 +217,14 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
     test_site_id_col = test_features.site_id
 
     if log_transform:
+        # todo make log transform work sitewise
         log_train_vals, log_mean, log_std = log_values(train_gt[gt_col])
         log_val_vals, _, _ = log_values(val_gt[gt_col])
 
         train_gt[gt_col] = scale_data(log_train_vals, log_mean, log_std)
         val_gt[gt_col] = scale_data(log_val_vals, log_mean, log_std)
     else:
+
         train_gt[gt_col] = scale_data(train_gt[gt_col], gt_mean, gt_std)
         val_gt[gt_col] = scale_data(val_gt[gt_col], gt_mean, gt_std)
 
