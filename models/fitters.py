@@ -101,12 +101,12 @@ def lstm_fitter(X, y, val_X, val_y, quantile: bool = True):
     full_model = LSTMModel(input_size=n_feats)
 
     train_model = train_lstm(train_dloader, val_set, train_model, hyperparams=DEF_LSTM_HYPPARAMS,
-                             save_path='train_set_lstm.pth.tar')
+                             save_dir='train_set_lstm')
     # todo try fine-tuning trained model? probably no reason to do that, difficult to validate
     # todo implement lr schedule here, check that it gives a lower validation loss+similar train loss than
     #  the previous model
     full_model = train_lstm(full_dloader, None, full_model, hyperparams=DEF_LSTM_HYPPARAMS,
-                            save_path='combined_set_lstm.pth.tar')
+                            save_dir='combined_set_lstm')
 
     def lstm_feat_adapter(X):
         dataset = features2seqs(X)
