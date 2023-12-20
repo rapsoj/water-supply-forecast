@@ -1,30 +1,30 @@
-nrcs_id,nrcs_name,usgs_id,elevation,latitude,longitude,season_start_month,season_end_month
-12362500:MT:USGS,Hungry Horse Reservoir Inflow,12362500.0,3040.0,48.35663,-114.03762,4,7
-13037500:ID:USGS,Snake R nr Heise,13037500.0,5015.0,43.6125,-111.66,4,7
-07099400:CO:USGS,Pueblo Reservoir Inflow,7099400.0,4740.0,38.27167,-104.71803,4,7
-06639000:WY:USGS,Sweetwater R nr Alcova,6639000.0,5890.0,42.48996,-107.13394,4,7
-06054500:MT:USGS,Missouri R at Toston,6054500.0,3906.0,46.14604,-111.42052,4,7
-09361500:CO:USGS,Animas R at Durango,9361500.0,6502.0,37.27917,-107.88034,4,7
-09251000:CO:USGS,Yampa R nr Maybell,9251000.0,5900.0,40.50275,-108.03342,4,7
-12301933:MT:USGS,Libby Reservoir Inflow,12301933.0,2100.0,48.40079,-115.32072,4,7
-13202000:ID:USGS,Boise R nr Boise,13202000.0,2827.0,43.52767,-116.05955,4,7
-12105900:WA:USGS,Green R bl Howard A Hanson Dam,12105900.0,990.0,47.28371,-121.79789,4,7
-09109209:CO:USGS,Taylor Park Reservoir Inflow,9109000.0,9170.0,38.81833,-106.6092,4,7
-09050700:CO:USGS,Dillon Reservoir Inflow,9050700.0,8760.0,39.62554,-106.06641,4,7
-09080190:CO:USGS,Ruedi Reservoir Inflow,9080190.0,7766.0,39.36139,-106.81861,4,7
-09211150:WY:USGS,Fontenelle Reservoir Inflow,9211150.0,6506.0,42.02778,-110.06667,4,7
-10128500:UT:USGS,Weber R nr Oakley,10128500.0,6640.0,40.73717,-111.24797,4,7
-,,11251000.0,296.55,36.98439397,-119.7243124,4,7
-,,11266500.0,3882.0,37.71627778,-119.6656667,4,7
-,,11446220.0,239.0,38.70452778,-121.164361,4,7
-12409000:WA:USGS,Colville R at Kettle Falls,12409000.0,1400.0,48.59435,-118.06249,4,7
-12451000:WA:USGS,Stehekin R at Stehekin,12451000.0,1099.0,48.32958,-120.69177,4,7
-14181500:OR:USGS,Detroit Lake Inflow,14181500.0,1094.0,44.75262,-122.29841,4,6
-09406000:UT:USGS,Virgin R at Virtin,9406000.0,3500.0,37.20415,-113.18078,4,7
-,,,1220.0,48.732171,-121.0676138,4,7
-06259000:WY:USGS,Boysen Reservoir Inflow,6259000.0,4609.0,43.42496,-108.17899,4,7
-08378500:NM:USGS,Pecos R nr Pecos,8378500.0,7503.0,35.70835,-105.6827,3,7
-13183000:OR:USGS,Owyhee R bl Owyhee Dam,13183000.0,2344.0,43.65444,-117.25583,4,7
+site_id,nrcs_name,usgs_id,elevation,latitude,longitude,season_start_month,season_end_month
+hungry_horse_reservoir_inflow,Hungry Horse Reservoir Inflow,12362500.0,3040.0,48.35663,-114.03762,4,7
+snake_r_nr_heise,Snake R nr Heise,13037500.0,5015.0,43.6125,-111.66,4,7
+pueblo_reservoir_inflow,Pueblo Reservoir Inflow,7099400.0,4740.0,38.27167,-104.71803,4,7
+sweetwater_r_nr_alcova,Sweetwater R nr Alcova,6639000.0,5890.0,42.48996,-107.13394,4,7
+missouri_r_at_toston,Missouri R at Toston,6054500.0,3906.0,46.14604,-111.42052,4,7
+animas_r_at_durango,Animas R at Durango,9361500.0,6502.0,37.27917,-107.88034,4,7
+yampa_r_nr_maybell,Yampa R nr Maybell,9251000.0,5900.0,40.50275,-108.03342,4,7
+libby_reservoir_inflow,Libby Reservoir Inflow,12301933.0,2100.0,48.40079,-115.32072,4,7
+boise_r_nr_boise,Boise R nr Boise,13202000.0,2827.0,43.52767,-116.05955,4,7
+green_r_bl_howard_a_hanson_dam,Green R bl Howard A Hanson Dam,12105900.0,990.0,47.28371,-121.79789,4,7
+taylor_park_reservoir_inflow,Taylor Park Reservoir Inflow,9109000.0,9170.0,38.81833,-106.6092,4,7
+dillon_reservoir_inflow,Dillon Reservoir Inflow,9050700.0,8760.0,39.62554,-106.06641,4,7
+ruedi_reservoir_inflow,Ruedi Reservoir Inflow,9080190.0,7766.0,39.36139,-106.81861,4,7
+fontenelle_reservoir_inflow,Fontenelle Reservoir Inflow,9211150.0,6506.0,42.02778,-110.06667,4,7
+weber_r_nr_oakley,Weber R nr Oakley,10128500.0,6640.0,40.73717,-111.24797,4,7
+san_joaquin_river_millerton_reservoir,,11251000.0,296.55,36.98439397,-119.7243124,4,7
+merced_river_yosemite_at_pohono_bridge,,11266500.0,3882.0,37.71627778,-119.6656667,4,7
+american_river_folsom_lake,,11446220.0,239.0,38.70452778,-121.164361,4,7
+colville_r_at_kettle_falls,Colville R at Kettle Falls,12409000.0,1400.0,48.59435,-118.06249,4,7
+stehekin_r_at_stehekin,Stehekin R at Stehekin,12451000.0,1099.0,48.32958,-120.69177,4,7
+detroit_lake_inflow,Detroit Lake Inflow,14181500.0,1094.0,44.75262,-122.29841,4,6
+virgin_r_at_virtin,Virgin R at Virtin,9406000.0,3500.0,37.20415,-113.18078,4,7
+skagit_ross_reservoir,,,1220.0,48.732171,-121.0676138,4,7
+boysen_reservoir_inflow,Boysen Reservoir Inflow,6259000.0,4609.0,43.42496,-108.17899,4,7
+pecos_r_nr_pecos,Pecos R nr Pecos,8378500.0,7503.0,35.70835,-105.6827,3,7
+owyhee_r_bl_owyhee_dam,Owyhee R bl Owyhee Dam,13183000.0,2344.0,43.65444,-117.25583,4,7
 12502500:WA:USGS,Ahtanum Ck at Union Gap,12502500,940.0,46.53596,-120.4734,4,7
 08236000:CO:USGS,Alamosa Ck ab Terrace Reservoir,08236000,8600.0,37.37473,-106.33476,4,7
 10164500:UT:USGS,American Fk ab Upper Powerplant,10164500,5950.0,40.44773,-111.68215,4,7
