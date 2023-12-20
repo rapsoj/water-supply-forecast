@@ -43,7 +43,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
         df_soi1 = cleaning.clean_soi1(df_soi1)
         df_soi2 = cleaning.clean_soi2(df_soi2)
         df_flow = cleaning.clean_flow(df_flow)
-        df_usgs = cleaning.clean_usgs(df_usgsa)
+        df_usgs = cleaning.clean_usgs(df_usgs)
 
 
 
