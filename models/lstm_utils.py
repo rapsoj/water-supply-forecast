@@ -25,7 +25,7 @@ class HypParams:
     dropout_prob: float
 
 
-DEF_LSTM_HYPPARAMS = HypParams(lr=1e-3, lr_step_size=40, lr_gamma=0.1, bs=32, n_epochs=1, n_hidden=2, hidden_size=512,
+DEF_LSTM_HYPPARAMS = HypParams(lr=1e-3, lr_step_size=35, lr_gamma=0.1, bs=32, n_epochs=75, n_hidden=2, hidden_size=512,
                                dropout_prob=0.3)
 
 
@@ -120,7 +120,7 @@ def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, hy
                save_dir: str = None, save_every: int = 10) -> nn.Module:
     if save_dir is not None:
         os.makedirs(save_dir, exist_ok=True)
-        
+
     optimizer = optim.Adam(model.parameters(), lr=hyperparams.lr)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=hyperparams.lr_step_size, gamma=hyperparams.lr_gamma)
 

@@ -61,8 +61,8 @@ def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2
 
     print('Running global models...')
 
-    test_val_train_global_dfs = run_global_models(train_features, val_features, test_features, \
-                                                  train_gt, val_gt, gt_col, site_ids, using_pca=using_pca)
+    test_val_train_global_dfs = run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col,
+                                                  using_pca=using_pca)
 
     print('Running local models...')
 
@@ -238,7 +238,7 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
 
 
 
-        for site_id in site_ids:
+        for site_id in CORE_SITES:
             results_id = f'global_{fitter.__name__}_{site_id}'
             train_site = train_features[train_site_id_col == site_id]
             train_site_gt = train_gt[train_gt.site_id == site_id]
