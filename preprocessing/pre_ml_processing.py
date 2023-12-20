@@ -173,7 +173,6 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
 
     scaler = StandardScaler()
     processed_data.time = scaler.fit_transform(processed_data[['time']])
-
     if not use_additional_sites:
         processed_data.to_csv(output_file_path, index=False)
     else:

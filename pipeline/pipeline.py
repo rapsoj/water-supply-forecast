@@ -38,7 +38,7 @@ def extract_n_sites(data: pd.DataFrame, ground_truth: pd.DataFrame, n_sites: int
 def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)),
                  validation_sites: tuple = tuple(ORDERED_SITE_IDS),
                  gt_col: str = 'volume',
-                 load_from_cache: bool = True, start_year=FIRST_FULL_GT_YEAR, using_pca=False,
+                 load_from_cache: bool = False, start_year=FIRST_FULL_GT_YEAR, using_pca=False,
                  use_additional_sites: bool = True, n_sites: int = DEBUG_N_SITES, yearwise_validation = False):
     np.random.seed(0)
     random.seed(0)
@@ -48,6 +48,8 @@ def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2
     processed_data, ground_truth = get_processed_data_and_ground_truth(load_from_cache=load_from_cache,
                                                                        use_additional_sites=use_additional_sites)
     print('Extracting sites')
+    processed_data.to_csv('jess_input_features.csv')
+    ground_truth.to_csv('jess_gt')
     processed_data, ground_truth = extract_n_sites(processed_data, ground_truth, n_sites)
 
     pruned_data = prune_data(processed_data, ground_truth)
@@ -98,7 +100,17 @@ def scaled_data_sitewise(ground_truth: pd.DataFrame, gt_col: str):
     gt['gt_mean'] = gt['site_id'].map(gt_means)
     gt['gt_std'] = gt['site_id'].map(gt_stds)
     gt[gt_col] = gt[gt_col] - gt['gt_mean']
-    gt[gt_col] = gt[gt_col] / gt_stds
+    gt[gt_col] = gt[gt_col] / gt['gt_std']
+    gt.drop(columns=['gt_mean', 'gt_std'], inplace=True)
+    return gt, gt_means, gt_stds
+
+def inv_scaled_data_sitewise(df: pd.DataFrame, gt_col: str, gt_means: dict, gt_stds: dict):
+    gt = df.copy()
+    gt['gt_mean'] = gt['site_id'].map(gt_means)
+    gt['gt_std'] = gt['site_id'].map(gt_stds)
+    gt[gt_col] = gt[gt_col] * gt['gt_std']
+    gt[gt_col] = gt[gt_col] + gt['gt_mean']
+    gt.drop(columns=['gt_mean', 'gt_std'], inplace=True)
     return gt, gt_means, gt_stds
 
 def scale_data(inp, mean, std):
@@ -107,6 +119,45 @@ def scale_data(inp, mean, std):
 
 def inv_scale_data(pred, mean, std):
     return pred * std + mean
+
+def scaling_back_log_transform(train_site, val_site, test_site, train_site_gt, val_site_gt,
+                               train_pred, val_pred, test_pred, log_mean, log_std, gt_col):
+    if not train_site.empty:
+        train_pred = np.exp(inv_scale_data(train_pred, log_mean, log_std))
+        train_site_gt[gt_col] = np.exp(inv_scale_data(train_site_gt[gt_col], log_mean, log_std))
+    if not val_site.empty:
+        val_pred = np.exp(inv_scale_data(val_pred, log_mean, log_std))
+        val_site_gt[gt_col] = np.exp(inv_scale_data(val_site_gt[gt_col], log_mean, log_std))
+    if not test_site.empty:
+        test_pred = np.exp(inv_scale_data(test_pred, log_mean, log_std))
+
+    return train_pred, val_pred, test_pred
+
+def scaling_back_standard_transform(train_site, val_site, test_site, train_site_gt, val_site_gt, train_pred, val_pred, test_pred,
+                                    gt_mean, gt_std, gt_col):
+    if not train_site.empty:
+        train_pred = inv_scale_data(train_pred, gt_mean, gt_std)
+        train_site_gt[gt_col] = inv_scale_data(train_site_gt[gt_col], gt_mean, gt_std)
+    if not val_site.empty:
+        val_pred = inv_scale_data(val_pred, gt_mean, gt_std)
+        val_site_gt[gt_col] = inv_scale_data(val_site_gt[gt_col], gt_mean, gt_std)
+    if not test_site.empty:
+        test_pred = inv_scale_data(test_pred, gt_mean, gt_std)
+
+    return train_pred, val_pred, test_pred
+
+def scaling_back_sitewise_transform(train_site, val_site, test_site, train_site_gt, val_site_gt, train_pred, val_pred, test_pred,
+                                    gt_means, gt_stds, gt_col):
+    if not train_site.empty:
+        train_pred = inv_scaled_data_sitewise(df=train_pred, gt_means=gt_means, gt_stds=gt_stds, gt_col=gt_col)
+        train_site_gt = inv_scaled_data_sitewise(df=train_site_gt, gt_means=gt_means, gt_stds=gt_stds, gt_col=gt_col)
+    if not val_site.empty:
+        val_pred = inv_scaled_data_sitewise(df=val_pred, gt_means=gt_means, gt_stds=gt_stds, gt_col=gt_col)
+        val_site_gt = inv_scaled_data_sitewise(df=val_site_gt, gt_means=gt_means, gt_stds=gt_stds, gt_col=gt_col)
+    if not test_site.empty:
+        test_pred = inv_scaled_data_sitewise(df=test_pred, gt_means=gt_means, gt_stds=gt_stds, gt_col=gt_col)
+
+    return train_pred, val_pred, test_pred
 
 
 def run_local_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids, using_pca,
@@ -208,7 +259,7 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
 
 
 def run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids, using_pca,
-                      fitters=(lstm_fitter,), log_transform=False, yearwise_validation = False):
+                      fitters=(lstm_fitter,), log_transform=False, sitewise_scaling: bool = True):
     train_features = train_features.sort_values(by=['site_id', 'date']).reset_index(
         drop=True)  # Might not be necessary (might already be that way) but just to make sure
     val_features = val_features.sort_values(by=['site_id', 'date']).reset_index(drop=True)
@@ -233,11 +284,12 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
         train_gt[gt_col] = scale_data(log_train_vals, log_mean, log_std)
         val_gt[gt_col] = scale_data(log_val_vals, log_mean, log_std)
     else:
-        train_gt[gt_col] = scale_data(train_gt[gt_col], gt_mean, gt_std)
-        val_gt[gt_col] = scale_data(val_gt[gt_col], gt_mean, gt_std)
-
-        #train_gt = scaled_data_sitewise(train_gt, gt_col)
-        #val_gt = scaled_data_sitewise(val_gt, gt_col)
+        if sitewise_scaling:
+            train_gt, gt_means, gt_stds = scaled_data_sitewise(train_gt, gt_col)
+            val_gt, _, _ = scaled_data_sitewise(val_gt, gt_col)
+        else:
+            train_gt[gt_col] = scale_data(train_gt[gt_col], gt_mean, gt_std)
+            val_gt[gt_col] = scale_data(val_gt[gt_col], gt_mean, gt_std)
 
     # todo perhaps find a better way of treating NaN values (Californian sites for volume + SNOTEL)
     train_features = train_features.fillna(0)
@@ -284,27 +336,25 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
             if not test_site.empty:
                 test_pred = model(test_site)
 
-            # rescaling data
+
             if log_transform:
-                if not train_site.empty:
-                    train_pred = np.exp(inv_scale_data(train_pred, log_mean, log_std))
-                    train_site_gt[gt_col] = np.exp(inv_scale_data(train_site_gt[gt_col], log_mean, log_std))
-                if not val_site.empty:
-                    val_pred = np.exp(inv_scale_data(val_pred, log_mean, log_std))
-                    val_site_gt[gt_col] = np.exp(inv_scale_data(val_site_gt[gt_col], log_mean, log_std))
-                if not test_site.empty:
-                    test_pred = np.exp(inv_scale_data(test_pred, log_mean, log_std))
+                train_pred, val_pred, test_pred = scaling_back_log_transform(
+                        train_pred=train_pred, val_pred=val_pred,test_pred=test_pred, train_site=train_site, val_site=val_site,
+                        train_site_gt=train_site_gt, val_site_gt=val_site_gt,test_site=test_site, log_std=log_std,
+                        log_mean=log_mean, gt_col=gt_col)
             else:
-                if not train_site.empty:
-                    train_pred = inv_scale_data(train_pred, gt_mean, gt_std)
-                    train_site_gt[gt_col] = inv_scale_data(train_site_gt[gt_col], gt_mean, gt_std)
-                if not val_site.empty:
-                    val_pred = inv_scale_data(val_pred, gt_mean, gt_std)
-                    val_site_gt[gt_col] = inv_scale_data(val_site_gt[gt_col], gt_mean, gt_std)
-                if not test_site.empty:
-                    test_pred = inv_scale_data(test_pred, gt_mean, gt_std)
-
-
+                if sitewise_scaling:
+                    gt_site_mean = gt_means[site_id]
+                    gt_site_std = gt_stds[site_id]
+                    train_pred, val_pred, test_pred = scaling_back_standard_transform(
+                        train_pred=train_pred, val_pred=val_pred,test_pred=test_pred, train_site=train_site, val_site=val_site,
+                        train_site_gt=train_site_gt, val_site_gt=val_site_gt,test_site=test_site, gt_std=gt_site_std,
+                        gt_mean=gt_site_mean, gt_col=gt_col)
+                else:
+                    train_pred, val_pred, test_pred = scaling_back_standard_transform(
+                        train_pred=train_pred, val_pred=val_pred,test_pred=test_pred, train_site=train_site, val_site=val_site,
+                        train_site_gt=train_site_gt, val_site_gt=val_site_gt,test_site=test_site, gt_std=gt_std,
+                        gt_mean=gt_mean, gt_col=gt_col)
             train_site_gt = train_site_gt.reset_index(drop=True)
             val_site_gt = val_site_gt.reset_index(drop=True)
 
