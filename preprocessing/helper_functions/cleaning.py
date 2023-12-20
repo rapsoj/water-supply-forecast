@@ -291,9 +291,6 @@ def import_basins(current_dir, use_additional_sites: bool = False):
 def clean_basins(df_basins, min_unique_noncat_vals: int = 25):
     # mostly to compress dataframe
     df_basins = df_basins[~df_basins.site_id.isna()]
-    for col in df_basins.columns:
-        if df_basins[col].nunique() < min_unique_noncat_vals:
-            df_basins[col] = df_basins[col].astype('category')
 
     return df_basins
 
