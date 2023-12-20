@@ -46,7 +46,7 @@ def main():
     HIDDEN_SIZES = [128, 256, 512]
     BATCH_SIZES = [16, 32, 64, 128, 256]
     LEARNING_RATES = [1e-2, 1e-3, 1e-4]
-    N_EPOCHS = [50]
+    N_EPOCHS = [75]
     GAMMAS = [0.5, 1e-1]
     SCHEDULER_STEP_SIZES = [10, 20, 30, 40]
 
