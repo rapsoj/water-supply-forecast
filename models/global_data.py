@@ -1,8 +1,11 @@
 import os
 import pickle
 
+import numpy as np
+
 from consts import N_PRED_MONTHS, N_PREDS_PER_MONTH, FIRST_FULL_GT_YEAR, N_PREDS
-from pipeline.pipeline import load_ground_truth, train_val_test_split
+from pipeline.pipeline import load_ground_truth, train_val_test_split, extract_n_sites, \
+    get_processed_data_and_ground_truth
 from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
 from preprocessing.data_pruning import prune_data
@@ -11,24 +14,24 @@ from preprocessing.data_pruning import prune_data
 def get_global_data():
     load_from_cache = False
     use_additional_sites = False
-    basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache,
-                                                  use_additional_sites=use_additional_sites)
 
-    processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache,
-                                        use_additional_sites=use_additional_sites)
+    n_sites = 50
 
-    assert processed_data.isna().any().sum() == 4, \
-        'Not only volume, wet_cl_smj (@pecos_r_nr_pecos), 00060_Mean (@4 sites), and avgt_d (@3 sites) have Nans'
-    processed_data = processed_data.fillna(0)
+    start_year = FIRST_FULL_GT_YEAR
+    validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8))
+    test_years: tuple = tuple(np.arange(2005, 2024, 2))
 
-    test_years = range(2005, 2024, 2)
-    validation_years = range(FIRST_FULL_GT_YEAR, 2023, 8)
+    processed_data, ground_truth = get_processed_data_and_ground_truth(load_from_cache=load_from_cache,
+                                                                       use_additional_sites=use_additional_sites,
+                                                                       test_years=test_years)
 
-    gt = load_ground_truth(N_PREDS)
+    processed_data, ground_truth = extract_n_sites(processed_data, ground_truth, n_sites)
 
-    pruned_data = prune_data(processed_data, ground_truth=gt)
+    pruned_data = prune_data(processed_data, ground_truth)
 
-    X, val_X, test_X, y, val_y = train_val_test_split(pruned_data, gt, test_years, validation_years)
+    # Get training, validation and test sets
+    X, val_X, test_X, y, val_y = \
+        train_val_test_split(pruned_data, ground_truth, test_years, validation_years, start_year=start_year)
 
     y = y.sort_values(['site_id', 'forecast_year']).reset_index(drop=True)
     val_y = val_y.sort_values(['site_id', 'forecast_year']).reset_index(drop=True)
