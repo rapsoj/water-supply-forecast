@@ -18,7 +18,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
         if (not use_additional_sites) and os.path.exists(output_file_path):
             return pd.read_csv(output_file_path)
         elif use_additional_sites and os.path.exists(additional_sites_output_path):
-            return pd.read_csv(additional_sites_output_path, nrows=10000)
+            return pd.read_csv(additional_sites_output_path)
 
     if use_additional_sites:
         # todo add original data+check that its labels line up with the inferred ones
@@ -46,7 +46,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
         df_flow = cleaning.clean_flow(df_flow)
         df_usgs = cleaning.clean_usgs(df_usgs)
 
-        dfs2merge_on_day_site_id = [df_swann[:10000], df_flow[:10000], df_usgs[:10000]]
+        dfs2merge_on_day_site_id = [df_swann, df_flow, df_usgs]
         df_merged_day_site = merge.merge_site_id_day(dfs2merge_on_day_site_id)
 
         dfs2merge_on_day = [df_mjo, df_nino, df_oni, df_pdo, df_pna, df_soi1, df_soi2, df_merged_day_site]
@@ -140,15 +140,15 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
     df_merged.day[df_merged.day.isna()] = -1
 
     # Perform preprocessing on columns except day, month, year
-    #trans_vars = scaling.preprocess_dataframe(df_merged)
+    trans_vars = scaling.scale_dataframe(df_merged)
 
     # Output the DataFrame to a CSV file
     if use_additional_sites:
-        df_merged.to_csv(additional_sites_output_path, index=False)
+        trans_vars.to_csv(additional_sites_output_path, index=False)
     else:
-        df_merged.to_csv(output_file_path, index=False)
+        trans_vars.to_csv(output_file_path, index=False)
 
-    return df_merged
+    return trans_vars
 
 
 if __name__ == '__main__':

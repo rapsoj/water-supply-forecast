@@ -34,12 +34,22 @@ def preprocess_column(df, column_name):
 
 def scale_dataframe(df):
     # Iterate over all columns in the DataFrame
-    scaling_cols = [col for col in df.columns if (df[col].dtype == 'int64') or (df[col].dtype == 'float64')]
+    keep_cols = ['month', 'year', 'day', 'volume', 'forecast_year']
 
-    # Now process these different dfs
+    scaling_cols = [col for col in df.columns if ((df[col].dtype == 'int64') or (df[col].dtype == 'float64')) and (col not in keep_cols)]
+
+    # Define a function to fill NaN values with sitewise averages
+    def fillna_sitewise_avg(column):
+        return column.fillna(column.groupby(['site_id', 'month']).transform('mean'))
+
+    # Apply the fillna_sitewise_avg function to each relevant column
+    #columns_to_fillna = df.columns.difference(['site_id', 'date', 'month_day'])
+    df = df.groupby(['site_id', 'month'], as_index=False).apply(fillna_sitewise_avg)
+
+
+    # Now, df contains the DataFrame with NaN values imputed using sitewise averages for the corresponding month and day
+
     grouped = df.groupby('site_id')
-    # todo fix leakage of scaling whole dataset together
-    df[scaling_cols] = grouped[scaling_cols].apply(lambda x: x.fillna(x.mean())).reset_index(drop=True)
     df[scaling_cols] = (df[scaling_cols] - grouped[scaling_cols].transform('mean')) / grouped[scaling_cols].transform('std')
 
     return df
@@ -55,3 +65,5 @@ def scale_ground_truth(ground_truth: pd.DataFrame, gt_col: str):
     gt.drop(columns=['gt_mean', 'gt_std'], inplace=True)
     return gt, gt_means, gt_stds
 
+def inv_scale_data(pred, mean, std):
+    return pred * std + mean

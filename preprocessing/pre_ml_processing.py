@@ -126,7 +126,7 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
         if not use_additional_sites and os.path.exists(output_file_path):
             return pd.read_csv(output_file_path, parse_dates=['date'])
         if use_additional_sites and os.path.exists(additional_sites_output_path):
-            return pd.read_csv(additional_sites_output_path, parse_dates=['date'], nrows=10000)
+            return pd.read_csv(additional_sites_output_path, parse_dates=['date'])
 
     data = data.copy()
 
@@ -177,9 +177,8 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
     site_ids = processed_data.site_id.unique()
 
     # do scaling
-    processed_data = scale_dataframe(processed_data)
 
-    #assert all(site_id in site_ids for site_id in CORE_SITES), 'Error - not all core sites are in the data!'
+    assert all(site_id in site_ids for site_id in CORE_SITES), 'Error - not all core sites are in the data!'
 
     if not use_additional_sites:
         processed_data.to_csv(output_file_path, index=False)

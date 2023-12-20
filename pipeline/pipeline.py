@@ -20,9 +20,9 @@ from models.fitters import general_xgboost_fitter, lstm_fitter
 from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
 from preprocessing.data_pruning import prune_data
+from preprocessing.helper_functions.scaling import scale_ground_truth, inv_scale_data
 
 path = os.getcwd()
-
 
 def extract_n_sites(data: pd.DataFrame, ground_truth: pd.DataFrame, n_sites: int):
     assert n_sites >= MIN_N_SITES, f'Number of sites must be at least {MIN_N_SITES}'
@@ -53,6 +53,11 @@ def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2
 
     processed_data, ground_truth = extract_n_sites(processed_data, ground_truth, n_sites)
 
+    ground_truth, gt_means, gt_stds = scale_ground_truth(ground_truth, gt_col)
+
+    assert len(ground_truth.site_id.unique()) == len(gt_means.keys()), 'Mismatching site ids in ground truth and gt means'
+    assert len(ground_truth.site_id.unique()) == len(gt_stds.keys()), 'Mismatching site ids in ground truth and gt stds'
+
     pruned_data = prune_data(processed_data, ground_truth)
 
     # Get training, validation and test sets
@@ -65,7 +70,7 @@ def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2
     print('Running global models...')
 
     test_val_train_global_dfs = run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col,
-                                                  using_pca=using_pca, site_ids=site_ids)
+                                                  gt_means=gt_means, gt_stds=gt_stds)
 
     print('Running local models...')
 
@@ -95,72 +100,8 @@ def log_values(x: pd.Series):
     return log_x, log_mean, log_std
 
 
-def scaled_data_sitewise(ground_truth: pd.DataFrame, gt_col: str):
-    gt = ground_truth.copy()
-    gt_means = gt.groupby('site_id')[gt_col].mean().to_dict()
-    gt_stds = gt.groupby('site_id')[gt_col].std().to_dict()
-    gt['gt_mean'] = gt['site_id'].map(gt_means)
-    gt['gt_std'] = gt['site_id'].map(gt_stds)
-    gt[gt_col] = gt[gt_col] - gt['gt_mean']
-    gt[gt_col] = gt[gt_col] / gt['gt_std']
-    gt.drop(columns=['gt_mean', 'gt_std'], inplace=True)
-    return gt, gt_means, gt_stds
-
-def inv_scaled_data_sitewise(df: pd.DataFrame, gt_col: str, gt_means: dict, gt_stds: dict):
-    gt = df.copy()
-    gt['gt_mean'] = gt['site_id'].map(gt_means)
-    gt['gt_std'] = gt['site_id'].map(gt_stds)
-    gt[gt_col] = gt[gt_col] * gt['gt_std']
-    gt[gt_col] = gt[gt_col] + gt['gt_mean']
-    gt.drop(columns=['gt_mean', 'gt_std'], inplace=True)
-    return gt, gt_means, gt_stds
-
-
 def scale_data(inp, mean, std):
     return (inp - mean) / std
-
-
-def inv_scale_data(pred, mean, std):
-    return pred * std + mean
-
-def scaling_back_log_transform(train_site, val_site, test_site, train_site_gt, val_site_gt,
-                               train_pred, val_pred, test_pred, log_mean, log_std, gt_col):
-    if not train_site.empty:
-        train_pred = np.exp(inv_scale_data(train_pred, log_mean, log_std))
-        train_site_gt[gt_col] = np.exp(inv_scale_data(train_site_gt[gt_col], log_mean, log_std))
-    if not val_site.empty:
-        val_pred = np.exp(inv_scale_data(val_pred, log_mean, log_std))
-        val_site_gt[gt_col] = np.exp(inv_scale_data(val_site_gt[gt_col], log_mean, log_std))
-    if not test_site.empty:
-        test_pred = np.exp(inv_scale_data(test_pred, log_mean, log_std))
-
-    return train_pred, val_pred, test_pred
-
-def scaling_back_standard_transform(train_site, val_site, test_site, train_site_gt, val_site_gt, train_pred, val_pred, test_pred,
-                                    gt_mean, gt_std, gt_col):
-    if not train_site.empty:
-        train_pred = inv_scale_data(train_pred, gt_mean, gt_std)
-        train_site_gt[gt_col] = inv_scale_data(train_site_gt[gt_col], gt_mean, gt_std)
-    if not val_site.empty:
-        val_pred = inv_scale_data(val_pred, gt_mean, gt_std)
-        val_site_gt[gt_col] = inv_scale_data(val_site_gt[gt_col], gt_mean, gt_std)
-    if not test_site.empty:
-        test_pred = inv_scale_data(test_pred, gt_mean, gt_std)
-
-    return train_pred, val_pred, test_pred
-
-def scaling_back_sitewise_transform(train_site, val_site, test_site, train_site_gt, val_site_gt, train_pred, val_pred, test_pred,
-                                    gt_means, gt_stds, gt_col):
-    if not train_site.empty:
-        train_pred = inv_scaled_data_sitewise(df=train_pred, gt_means=gt_means, gt_stds=gt_stds, gt_col=gt_col)
-        train_site_gt = inv_scaled_data_sitewise(df=train_site_gt, gt_means=gt_means, gt_stds=gt_stds, gt_col=gt_col)
-    if not val_site.empty:
-        val_pred = inv_scaled_data_sitewise(df=val_pred, gt_means=gt_means, gt_stds=gt_stds, gt_col=gt_col)
-        val_site_gt = inv_scaled_data_sitewise(df=val_site_gt, gt_means=gt_means, gt_stds=gt_stds, gt_col=gt_col)
-    if not test_site.empty:
-        test_pred = inv_scaled_data_sitewise(df=test_pred, gt_means=gt_means, gt_stds=gt_stds, gt_col=gt_col)
-
-    return train_pred, val_pred, test_pred
 
 
 def run_local_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids, using_pca,
@@ -259,8 +200,8 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
     return test_dfs, val_dfs, train_dfs
 
 
-def run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids, using_pca,
-                      fitters=(lstm_fitter,), log_transform=False, yearwise_validation=False):
+def run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, gt_means, gt_stds,
+                      fitters=(lstm_fitter,)):
     train_features = train_features.sort_values(by=['site_id', 'date']).reset_index(
         drop=True)  # Might not be necessary (might already be that way) but just to make sure
     val_features = val_features.sort_values(by=['site_id', 'date']).reset_index(drop=True)
@@ -271,29 +212,10 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
 
     train_site_id_col = train_features.site_id.reset_index(drop=True)
     train_gt = train_gt.reset_index(drop=True)
-    gt_std, gt_mean = train_gt[gt_col].std(), train_gt[gt_col].mean()
 
     val_site_id_col = val_features.site_id.reset_index(drop=True)
     val_gt = val_gt.reset_index(drop=True)
     test_site_id_col = test_features.site_id
-
-    if log_transform:
-        # todo make log transform work sitewise
-        log_train_vals, log_mean, log_std = log_values(train_gt[gt_col])
-        log_val_vals, _, _ = log_values(val_gt[gt_col])
-
-        train_gt[gt_col] = scale_data(log_train_vals, log_mean, log_std)
-        val_gt[gt_col] = scale_data(log_val_vals, log_mean, log_std)
-    else:
-        if sitewise_scaling:
-            train_gt, gt_means, gt_stds = scaled_data_sitewise(train_gt, gt_col)
-            val_gt, _, _ = scaled_data_sitewise(val_gt, gt_col)
-        else:
-            train_gt[gt_col] = scale_data(train_gt[gt_col], gt_mean, gt_std)
-            val_gt[gt_col] = scale_data(val_gt[gt_col], gt_mean, gt_std)
-
-        # train_gt = scaled_data_sitewise(train_gt, gt_col)
-        # val_gt = scaled_data_sitewise(val_gt, gt_col)
 
     # todo perhaps find a better way of treating NaN values (Californian sites for volume + SNOTEL)
     train_features = train_features.fillna(0)
@@ -330,32 +252,28 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
             val_pred = pd.DataFrame()
             test_pred = pd.DataFrame()
 
+            # Scale back here
+            gt_mean = gt_means[site_id]
+            gt_std = gt_stds[site_id]
+
             if not train_site.empty:
                 train_pred = model(train_site)
+                train_pred = inv_scale_data(train_pred, gt_mean, gt_std)
+
             if not val_site.empty:
                 val_pred = train_only_model(val_site)
+                val_pred = inv_scale_data(val_pred, gt_mean, gt_std)
+
             if not test_site.empty:
                 test_pred = model(test_site)
+                test_pred = inv_scale_data(test_pred, gt_mean, gt_std)
 
 
-            if log_transform:
-                train_pred, val_pred, test_pred = scaling_back_log_transform(
-                        train_pred=train_pred, val_pred=val_pred,test_pred=test_pred, train_site=train_site, val_site=val_site,
-                        train_site_gt=train_site_gt, val_site_gt=val_site_gt,test_site=test_site, log_std=log_std,
-                        log_mean=log_mean, gt_col=gt_col)
-            else:
-                if sitewise_scaling:
-                    gt_site_mean = gt_means[site_id]
-                    gt_site_std = gt_stds[site_id]
-                    train_pred, val_pred, test_pred = scaling_back_standard_transform(
-                        train_pred=train_pred, val_pred=val_pred,test_pred=test_pred, train_site=train_site, val_site=val_site,
-                        train_site_gt=train_site_gt, val_site_gt=val_site_gt,test_site=test_site, gt_std=gt_site_std,
-                        gt_mean=gt_site_mean, gt_col=gt_col)
-                else:
-                    train_pred, val_pred, test_pred = scaling_back_standard_transform(
-                        train_pred=train_pred, val_pred=val_pred,test_pred=test_pred, train_site=train_site, val_site=val_site,
-                        train_site_gt=train_site_gt, val_site_gt=val_site_gt,test_site=test_site, gt_std=gt_std,
-                        gt_mean=gt_mean, gt_col=gt_col)
+            train_site_gt[gt_col] = inv_scale_data(train_site_gt[gt_col], gt_mean, gt_std)
+            val_site_gt[gt_col] = inv_scale_data(val_site_gt[gt_col], gt_mean, gt_std)
+
+
+
             train_site_gt = train_site_gt.reset_index(drop=True)
             val_site_gt = val_site_gt.reset_index(drop=True)
 
@@ -373,6 +291,7 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
         df_test = generate_submission_file(ordered_site_ids=CORE_SITES, model_id='global',
                                            fitter_id=fitter.__name__,
                                            set_id='pred')
+
         train_ordered_site_ids = pd.Series(CORE_SITES)
         train_ordered_site_ids = train_ordered_site_ids[train_ordered_site_ids.isin(train_features.site_id.unique())]
         val_ordered_site_ids = pd.Series(CORE_SITES)
