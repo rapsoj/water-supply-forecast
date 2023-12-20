@@ -40,6 +40,8 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache,
                                         use_additional_sites=use_additional_sites)
 
+
+
     # Data sanity check
     # Check types (do we wish to also check that date, forecast_year and site_id are the correct types here?
     assert all([data_type == float for data_type in processed_data
@@ -51,6 +53,8 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
     ground_truth = load_ground_truth(num_predictions=N_PRED_MONTHS * N_PREDS_PER_MONTH,
                                      additional_sites=use_additional_sites)
+
+    processed_data, ground_truth = matched_gt_features(processed_data, ground_truth, test_years)
 
     pruned_data, ground_truth = data_pruning(processed_data, ground_truth)
 
@@ -78,6 +82,8 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
         label = labels[idx]
 
         full_dfs = df  # | global/local
+
+        print(f'Dataset: {label}')
 
         final_df_dict = ensemble_models(full_dfs, 'final', ensemble_type=Ensemble_Type.BEST_PREDICTION)
         final_df = final_df_dict['final']
@@ -305,9 +311,11 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
 
 def load_ground_truth(num_predictions: int, additional_sites: bool = False) -> pd.DataFrame:
     ground_truth_df = pd.read_csv(os.path.join("..", "assets", "data", "train.csv"))
+
     if additional_sites:
         additional_ground_truth_df = pd.read_csv(os.path.join("..", "assets", "data", "additional_train.csv"))
-
+        ordered_site_ids = pd.read_csv(os.path.join("..", "assets", "ordered_site_ids.csv"))
+        additional_ground_truth_df = additional_ground_truth_df[~additional_ground_truth_df.site_id.isin(ordered_site_ids.site_id)]
         ground_truth_df = pd.concat([ground_truth_df, additional_ground_truth_df])
 
     # todo improve how we retrieve data for different sites, retrieving as much data as we can for each
@@ -319,9 +327,7 @@ def load_ground_truth(num_predictions: int, additional_sites: bool = False) -> p
     ground_truth_df['forecast_year'] = ground_truth_df.year
 
     ground_truth_df = ground_truth_df.drop(columns=['year'])
-    # Write site_ids to csv
-    pd.DataFrame({'site_id': pd.Series(ground_truth_df.site_id.unique())}).to_csv(
-        os.path.join("..", "assets", "ordered_site_ids.csv"))
+
     return ground_truth_df
 
 
@@ -330,8 +336,9 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
     feature_df = feature_df.copy()
     gt_df = gt_df.copy()
     ordered_site_ids = pd.read_csv(os.path.join("..", "assets", "ordered_site_ids.csv"))
-    test_feature_mask = feature_df.forecast_year.isin(test_years) & feature_df.site_id.isin(ordered_site_ids)
-    test_gt_mask = gt_df.forecast_year.isin(test_years)
+
+    test_feature_mask = feature_df.forecast_year.isin(test_years) & feature_df.site_id.isin(ordered_site_ids.site_id)
+    test_gt_mask = gt_df.forecast_year.isin(test_years) & gt_df.site_id.isin(ordered_site_ids.site_id)
 
     test_feature_df = feature_df[test_feature_mask].reset_index(drop=True)
 
@@ -341,8 +348,12 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
     val_feature_df = feature_df[val_mask].reset_index(drop=True)
     val_gt_df = gt_df[val_gt_mask].reset_index(drop=True)
 
-    train_mask = ~val_mask & ~test_feature_mask & (feature_df.forecast_year >= start_year)
-    train_gt_mask = ~val_gt_mask & ~test_gt_mask & (gt_df.forecast_year >= start_year)
+
+    # Specifically get the years here since you have the extra criterion of sites in the test_mask which can cause additional sites being added on test years to train features
+    test_features_years_mask = feature_df.forecast_year.isin(test_years)
+    test_gt_years_mask = gt_df.forecast_year.isin(test_years)
+    train_mask = ~val_mask & ~test_features_years_mask & (feature_df.forecast_year >= start_year)
+    train_gt_mask = ~val_gt_mask & ~test_gt_years_mask & (gt_df.forecast_year >= start_year)
 
     # todo filter this in a more dynamic way, getting the minimum year
     train_feature_df = feature_df[train_mask]
@@ -353,8 +364,31 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
            val_feature_df.date.isin(test_feature_df.date).sum() == 0, \
         "Dates are overlapping between train, val, and test sets"
 
+    assert test_feature_df.size > 0, "No test features"
+
     # todo figure out why some things are empty here, e.g. test_gt_df
     return train_feature_df, val_feature_df, test_feature_df, train_gt_df, val_gt_df
+
+def matched_gt_features(processed_data: pd.DataFrame, ground_truth: pd.DataFrame, test_years) -> (pd.DataFrame, pd.DataFrame):
+    df = processed_data[(processed_data.forecast_year >= FIRST_FULL_GT_YEAR)
+                        & (processed_data.date.dt.month <= JULY)].reset_index(drop=True)
+
+    gt_col = list(set((ground_truth.site_id + ground_truth.forecast_year.astype(str))))
+    df = df[(df.site_id + df.forecast_year.astype(str)).isin(gt_col)].reset_index(drop=True)
+
+    ft_col = list(set((df.site_id + df.forecast_year.astype(str))))
+    ground_truth = ground_truth[(ground_truth.site_id + ground_truth.forecast_year.astype(str)).isin(ft_col)]
+    ground_truth = ground_truth.sort_values(by=['site_id', 'forecast_year']).reset_index(drop=True)
+
+    assert (df.site_id == ground_truth.site_id).all(), 'Site ids not matching in pruning'
+    assert (df.forecast_year == ground_truth.forecast_year).all(), 'Forecast years not matching in pruning'
+    assert (df.date.dt.year == ground_truth.forecast_year).all(), 'Forecast years and dates not matching in pruning'
+
+    # That was all fun playing around with the params, let's give back what we want (including test years)
+    rel_processed = processed_data[(processed_data.site_id + processed_data.forecast_year.astype(str)).isin(gt_col)
+                                   | (processed_data.forecast_year.isin(test_years))]
+
+    return rel_processed, ground_truth
 
 
 if __name__ == "__main__":
