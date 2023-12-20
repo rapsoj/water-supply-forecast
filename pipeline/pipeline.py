@@ -12,7 +12,7 @@ import torch
 
 from benchmark.benchmark_results import benchmark_results, cache_preds, generate_submission_file, \
     cache_merged_submission_file
-from consts import JULY, FIRST_FULL_GT_YEAR, N_PREDS_PER_MONTH, N_PRED_MONTHS
+from consts import JULY, FIRST_FULL_GT_YEAR, N_PREDS_PER_MONTH, N_PRED_MONTHS, DEBUG_N_SITES, MIN_N_SITES, CORE_SITES
 from models.fit_to_data import Ensemble_Type
 from models.fit_to_data import ensemble_models
 from models.fitters import general_pcr_fitter, general_xgboost_fitter, lstm_fitter
@@ -23,10 +23,21 @@ from preprocessing.data_pruning import prune_data
 path = os.getcwd()
 
 
+def extract_n_sites(data: pd.DataFrame, ground_truth: pd.DataFrame, n_sites: int):
+    assert n_sites >= MIN_N_SITES, f'Number of sites must be at least {MIN_N_SITES}'
+    site_ids = data.site_id.unique()
+    keeping_sites = CORE_SITES + tuple(set(site_ids) - set(CORE_SITES))[:n_sites - MIN_N_SITES]
+
+    data = data[data.site_id.isin(keeping_sites)]
+    ground_truth = ground_truth[ground_truth.site_id.isin(keeping_sites)]
+
+    return data, ground_truth
+
+
 def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
                  validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)), gt_col: str = 'volume',
-                 load_from_cache: bool = False, start_year=FIRST_FULL_GT_YEAR, using_pca=False,
-                 use_additional_sites: bool = True):
+                 load_from_cache: bool = True, start_year=FIRST_FULL_GT_YEAR, using_pca=False,
+                 use_additional_sites: bool = True, n_sites: int = DEBUG_N_SITES):
     np.random.seed(0)
     random.seed(0)
     torch.random.manual_seed(0)
@@ -41,7 +52,6 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
                                         use_additional_sites=use_additional_sites)
 
     # Data sanity check
-    # Check types (do we wish to also check that date, forecast_year and site_id are the correct types here?
     assert all([data_type == float for data_type in processed_data
                .drop(columns=['date', 'forecast_year', 'site_id']).dtypes]), "All features are not floats"
     # assert len(processed_data.site_id[processed_data.volume.isna()].unique()) == 3, \
@@ -53,6 +63,8 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
                                      additional_sites=use_additional_sites)
 
     processed_data, ground_truth = make_gt_and_features_siteyear_consistent(processed_data, ground_truth, test_years)
+
+    processed_data, ground_truth = extract_n_sites(processed_data, ground_truth, n_sites)
 
     pruned_data = prune_data(processed_data, ground_truth)
 
