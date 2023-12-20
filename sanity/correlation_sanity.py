@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
 from pipeline.pipeline import get_processed_data_and_ground_truth
-from consts import N_PRED_MONTHS, N_PREDS_PER_MONTH, FIRST_FULL_GT_YEAR, JULY
+from consts import N_PRED_MONTHS, N_PREDS_PER_MONTH, FIRST_FULL_GT_YEAR, JULY, TEST_YEARS
 from models.fitters import base_feature_adapter
 from scipy.stats import pearsonr
 import numpy as np
@@ -58,8 +58,7 @@ def analyze_data_globally():
 
 
     df, ground_truth = get_processed_data_and_ground_truth()
-    df = df[~df.year.isin(test_years)]
-    df = df.reset_index(drop=True)
+    df = df[~df.forecast_year.isin(TEST_YEARS) & (df.date.dt.month <= JULY)].reset_index(drop=True)
     ground_truth = ground_truth.reset_index(drop=True)
     df['ground_truth'] = ground_truth.volume
 
@@ -73,7 +72,7 @@ def analyze_data_globally():
     #sns.heatmap(corr_matrix, annot=True, mask=l_corr, annot_kws={"fontsize":6}, xticklabels=True, yticklabels=True, cmap='viridis')
     #plt.show()
 
-    indices = corr_matrix.index[corr_matrix['ground_truth'].abs() >= 0.5]
+    indices = corr_matrix.index[corr_matrix['ground_truth'].abs() >= 0.3]
 
     for column in indices:
         plt.scatter(df[column], ground_truth.volume)

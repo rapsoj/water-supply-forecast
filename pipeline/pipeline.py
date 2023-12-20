@@ -24,21 +24,22 @@ path = os.getcwd()
 
 def run_pipeline(TEST_YEARS: tuple = tuple(np.arange(2005, 2024, 2)),
                  validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)), gt_col: str = 'volume',
-                 load_from_cache: bool = False, start_year=FIRST_FULL_GT_YEAR, using_pca=False,
-                 use_additional_sites: bool = True):
+                 load_from_cache: bool = True, start_year=FIRST_FULL_GT_YEAR, using_pca=False,
+                 use_additional_sites: bool = True, sites_of_interest: list = None):
     np.random.seed(0)
     random.seed(0)
     torch.random.manual_seed(0)
 
     print('Loading data')
     processed_data, ground_truth = get_processed_data_and_ground_truth(load_from_cache=load_from_cache,
-                                                         use_additional_sites=use_additional_sites)
+                                                         use_additional_sites=use_additional_sites,
+                                                                       sites_of_interest=sites_of_interest)
 
-    pruned_data = data_pruning(processed_data)
+    pruned_data = data_pruning(processed_data, ground_truth)
 
     # Get training, validation and test sets
     train_features, val_features, test_features, train_gt, val_gt = \
-        train_val_test_split(pruned_data, ground_truth, TEST_YEARS, validation_years, start_year=start_year)
+        train_val_test_split(pruned_data, ground_truth, validation_years, start_year=start_year)
 
     site_ids = processed_data.site_id.unique()
 
@@ -368,9 +369,9 @@ def matched_gt_features(processed_data: pd.DataFrame, ground_truth: pd.DataFrame
 
     return rel_processed, ground_truth
 
-def get_processed_data_and_ground_truth(load_from_cache = True, use_additional_sites=True):
+def get_processed_data_and_ground_truth(load_from_cache = True, use_additional_sites = True, sites_of_interest = None):
     basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache,
-                                                  use_additional_sites=use_additional_sites)
+                                                  use_additional_sites=use_additional_sites, sites_of_interest=sites_of_interest)
 
     # todo add explicit forecasting functionality, split train/test for forecasting earlier.
     #  currently everything is processed together. unsure if necessary
@@ -390,4 +391,5 @@ def get_processed_data_and_ground_truth(load_from_cache = True, use_additional_s
     return processed_data, ground_truth
 
 if __name__ == "__main__":
-    run_pipeline()
+    ordered_site_ids = pd.read_csv(os.path.join("..", "assets", "ordered_site_ids.csv")).site_id.tolist()
+    run_pipeline(sites_of_interest=ordered_site_ids)

@@ -12,7 +12,7 @@ current_dir = os.getcwd()
 
 def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
                           additional_sites_output_path: str = 'additional_sites_transformed_vars.csv',
-                          load_from_cache: bool = False, use_additional_sites: bool = True) -> pd.DataFrame:
+                          load_from_cache: bool = False, use_additional_sites: bool = True, sites_of_interest: list = None) -> pd.DataFrame:
     if load_from_cache:
         if (not use_additional_sites) and os.path.exists(output_file_path):
             return pd.read_csv(output_file_path)
@@ -43,7 +43,10 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
         df_soi2 = cleaning.clean_soi2(df_soi2)
         df_flow = cleaning.clean_flow(df_flow)
 
-        dfs2merge_on_day_site_id = [df_swann, df_flow]
+
+
+        if sites_of_interest is not None:
+            dfs2merge_on_day_site_id = [df_swann[df_swann.site_id.isin(sites_of_interest)], df_flow[df_flow.site_id.isin(sites_of_interest)]]
         df_merged_day_site = merge.merge_site_id_day(dfs2merge_on_day_site_id)
 
         dfs2merge_on_day = [df_mjo, df_nino, df_oni, df_pdo, df_pna, df_soi1, df_soi2, df_merged_day_site]
