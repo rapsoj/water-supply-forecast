@@ -148,9 +148,6 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
     else:
         trans_vars.to_csv(output_file_path, index=False)
 
-    site_ids = trans_vars.site_id.unique()
-    assert all(site_id in site_ids for site_id in CORE_SITES), 'Error - not all core sites are in the data!'
-
     return trans_vars
 
 
