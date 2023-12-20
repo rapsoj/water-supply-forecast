@@ -38,8 +38,8 @@ def extract_n_sites(data: pd.DataFrame, ground_truth: pd.DataFrame, n_sites: int
 def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)),
                  validation_sites: tuple = tuple(ORDERED_SITE_IDS),
                  gt_col: str = 'volume',
-                 load_from_cache: bool = True, start_year=FIRST_FULL_GT_YEAR, using_pca=False,
-                 use_additional_sites: bool = True, n_sites: int = DEBUG_N_SITES, yearwise_validation=False):
+                 load_from_cache: bool = False, start_year=FIRST_FULL_GT_YEAR, using_pca=False,
+                 use_additional_sites: bool = True, n_sites: int = DEBUG_N_SITES, yearwise_validation = False):
     np.random.seed(0)
     random.seed(0)
     torch.random.manual_seed(0)
@@ -54,7 +54,8 @@ def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2
 
     # Get training, validation and test sets
     train_features, val_features, test_features, train_gt, val_gt = \
-        train_val_test_split(pruned_data, ground_truth, validation_years, validation_sites, start_year=start_year)
+        train_val_test_split(pruned_data, ground_truth, validation_years, validation_sites, start_year=start_year,
+                             yearwise_validation=yearwise_validation)
 
     site_ids = pruned_data.site_id.unique()
 
@@ -197,7 +198,7 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
 
 
 def run_global_models(train_features, val_features, test_features, train_gt, val_gt, gt_col, site_ids, using_pca,
-                      fitters=(lstm_fitter,), log_transform=False):
+                      fitters=(lstm_fitter,), log_transform=False, yearwise_validation = False):
     train_features = train_features.sort_values(by=['site_id', 'date']).reset_index(
         drop=True)  # Might not be necessary (might already be that way) but just to make sure
     val_features = val_features.sort_values(by=['site_id', 'date']).reset_index(drop=True)
@@ -253,47 +254,75 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
             val_site_gt = val_gt[val_gt.site_id == site_id]
             test_site = test_features[test_site_id_col == site_id]
 
-            train_pred = model(train_site)
-            val_pred = train_only_model(val_site)
-            test_pred = model(test_site)
+            # todo fix this for sitewise validation tests
+            train_pred = pd.DataFrame()
+            val_pred = pd.DataFrame()
+            test_pred = pd.DataFrame()
+
+            if not train_site.empty:
+                train_pred = model(train_site)
+            if not val_site.empty:
+                val_pred = train_only_model(val_site)
+            if not test_site.empty:
+                test_pred = model(test_site)
 
             # rescaling data
             if log_transform:
-                train_pred = np.exp(inv_scale_data(train_pred, log_mean, log_std))
-                val_pred = np.exp(inv_scale_data(val_pred, log_mean, log_std))
-                test_pred = np.exp(inv_scale_data(test_pred, log_mean, log_std))
-                train_site_gt[gt_col] = np.exp(inv_scale_data(train_site_gt[gt_col], log_mean, log_std))
-                val_site_gt[gt_col] = np.exp(inv_scale_data(val_site_gt[gt_col], log_mean, log_std))
+                if not train_site.empty:
+                    train_pred = np.exp(inv_scale_data(train_pred, log_mean, log_std))
+                    train_site_gt[gt_col] = np.exp(inv_scale_data(train_site_gt[gt_col], log_mean, log_std))
+                if not val_site.empty:
+                    val_pred = np.exp(inv_scale_data(val_pred, log_mean, log_std))
+                    val_site_gt[gt_col] = np.exp(inv_scale_data(val_site_gt[gt_col], log_mean, log_std))
+                if not test_site.empty:
+                    test_pred = np.exp(inv_scale_data(test_pred, log_mean, log_std))
             else:
-                train_pred = inv_scale_data(train_pred, gt_mean, gt_std)
-                val_pred = inv_scale_data(val_pred, gt_mean, gt_std)
-                test_pred = inv_scale_data(test_pred, gt_mean, gt_std)
+                if not train_site.empty:
+                    train_pred = inv_scale_data(train_pred, gt_mean, gt_std)
+                    train_site_gt[gt_col] = inv_scale_data(train_site_gt[gt_col], gt_mean, gt_std)
+                if not val_site.empty:
+                    val_pred = inv_scale_data(val_pred, gt_mean, gt_std)
+                    val_site_gt[gt_col] = inv_scale_data(val_site_gt[gt_col], gt_mean, gt_std)
+                if not test_site.empty:
+                    test_pred = inv_scale_data(test_pred, gt_mean, gt_std)
 
-                train_site_gt[gt_col] = inv_scale_data(train_site_gt[gt_col], gt_mean, gt_std)
-                val_site_gt[gt_col] = inv_scale_data(val_site_gt[gt_col], gt_mean, gt_std)
 
             train_site_gt = train_site_gt.reset_index(drop=True)
             val_site_gt = val_site_gt.reset_index(drop=True)
 
+            # todo make sitewise validation work, how should we track the validation losses?
             benchmark_results(train_pred=train_pred, train_gt=train_site_gt[gt_col], val_pred=val_pred,
                               val_gt=val_site_gt[gt_col], benchmark_id=results_id)
-
-            cache_preds(pred=test_pred, cache_id=results_id, site_id=site_id, pred_dates=test_dates, set_id='pred')
-            cache_preds(pred=val_pred, cache_id=results_id, site_id=site_id, pred_dates=val_dates, set_id='val')
-            cache_preds(pred=train_pred, cache_id=results_id, site_id=site_id, pred_dates=train_dates, set_id='train')
+            if not test_pred.empty:
+                cache_preds(pred=test_pred, cache_id=results_id, site_id=site_id, pred_dates=test_dates, set_id='pred')
+            if not val_pred.empty:
+                cache_preds(pred=val_pred, cache_id=results_id, site_id=site_id, pred_dates=val_dates, set_id='val')
+            if not train_pred.empty:
+                cache_preds(pred=train_pred, cache_id=results_id, site_id=site_id, pred_dates=train_dates, set_id='train')
 
 
         print('Generating global model submission file...')
         df_test = generate_submission_file(ordered_site_ids=ORDERED_SITE_IDS, model_id='global',
                                            fitter_id=fitter.__name__,
                                            set_id='pred')
-        df_val = generate_submission_file(ordered_site_ids=ORDERED_SITE_IDS, model_id='global',
-                                          fitter_id=fitter.__name__,
-                                          set_id='val')
-        df_train = generate_submission_file(ordered_site_ids=ORDERED_SITE_IDS, model_id='global',
-                                            fitter_id=fitter.__name__,
-                                            set_id='train')
+        if not yearwise_validation:
+            # Here we generate files only with the sites which actually exist in the set, different from before when we were generating the files with only the old sites
+            validation_sites = val_features.site_id.unique()
+            df_val = generate_submission_file(ordered_site_ids=validation_sites, model_id='global',
+                                              fitter_id=fitter.__name__,
+                                              set_id='val')
+            train_sites = train_features.site_id.unique()
 
+            df_train = generate_submission_file(ordered_site_ids=train_sites, model_id='global',
+                                                fitter_id=fitter.__name__,
+                                                set_id='train')
+        else:
+            df_val = generate_submission_file(ordered_site_ids=ORDERED_SITE_IDS, model_id='global',
+                                              fitter_id=fitter.__name__,
+                                              set_id='val')
+            df_train = generate_submission_file(ordered_site_ids=ORDERED_SITE_IDS, model_id='global',
+                                                fitter_id=fitter.__name__,
+                                                set_id='train')
         test_dfs[f'global_{fitter.__name__}'] = df_test
         val_dfs[f'global_{fitter.__name__}'] = df_val
         train_dfs[f'global_{fitter.__name__}'] = df_train
@@ -340,8 +369,8 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, validati
         val_feature_df = feature_df[val_mask].reset_index(drop=True)
         val_gt_df = gt_df[val_gt_mask].reset_index(drop=True)
     else:
-        val_mask = feature_df.forecast_year.isin(validation_sites)
-        val_gt_mask = gt_df.forecast_year.isin(validation_sites)
+        val_mask = feature_df.site_id.isin(validation_sites) & ~feature_df.forecast_year.isin(TEST_YEARS)
+        val_gt_mask = gt_df.site_id.isin(validation_sites) & ~gt_df.forecast_year.isin(TEST_YEARS)
 
         val_feature_df = feature_df[val_mask].reset_index(drop=True)
         val_gt_df = gt_df[val_gt_mask].reset_index(drop=True)
@@ -368,7 +397,8 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, validati
             "Site IDs are overlapping between train"
 
     assert test_feature_df.size > 0, "No test features"
-
+    assert val_feature_df.size > 0, "No validation features"
+    assert train_feature_df.size > 0, "No train features"
     # todo figure out why some things are empty here, e.g. test_gt_df
     return train_feature_df, val_feature_df, test_feature_df, train_gt_df, val_gt_df
 

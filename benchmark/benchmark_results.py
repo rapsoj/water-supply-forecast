@@ -68,12 +68,27 @@ def calc_losses(train_pred: [pd.Series, pd.DataFrame], train_gt: pd.Series, val_
                 val_gt: pd.Series) -> tuple[dict]:
     min_q = min(DEF_QUANTILES)
     max_q = max(DEF_QUANTILES)
-    perc_in_interval = {'train': (train_pred[min_q] <= train_gt) & (train_gt <= train_pred[max_q]),
-                        'val': (val_pred[min_q] <= val_gt) & (val_gt <= val_pred[max_q])}
-    quantile_losses = {'train': {q: calc_quantile_loss(train_gt, train_pred, q) for q in DEF_QUANTILES},
-                       'val': {q: calc_quantile_loss(val_gt, val_pred, q) for q in DEF_QUANTILES}}
-    avg_q_losses = {'train': average_quantile_loss(train_gt, train_pred, DEF_QUANTILES),
-                    'val': average_quantile_loss(val_gt, val_pred, DEF_QUANTILES)}
+    if train_pred.empty:
+        perc_in_interval = {'train': -1,
+                            'val': (val_pred[min_q] <= val_gt) & (val_gt <= val_pred[max_q])}
+        quantile_losses = {'train': {q: -1 for q in DEF_QUANTILES},
+                           'val': {q: calc_quantile_loss(val_gt, val_pred, q) for q in DEF_QUANTILES}}
+        avg_q_losses = {'train': -1,
+                        'val': average_quantile_loss(val_gt, val_pred, DEF_QUANTILES)}
+    elif val_pred.empty:
+        perc_in_interval = {'train': (train_pred[min_q] <= train_gt) & (train_gt <= train_pred[max_q]),
+                            'val': -1}
+        quantile_losses = {'train': {q: calc_quantile_loss(train_gt, train_pred, q) for q in DEF_QUANTILES},
+                           'val': {q: -1 for q in DEF_QUANTILES}}
+        avg_q_losses = {'train': average_quantile_loss(train_gt, train_pred, DEF_QUANTILES),
+                        'val': -1}
+    else:
+        perc_in_interval = {'train': (train_pred[min_q] <= train_gt) & (train_gt <= train_pred[max_q]),
+                            'val': (val_pred[min_q] <= val_gt) & (val_gt <= val_pred[max_q])}
+        quantile_losses = {'train': {q: calc_quantile_loss(train_gt, train_pred, q) for q in DEF_QUANTILES},
+                           'val': {q: calc_quantile_loss(val_gt, val_pred, q) for q in DEF_QUANTILES}}
+        avg_q_losses = {'train': average_quantile_loss(train_gt, train_pred, DEF_QUANTILES),
+                        'val': average_quantile_loss(val_gt, val_pred, DEF_QUANTILES)}
 
     return perc_in_interval, quantile_losses, avg_q_losses
 
