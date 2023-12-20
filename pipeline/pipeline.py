@@ -32,6 +32,9 @@ def extract_n_sites(data: pd.DataFrame, ground_truth: pd.DataFrame, n_sites: int
     data = data[data.site_id.isin(keeping_sites)]
     ground_truth = ground_truth[ground_truth.site_id.isin(keeping_sites)]
 
+    assert data.site_id.nunique() == n_sites, f'Number of sites is {data.site_id.nunique()}'
+    assert ground_truth.site_id.nunique() == n_sites, f'Number of sites is {ground_truth.site_id.nunique()}'
+
     return data, ground_truth
 
 
@@ -124,7 +127,6 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
         val_site_gt = val_gt[val_gt.site_id == site_id].reset_index(drop=True)
         test_site = test_features[test_features.site_id == site_id].reset_index(drop=True)
         test_site = test_site.drop(columns=drop_cols, errors='ignore')
-
 
         train_site_gt[gt_col] = scale_data(train_site_gt[gt_col], gt_mean, gt_std)
         val_site_gt[gt_col] = scale_data(val_site_gt[gt_col], gt_mean, gt_std)
