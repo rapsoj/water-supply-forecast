@@ -18,7 +18,7 @@ from models.fit_to_data import ensemble_models
 from models.fitters import general_pcr_fitter, general_xgboost_fitter, lstm_fitter
 from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
-from preprocessing.data_pruning import data_pruning
+from preprocessing.data_pruning import prune_data
 
 path = os.getcwd()
 
@@ -40,8 +40,6 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=load_from_cache,
                                         use_additional_sites=use_additional_sites)
 
-
-
     # Data sanity check
     # Check types (do we wish to also check that date, forecast_year and site_id are the correct types here?
     assert all([data_type == float for data_type in processed_data
@@ -54,9 +52,9 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     ground_truth = load_ground_truth(num_predictions=N_PRED_MONTHS * N_PREDS_PER_MONTH,
                                      additional_sites=use_additional_sites)
 
-    processed_data, ground_truth = matched_gt_features(processed_data, ground_truth, test_years)
+    processed_data, ground_truth = make_gt_and_features_siteyear_consistent(processed_data, ground_truth, test_years)
 
-    pruned_data, ground_truth = data_pruning(processed_data, ground_truth)
+    pruned_data = prune_data(processed_data, ground_truth)
 
     # Get training, validation and test sets
     train_features, val_features, test_features, train_gt, val_gt = \
@@ -315,7 +313,8 @@ def load_ground_truth(num_predictions: int, additional_sites: bool = False) -> p
     if additional_sites:
         additional_ground_truth_df = pd.read_csv(os.path.join("..", "assets", "data", "additional_train.csv"))
         ordered_site_ids = pd.read_csv(os.path.join("..", "assets", "ordered_site_ids.csv"))
-        additional_ground_truth_df = additional_ground_truth_df[~additional_ground_truth_df.site_id.isin(ordered_site_ids.site_id)]
+        additional_ground_truth_df = additional_ground_truth_df[
+            ~additional_ground_truth_df.site_id.isin(ordered_site_ids.site_id)]
         ground_truth_df = pd.concat([ground_truth_df, additional_ground_truth_df])
 
     # todo improve how we retrieve data for different sites, retrieving as much data as we can for each
@@ -348,7 +347,6 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
     val_feature_df = feature_df[val_mask].reset_index(drop=True)
     val_gt_df = gt_df[val_gt_mask].reset_index(drop=True)
 
-
     # Specifically get the years here since you have the extra criterion of sites in the test_mask which can cause additional sites being added on test years to train features
     test_features_years_mask = feature_df.forecast_year.isin(test_years)
     test_gt_years_mask = gt_df.forecast_year.isin(test_years)
@@ -369,7 +367,9 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
     # todo figure out why some things are empty here, e.g. test_gt_df
     return train_feature_df, val_feature_df, test_feature_df, train_gt_df, val_gt_df
 
-def matched_gt_features(processed_data: pd.DataFrame, ground_truth: pd.DataFrame, test_years) -> (pd.DataFrame, pd.DataFrame):
+
+def make_gt_and_features_siteyear_consistent(processed_data: pd.DataFrame, ground_truth: pd.DataFrame, test_years) -> \
+        (pd.DataFrame, pd.DataFrame):
     df = processed_data[(processed_data.forecast_year >= FIRST_FULL_GT_YEAR)
                         & (processed_data.date.dt.month <= JULY)].reset_index(drop=True)
 
@@ -384,11 +384,11 @@ def matched_gt_features(processed_data: pd.DataFrame, ground_truth: pd.DataFrame
     assert (df.forecast_year == ground_truth.forecast_year).all(), 'Forecast years not matching in pruning'
     assert (df.date.dt.year == ground_truth.forecast_year).all(), 'Forecast years and dates not matching in pruning'
 
-    # That was all fun playing around with the params, let's give back what we want (including test years)
-    rel_processed = processed_data[(processed_data.site_id + processed_data.forecast_year.astype(str)).isin(gt_col)
-                                   | (processed_data.forecast_year.isin(test_years))]
+    # That was all fun playing around with the params, let's retrieve the relevant data
+    rel_processed_data = processed_data[(processed_data.site_id + processed_data.forecast_year.astype(str)).isin(gt_col)
+                                        | (processed_data.forecast_year.isin(test_years))]
 
-    return rel_processed, ground_truth
+    return rel_processed_data, ground_truth
 
 
 if __name__ == "__main__":

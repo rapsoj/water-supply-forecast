@@ -6,8 +6,7 @@ from sklearn.decomposition import PCA
 from consts import FIRST_FULL_GT_YEAR, JULY
 
 
-def data_pruning(processed_data, ground_truth, FEAT_CORR_THRESH: float = .2):
-
+def prune_data(processed_data, ground_truth, FEAT_CORR_THRESH: float = .2):
     df = processed_data[(processed_data.forecast_year >= FIRST_FULL_GT_YEAR)
                         & (processed_data.date.dt.month <= JULY)
                         & ~(processed_data.forecast_year.isin(range(2005, 2024, 2)))].reset_index(drop=True)
@@ -23,7 +22,7 @@ def data_pruning(processed_data, ground_truth, FEAT_CORR_THRESH: float = .2):
     cols_to_keep = list((set(corr_matrix.index[corr_matrix['gt'].abs() >= FEAT_CORR_THRESH]) | set(cols_to_keep))
                         - set(['gt']))
 
-    return processed_data[cols_to_keep], ground_truth
+    return processed_data[cols_to_keep]
 
 
 def data_pca(processed_data, output_file_path: str = 'pruned_data', load_from_cache=True, n_components: int = 30):
