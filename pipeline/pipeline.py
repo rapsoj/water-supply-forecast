@@ -365,6 +365,7 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
 
 def make_gt_and_features_siteyear_consistent(processed_data: pd.DataFrame, ground_truth: pd.DataFrame, test_years) -> \
         (pd.DataFrame, pd.DataFrame):
+    # todo clean this
     df = processed_data[(processed_data.forecast_year >= FIRST_FULL_GT_YEAR)
                         & (processed_data.date.dt.month <= JULY)].reset_index(drop=True)
 
@@ -381,7 +382,9 @@ def make_gt_and_features_siteyear_consistent(processed_data: pd.DataFrame, groun
 
     # That was all fun playing around with the params, let's retrieve the relevant data
     rel_processed_data = processed_data[(processed_data.site_id + processed_data.forecast_year.astype(str)).isin(gt_col)
-                                        | (processed_data.forecast_year.isin(test_years))].reset_index(drop=True)
+                                        | (processed_data.forecast_year.isin(test_years) &
+                                           processed_data.site_id.isin(ground_truth.site_id.unique()))] \
+        .reset_index(drop=True)
 
     return rel_processed_data, ground_truth
 
