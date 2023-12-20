@@ -12,18 +12,17 @@ import torch
 
 from benchmark.benchmark_results import benchmark_results, cache_preds, generate_submission_file, \
     cache_merged_submission_file
-from consts import JULY, FIRST_FULL_GT_YEAR, N_PREDS_PER_MONTH, N_PRED_MONTHS
+from consts import JULY, FIRST_FULL_GT_YEAR, N_PREDS_PER_MONTH, N_PRED_MONTHS, TEST_YEARS
 from models.fit_to_data import Ensemble_Type
 from models.fit_to_data import ensemble_models
 from models.fitters import general_pcr_fitter, general_xgboost_fitter, lstm_fitter
 from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
 from preprocessing.data_pruning import data_pruning
-
 path = os.getcwd()
 
 
-def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
+def run_pipeline(TEST_YEARS: tuple = tuple(np.arange(2005, 2024, 2)),
                  validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)), gt_col: str = 'volume',
                  load_from_cache: bool = False, start_year=FIRST_FULL_GT_YEAR, using_pca=False,
                  use_additional_sites: bool = True):
@@ -33,14 +32,13 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
     print('Loading data')
     processed_data, ground_truth = get_processed_data_and_ground_truth(load_from_cache=load_from_cache,
-                                                         use_additional_sites=use_additional_sites,
-                                                                       test_years=test_years)
+                                                         use_additional_sites=use_additional_sites)
 
     pruned_data = data_pruning(processed_data)
 
     # Get training, validation and test sets
     train_features, val_features, test_features, train_gt, val_gt = \
-        train_val_test_split(pruned_data, ground_truth, test_years, validation_years, start_year=start_year)
+        train_val_test_split(pruned_data, ground_truth, TEST_YEARS, validation_years, start_year=start_year)
 
     site_ids = processed_data.site_id.unique()
 
@@ -311,14 +309,14 @@ def load_ground_truth(num_predictions: int, additional_sites: bool = False) -> p
     return ground_truth_df
 
 
-def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_years: tuple, validation_years: tuple,
+def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, validation_years: tuple,
                          start_year: int = FIRST_FULL_GT_YEAR):
     feature_df = feature_df.copy()
     gt_df = gt_df.copy()
     ordered_site_ids = pd.read_csv(os.path.join("..", "assets", "ordered_site_ids.csv"))
 
-    test_feature_mask = feature_df.forecast_year.isin(test_years) & feature_df.site_id.isin(ordered_site_ids.site_id)
-    test_gt_mask = gt_df.forecast_year.isin(test_years) & gt_df.site_id.isin(ordered_site_ids.site_id)
+    test_feature_mask = feature_df.forecast_year.isin(TEST_YEARS) & feature_df.site_id.isin(ordered_site_ids.site_id)
+    test_gt_mask = gt_df.forecast_year.isin(TEST_YEARS) & gt_df.site_id.isin(ordered_site_ids.site_id)
 
     test_feature_df = feature_df[test_feature_mask].reset_index(drop=True)
 
@@ -330,8 +328,8 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
 
 
     # Specifically get the years here since you have the extra criterion of sites in the test_mask which can cause additional sites being added on test years to train features
-    test_features_years_mask = feature_df.forecast_year.isin(test_years)
-    test_gt_years_mask = gt_df.forecast_year.isin(test_years)
+    test_features_years_mask = feature_df.forecast_year.isin(TEST_YEARS)
+    test_gt_years_mask = gt_df.forecast_year.isin(TEST_YEARS)
     train_mask = ~val_mask & ~test_features_years_mask & (feature_df.forecast_year >= start_year)
     train_gt_mask = ~val_gt_mask & ~test_gt_years_mask & (gt_df.forecast_year >= start_year)
 
@@ -349,7 +347,7 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, test_yea
     # todo figure out why some things are empty here, e.g. test_gt_df
     return train_feature_df, val_feature_df, test_feature_df, train_gt_df, val_gt_df
 
-def matched_gt_features(processed_data: pd.DataFrame, ground_truth: pd.DataFrame, test_years) -> (pd.DataFrame, pd.DataFrame):
+def matched_gt_features(processed_data: pd.DataFrame, ground_truth: pd.DataFrame) -> (pd.DataFrame, pd.DataFrame):
     df = processed_data[(processed_data.forecast_year >= FIRST_FULL_GT_YEAR)
                         & (processed_data.date.dt.month <= JULY)].reset_index(drop=True)
 
@@ -366,11 +364,11 @@ def matched_gt_features(processed_data: pd.DataFrame, ground_truth: pd.DataFrame
 
     # That was all fun playing around with the params, let's give back what we want (including test years)
     rel_processed = processed_data[(processed_data.site_id + processed_data.forecast_year.astype(str)).isin(gt_col)
-                                   | (processed_data.forecast_year.isin(test_years))].reset_index(drop=True)
+                                   | (processed_data.forecast_year.isin(TEST_YEARS))].reset_index(drop=True)
 
     return rel_processed, ground_truth
 
-def get_processed_data_and_ground_truth(load_from_cache = True, use_additional_sites=True, test_years: tuple = tuple(np.arange(2005, 2024, 2))):
+def get_processed_data_and_ground_truth(load_from_cache = True, use_additional_sites=True):
     basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache,
                                                   use_additional_sites=use_additional_sites)
 
@@ -387,7 +385,7 @@ def get_processed_data_and_ground_truth(load_from_cache = True, use_additional_s
     ground_truth = load_ground_truth(num_predictions=N_PRED_MONTHS * N_PREDS_PER_MONTH,
                                      additional_sites=use_additional_sites)
 
-    processed_data, ground_truth = matched_gt_features(processed_data, ground_truth, test_years)
+    processed_data, ground_truth = matched_gt_features(processed_data, ground_truth)
 
     return processed_data, ground_truth
 

@@ -56,7 +56,9 @@ def analyze_data_sitewise():
 
 def analyze_data_globally():
 
+
     df, ground_truth = get_processed_data_and_ground_truth()
+    df = df[~df.year.isin(test_years)]
     df = df.reset_index(drop=True)
     ground_truth = ground_truth.reset_index(drop=True)
     df['ground_truth'] = ground_truth.volume
@@ -66,12 +68,12 @@ def analyze_data_globally():
     df.drop(drop_cols, axis=1, inplace=True)
     corr_matrix = df.corr()
     l_corr = np.triu(corr_matrix)
-    plt.plot(corr_matrix['ground_truth'])
-    plt.show()
+    #plt.plot(corr_matrix['ground_truth'])
+    #plt.show()
     #sns.heatmap(corr_matrix, annot=True, mask=l_corr, annot_kws={"fontsize":6}, xticklabels=True, yticklabels=True, cmap='viridis')
     #plt.show()
 
-    indices = corr_matrix.index[corr_matrix['gt'].abs() >= 0.5]
+    indices = corr_matrix.index[corr_matrix['ground_truth'].abs() >= 0.5]
 
     for column in indices:
         plt.scatter(df[column], ground_truth.volume)
