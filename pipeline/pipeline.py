@@ -55,7 +55,7 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
     train_features, val_features, test_features, train_gt, val_gt = \
         train_val_test_split(pruned_data, ground_truth, test_years, validation_years, start_year=start_year)
 
-    site_ids = processed_data.site_id.unique()
+    site_ids = pruned_data.site_id.unique()
 
     print('Running global models...')
 
