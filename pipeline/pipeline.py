@@ -12,8 +12,8 @@ import torch
 
 from benchmark.benchmark_results import benchmark_results, cache_preds, generate_submission_file, \
     cache_merged_submission_file
-from consts import JULY, FIRST_FULL_GT_YEAR, N_PREDS_PER_MONTH, N_PRED_MONTHS, TEST_YEARS
-from consts import JULY, FIRST_FULL_GT_YEAR, N_PREDS_PER_MONTH, N_PRED_MONTHS, DEBUG_N_SITES, MIN_N_SITES, CORE_SITES
+from consts import (JULY, FIRST_FULL_GT_YEAR, N_PREDS_PER_MONTH, N_PRED_MONTHS, DEBUG_N_SITES,
+                    MIN_N_SITES, CORE_SITES, TEST_YEARS, ORDERED_SITE_IDS)
 from models.fit_to_data import Ensemble_Type
 from models.fit_to_data import ensemble_models
 from models.fitters import general_pcr_fitter, general_xgboost_fitter, lstm_fitter
@@ -35,18 +35,18 @@ def extract_n_sites(data: pd.DataFrame, ground_truth: pd.DataFrame, n_sites: int
     return data, ground_truth
 
 
-def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
-                 validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)), gt_col: str = 'volume',
+def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)),
+                 validation_sites: tuple = tuple(ORDERED_SITE_IDS),
+                 gt_col: str = 'volume',
                  load_from_cache: bool = True, start_year=FIRST_FULL_GT_YEAR, using_pca=False,
-                 use_additional_sites: bool = True, n_sites: int = DEBUG_N_SITES):
+                 use_additional_sites: bool = True, n_sites: int = DEBUG_N_SITES, yearwise_validation=False):
     np.random.seed(0)
     random.seed(0)
     torch.random.manual_seed(0)
 
     print('Loading data')
     processed_data, ground_truth = get_processed_data_and_ground_truth(load_from_cache=load_from_cache,
-                                                                       use_additional_sites=use_additional_sites,
-                                                                       test_years=test_years)
+                                                                       use_additional_sites=use_additional_sites)
 
     processed_data, ground_truth = extract_n_sites(processed_data, ground_truth, n_sites)
 
@@ -54,7 +54,7 @@ def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
 
     # Get training, validation and test sets
     train_features, val_features, test_features, train_gt, val_gt = \
-        train_val_test_split(pruned_data, ground_truth, validation_years, start_year=start_year)
+        train_val_test_split(pruned_data, ground_truth, validation_years, validation_sites, start_year=start_year)
 
     site_ids = pruned_data.site_id.unique()
 
@@ -180,14 +180,13 @@ def run_local_models(train_features, val_features, test_features, train_gt, val_
             cache_preds(pred=val_pred, cache_id=results_id, site_id=site_id, pred_dates=val_dates, set_id='val')
             cache_preds(pred=train_pred, cache_id=results_id, site_id=site_id, pred_dates=train_dates, set_id='train')
 
-        df = pd.read_csv(os.path.join('..', 'assets', 'ordered_site_ids.csv'))
-        ordered_site_ids = df.site_id.tolist()
+
         print('Generating local model submission file...')
-        test_df = generate_submission_file(ordered_site_ids=ordered_site_ids, model_id='local',
+        test_df = generate_submission_file(ordered_site_ids=ORDERED_SITE_IDS, model_id='local',
                                            fitter_id=fitter.__name__, set_id='pred')
-        val_df = generate_submission_file(ordered_site_ids=ordered_site_ids, model_id='local',
+        val_df = generate_submission_file(ordered_site_ids=ORDERED_SITE_IDS, model_id='local',
                                           fitter_id=fitter.__name__, set_id='val')
-        train_df = generate_submission_file(ordered_site_ids=ordered_site_ids, model_id='local',
+        train_df = generate_submission_file(ordered_site_ids=ORDERED_SITE_IDS, model_id='local',
                                             fitter_id=fitter.__name__, set_id='train')
 
         test_dfs[f'local_{fitter.__name__}'] = test_df
@@ -283,16 +282,15 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
             cache_preds(pred=val_pred, cache_id=results_id, site_id=site_id, pred_dates=val_dates, set_id='val')
             cache_preds(pred=train_pred, cache_id=results_id, site_id=site_id, pred_dates=train_dates, set_id='train')
 
-        df = pd.read_csv(os.path.join('..', 'assets', 'ordered_site_ids.csv'))
-        ordered_site_ids = df.site_id.tolist()
+
         print('Generating global model submission file...')
-        df_test = generate_submission_file(ordered_site_ids=ordered_site_ids, model_id='global',
+        df_test = generate_submission_file(ordered_site_ids=ORDERED_SITE_IDS, model_id='global',
                                            fitter_id=fitter.__name__,
                                            set_id='pred')
-        df_val = generate_submission_file(ordered_site_ids=ordered_site_ids, model_id='global',
+        df_val = generate_submission_file(ordered_site_ids=ORDERED_SITE_IDS, model_id='global',
                                           fitter_id=fitter.__name__,
                                           set_id='val')
-        df_train = generate_submission_file(ordered_site_ids=ordered_site_ids, model_id='global',
+        df_train = generate_submission_file(ordered_site_ids=ORDERED_SITE_IDS, model_id='global',
                                             fitter_id=fitter.__name__,
                                             set_id='train')
 
@@ -308,9 +306,9 @@ def load_ground_truth(num_predictions: int, additional_sites: bool = False) -> p
 
     if additional_sites:
         additional_ground_truth_df = pd.read_csv(os.path.join("..", "assets", "data", "additional_train.csv"))
-        ordered_site_ids = pd.read_csv(os.path.join("..", "assets", "ordered_site_ids.csv"))
+
         additional_ground_truth_df = additional_ground_truth_df[
-            ~additional_ground_truth_df.site_id.isin(ordered_site_ids.site_id)]
+            ~additional_ground_truth_df.site_id.isin(ORDERED_SITE_IDS)]
         ground_truth_df = pd.concat([ground_truth_df, additional_ground_truth_df])
 
     # todo improve how we retrieve data for different sites, retrieving as much data as we can for each
@@ -326,22 +324,27 @@ def load_ground_truth(num_predictions: int, additional_sites: bool = False) -> p
     return ground_truth_df
 
 
-def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, validation_years: tuple,
-                         start_year: int = FIRST_FULL_GT_YEAR):
+def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, validation_years: tuple, validation_sites: tuple,
+                         start_year: int = FIRST_FULL_GT_YEAR, yearwise_validation: bool = False):
     feature_df = feature_df.copy()
     gt_df = gt_df.copy()
-    ordered_site_ids = pd.read_csv(os.path.join("..", "assets", "ordered_site_ids.csv"))
 
-    test_feature_mask = feature_df.forecast_year.isin(TEST_YEARS) & feature_df.site_id.isin(ordered_site_ids.site_id)
-    test_gt_mask = gt_df.forecast_year.isin(TEST_YEARS) & gt_df.site_id.isin(ordered_site_ids.site_id)
+    test_feature_mask = feature_df.forecast_year.isin(TEST_YEARS) & feature_df.site_id.isin(ORDERED_SITE_IDS)
+    test_gt_mask = gt_df.forecast_year.isin(TEST_YEARS) & gt_df.site_id.isin(ORDERED_SITE_IDS)
 
     test_feature_df = feature_df[test_feature_mask].reset_index(drop=True)
+    if yearwise_validation:
+        val_mask = feature_df.forecast_year.isin(validation_years)
+        val_gt_mask = gt_df.forecast_year.isin(validation_years)
 
-    val_mask = feature_df.forecast_year.isin(validation_years)
-    val_gt_mask = gt_df.forecast_year.isin(validation_years)
+        val_feature_df = feature_df[val_mask].reset_index(drop=True)
+        val_gt_df = gt_df[val_gt_mask].reset_index(drop=True)
+    else:
+        val_mask = feature_df.forecast_year.isin(validation_sites)
+        val_gt_mask = gt_df.forecast_year.isin(validation_sites)
 
-    val_feature_df = feature_df[val_mask].reset_index(drop=True)
-    val_gt_df = gt_df[val_gt_mask].reset_index(drop=True)
+        val_feature_df = feature_df[val_mask].reset_index(drop=True)
+        val_gt_df = gt_df[val_gt_mask].reset_index(drop=True)
 
     # Specifically get the years here since you have the extra criterion of sites in the test_mask which can cause additional sites being added on test years to train features
     test_features_years_mask = feature_df.forecast_year.isin(TEST_YEARS)
@@ -352,11 +355,17 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, validati
     # todo filter this in a more dynamic way, getting the minimum year
     train_feature_df = feature_df[train_mask]
     train_gt_df = gt_df[train_gt_mask]
-
-    assert train_feature_df.date.isin(val_feature_df.date).sum() == 0 and \
-           train_feature_df.date.isin(test_feature_df.date).sum() == 0 and \
-           val_feature_df.date.isin(test_feature_df.date).sum() == 0, \
-        "Dates are overlapping between train, val, and test sets"
+    if yearwise_validation:
+        assert train_feature_df.date.isin(val_feature_df.date).sum() == 0 and \
+               train_feature_df.date.isin(test_feature_df.date).sum() == 0 and \
+               val_feature_df.date.isin(test_feature_df.date).sum() == 0, \
+            "Dates are overlapping between train, val, and test sets"
+    else:
+        assert train_feature_df.date.isin(test_feature_df.date).sum() == 0 and \
+               val_feature_df.date.isin(test_feature_df.date).sum() == 0, \
+            "Dates are overlapping between train, val, and test sets"
+        assert train_feature_df.site_id.isin(val_feature_df.site_id).sum() == 0, \
+            "Site IDs are overlapping between train"
 
     assert test_feature_df.size > 0, "No test features"
 
@@ -364,7 +373,7 @@ def train_val_test_split(feature_df: pd.DataFrame, gt_df: pd.DataFrame, validati
     return train_feature_df, val_feature_df, test_feature_df, train_gt_df, val_gt_df
 
 
-def make_gt_and_features_siteyear_consistent(processed_data: pd.DataFrame, ground_truth: pd.DataFrame, test_years) -> \
+def make_gt_and_features_siteyear_consistent(processed_data: pd.DataFrame, ground_truth: pd.DataFrame) -> \
         (pd.DataFrame, pd.DataFrame):
     # todo clean this
     df = processed_data[(processed_data.forecast_year >= FIRST_FULL_GT_YEAR)
@@ -383,15 +392,14 @@ def make_gt_and_features_siteyear_consistent(processed_data: pd.DataFrame, groun
 
     # That was all fun playing around with the params, let's retrieve the relevant data
     rel_processed_data = processed_data[(processed_data.site_id + processed_data.forecast_year.astype(str)).isin(gt_col)
-                                        | (processed_data.forecast_year.isin(test_years) &
+                                        | (processed_data.forecast_year.isin(TEST_YEARS) &
                                            processed_data.site_id.isin(ground_truth.site_id.unique()))] \
         .reset_index(drop=True)
 
     return rel_processed_data, ground_truth
 
 
-def get_processed_data_and_ground_truth(load_from_cache=True, use_additional_sites=True,
-                                        test_years: tuple = tuple(np.arange(2005, 2024, 2))):
+def get_processed_data_and_ground_truth(load_from_cache=True, use_additional_sites=True):
     basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache,
                                                   use_additional_sites=use_additional_sites)
 
@@ -407,7 +415,7 @@ def get_processed_data_and_ground_truth(load_from_cache=True, use_additional_sit
     ground_truth = load_ground_truth(num_predictions=N_PRED_MONTHS * N_PREDS_PER_MONTH,
                                      additional_sites=use_additional_sites)
 
-    processed_data, ground_truth = make_gt_and_features_siteyear_consistent(processed_data, ground_truth, test_years)
+    processed_data, ground_truth = make_gt_and_features_siteyear_consistent(processed_data, ground_truth)
 
     return processed_data, ground_truth
 

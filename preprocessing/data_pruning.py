@@ -3,24 +3,24 @@ import os
 import pandas as pd
 from sklearn.decomposition import PCA
 
-from consts import FIRST_FULL_GT_YEAR, JULY
+from consts import FIRST_FULL_GT_YEAR, JULY, TEST_YEARS
 
 
 def prune_data(processed_data, ground_truth, FEAT_CORR_THRESH: float = .2):
     df = processed_data[(processed_data.forecast_year >= FIRST_FULL_GT_YEAR)
                         & (processed_data.date.dt.month <= JULY)
-                        & ~(processed_data.forecast_year.isin(range(2005, 2024, 2)))].reset_index(drop=True)
+                        & ~(processed_data.forecast_year.isin(TEST_YEARS))].reset_index(drop=True)
 
 
-    df['gt'] = ground_truth.volume
+    df['ground_truth'] = ground_truth.volume
 
     cols_to_keep = ['site_id', 'date', 'forecast_year', 'time']
 
     df.drop(cols_to_keep, axis=1, inplace=True)
     corr_matrix = df.corr()
 
-    cols_to_keep = list((set(corr_matrix.index[corr_matrix['gt'].abs() >= FEAT_CORR_THRESH]) | set(cols_to_keep))
-                        - set(['gt']))
+    cols_to_keep = list((set(corr_matrix.index[corr_matrix['ground_truth'].abs() >= FEAT_CORR_THRESH]) | set(cols_to_keep))
+                        - set(['ground_truth']))
 
     return processed_data[cols_to_keep]
 
