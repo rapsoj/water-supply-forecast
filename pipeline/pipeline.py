@@ -19,7 +19,7 @@ path = os.getcwd()
 
 def run_pipeline(test_years: tuple = tuple(np.arange(2005, 2024, 2)),
                  validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)), gt_col: str = 'volume',
-                 load_from_cache: bool = False, start_year=FIRST_FULL_GT_YEAR, using_pca=False):
+                 load_from_cache: bool = True, start_year=FIRST_FULL_GT_YEAR, using_pca=False):
     np.random.seed(0)
     random.seed(0)
     torch.random.manual_seed(0)
@@ -221,6 +221,7 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
     train_features = train_features.fillna(0)
     val_features = val_features.fillna(0)
     test_features = test_features.fillna(0)
+    test_features.to_csv(os.path.join(path, '..', 'pipeline', 'test_features_hacky.csv'), index=False)
     test_dfs = {}
     val_dfs = {}
     train_dfs = {}
@@ -230,6 +231,7 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
 
         test_mask = test_features.date.dt.month <= JULY
         test_vals = test_features[test_mask]
+        test_vals.to_csv(os.path.join(path, '..', 'pipeline', 'test_vals_hacky.csv'), index=False)
         test_dates = test_vals.date.reset_index(drop=True).unique()
         val_mask = val_features.date.dt.month <= JULY
         val_vals = val_features[val_mask]
