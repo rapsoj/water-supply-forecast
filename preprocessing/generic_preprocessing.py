@@ -14,7 +14,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
                           additional_sites_output_path: str = 'additional_sites_transformed_vars.csv',
                           load_from_cache: bool = False, use_additional_sites: bool = True) -> pd.DataFrame:
 
-    if (load_from_cache):
+    if load_from_cache:
         if (not use_additional_sites) and os.path.exists(output_file_path):
             return pd.read_csv(output_file_path)
         elif use_additional_sites and os.path.exists(additional_sites_output_path):
