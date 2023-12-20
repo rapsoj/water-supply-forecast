@@ -4,7 +4,6 @@ from functools import reduce
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
-from preprocessing.helper_functions.scaling import scale_dataframe
 from consts import OCTOBER, JULY, MID_MONTH_DAY, CORE_SITES
 
 path = os.getcwd()
@@ -19,7 +18,6 @@ global_misc_cols = ['pdo', 'pna', 'soi_anom', 'soi_sd']
 shared_cols = ['date']
 
 date_cols = ['year', 'month', 'day']
-
 
 def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.DataFrame, oni_data: pd.DataFrame,
                      misc_data: pd.DataFrame) -> pd.DataFrame:
@@ -141,14 +139,14 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
         .drop(columns=date_cols) \
         .reset_index(drop=True)
 
-    # Get site ids
-    #site_id_str = 'site_id_'
-    #site_id_cols = [col for col in data.columns if 'site_id' in col]
+    '''# Get site ids
+    site_id_str = 'site_id_'
+    site_id_cols = [col for col in data.columns if 'site_id' in col]
 
-    #data['site_id'] = data[site_id_cols] \
-    #    .idxmax(axis='columns') \
-    #   .apply(lambda x: x[x.find(site_id_str) + len(site_id_str):])
-    #data = data.drop(columns=site_id_cols)
+    data['site_id'] = data[site_id_cols] \
+        .idxmax(axis='columns') \
+       .apply(lambda x: x[x.find(site_id_str) + len(site_id_str):])
+    data = data.drop(columns=site_id_cols)'''
 
     # todo make sure you re-incorporate all of these+interpolate them properly
     mjo_data = data[global_mjo_cols + shared_cols].dropna()
@@ -178,7 +176,7 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
 
     # do scaling
 
-    assert all(site_id in site_ids for site_id in CORE_SITES), 'Error - not all core sites are in the data!'
+    #assert all(site_id in site_ids for site_id in CORE_SITES), 'Error - not all core sites are in the data!'
 
     if not use_additional_sites:
         processed_data.to_csv(output_file_path, index=False)

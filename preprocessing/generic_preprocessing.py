@@ -144,7 +144,7 @@ def get_processed_dataset(output_file_path: str = 'transformed_vars.csv',
 
     # Output the DataFrame to a CSV file
     if use_additional_sites:
-        trans_vars.to_csv(additional_sites_output_path, index=False)
+        trans_vars.to_csv(os.path.join(current_dir, '..', 'outputs', additional_sites_output_path), index=False)
     else:
         trans_vars.to_csv(output_file_path, index=False)
 
