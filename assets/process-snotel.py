@@ -1,4 +1,4 @@
-!/usr/bin/env python3
+#!/usr/bin/env python3
 
 import os
 import pandas as pd
@@ -94,9 +94,9 @@ def main(input_directory, start, end, output):
                 # The only situation in which this would be needed is if data is missing for the 1 April of every year
                 x_reindexed = x_reindexed.interpolate(method='linear')
                 x_reindexed.index.name = 'date'
-                x_reindexed = x_reindexed.loc[(x_reindexed.index.month == 4) & (x_reindexed.index.day == 1)]
                 # x_reindexed = x_reindexed.loc[(x_reindexed.index.month == 4) & (x_reindexed.index.day == 1)]
-                x_reindexed = x_reindexed.loc[(x_reindexed.index.month.isin([1, 2, 3, 4]) & (x_reindexed.index.day.isin([1, 8, 15, 22])))]
+                # x_reindexed = x_reindexed.loc[(x_reindexed.index.month.isin([1, 2, 3, 4]) & (x_reindexed.index.day.isin([1, 8, 15, 22])))]
+                x_reindexed = x_reindexed.loc[x_reindexed.index.day.isin([1, 8, 15, 22])]
                 x_reindexed = x_reindexed.reset_index()
                 x_reindexed['site'] = site_id
                 x_reindexed['station'] = station_id
