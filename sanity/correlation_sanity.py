@@ -10,13 +10,10 @@ import numpy as np
 import seaborn as sns
 
 def analyze_data_sitewise():
-    basic_preprocessed_df = get_processed_dataset(load_from_cache=True)
 
-    # todo add explicit forecasting functionality, split train/test for forecasting earlier.
-    #  currently everything is processed together. unsure if necessary
-    processed_data = ml_preprocess_data(basic_preprocessed_df, load_from_cache=True)
-    test_years = range(2005, 2024, 2)
-    processed_data = processed_data[(processed_data.forecast_year >= FIRST_FULL_GT_YEAR) & (processed_data.date.dt.month <= JULY) & ~(processed_data.date.dt.year.isin(test_years))]
+    df, ground_truth = get_processed_data_and_ground_truth()
+    processed_data = df[~df.forecast_year.isin(TEST_YEARS) & (df.date.dt.month <= JULY)].reset_index(drop=True)
+    gt_df = ground_truth.reset_index(drop=True)
     site_id = "animas_r_at_durango"
     processed_data = processed_data.sort_values(by='date')
     processed_data = processed_data[processed_data.site_id == site_id]
@@ -26,14 +23,10 @@ def analyze_data_sitewise():
 
     processed_data = base_feature_adapter(processed_data)
 
-    gt_df = load_ground_truth(N_PRED_MONTHS * N_PREDS_PER_MONTH)
-    gt_df = gt_df.sort_values(by='forecast_year')
-
-
-
     #processed_data = processed_data.groupby('year').agg(lambda x: x.mean())
-    df = pd.DataFrame(columns=['gt'])
-    df['gt'] = pd.Series(gt_df[gt_df.site_id == site_id].volume.reset_index(drop=True).unique())
+
+    df = pd.DataFrame(columns=['ground_truth'])
+    df['ground_truth'] = pd.Series(gt_df[gt_df.site_id == site_id].volume.reset_index(drop=True).unique())
     y = gt_df[gt_df.site_id == site_id].volume.reset_index(drop=True)
     for col in processed_data.columns:
         if len(processed_data[col].unique()) > 1:
@@ -54,7 +47,7 @@ def analyze_data_sitewise():
     #sns.heatmap(corr_matrix, annot=True, mask=l_corr, annot_kws={"fontsize":6}, xticklabels=True, yticklabels=True, cmap='viridis')
     #plt.show()
 
-def analyze_data_globally():
+def analyze_data_globally(show_heatmap = False):
 
 
     df, ground_truth = get_processed_data_and_ground_truth()
@@ -66,11 +59,10 @@ def analyze_data_globally():
 
     df.drop(drop_cols, axis=1, inplace=True)
     corr_matrix = df.corr()
-    l_corr = np.triu(corr_matrix)
-    #plt.plot(corr_matrix['ground_truth'])
-    #plt.show()
-    #sns.heatmap(corr_matrix, annot=True, mask=l_corr, annot_kws={"fontsize":6}, xticklabels=True, yticklabels=True, cmap='viridis')
-    #plt.show()
+    if show_heatmap:
+        l_corr = np.triu(corr_matrix)
+        sns.heatmap(corr_matrix, annot=True, mask=l_corr, annot_kws={"fontsize":6}, xticklabels=True, yticklabels=True, cmap='viridis')
+        plt.show()
 
     indices = corr_matrix.index[corr_matrix['ground_truth'].abs() >= 0.3]
 
