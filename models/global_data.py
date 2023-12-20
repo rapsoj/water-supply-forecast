@@ -3,7 +3,7 @@ import pickle
 
 import numpy as np
 
-from consts import N_PRED_MONTHS, N_PREDS_PER_MONTH, FIRST_FULL_GT_YEAR, N_PREDS
+from consts import N_PRED_MONTHS, N_PREDS_PER_MONTH, FIRST_FULL_GT_YEAR, N_PREDS, CORE_SITES
 from pipeline.pipeline import load_ground_truth, train_val_test_split, extract_n_sites, \
     get_processed_data_and_ground_truth
 from preprocessing.generic_preprocessing import get_processed_dataset
@@ -15,17 +15,15 @@ def get_global_data():
     load_from_cache = False
     use_additional_sites = True
     yearwise_validation = False
-
+    validation_sites = CORE_SITES
 
     n_sites = 50
 
     start_year = FIRST_FULL_GT_YEAR
     validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8))
-    test_years: tuple = tuple(np.arange(2005, 2024, 2))
 
     processed_data, ground_truth = get_processed_data_and_ground_truth(load_from_cache=load_from_cache,
-                                                                       use_additional_sites=use_additional_sites,
-                                                                       test_years=test_years)
+                                                                       use_additional_sites=use_additional_sites)
 
     processed_data, ground_truth = extract_n_sites(processed_data, ground_truth, n_sites)
 
