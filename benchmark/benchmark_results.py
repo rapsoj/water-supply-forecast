@@ -139,7 +139,7 @@ def benchmark_results(train_pred: [pd.Series, pd.DataFrame], train_gt: pd.Series
     avg_q_losses = pd.DataFrame(avg_q_losses, index=np.arange(0, 1))
     quantile_losses = pd.DataFrame(quantile_losses)
 
-    perc_in_interval = pd.DataFrame(perc_in_interval)
+    perc_in_interval = pd.DataFrame(perc_in_interval, index=(0,)) # todo figure out why need index here
     perc_in_interval = perc_in_interval.mean(axis='rows')
     avg_q_losses.to_csv(f'{benchmark_id}_avg_q_losses.csv', index=False)
     quantile_losses.to_csv(f'{benchmark_id}_all_q_losses.csv', index=False)

@@ -224,9 +224,11 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
         train_gt[gt_col] = scale_data(log_train_vals, log_mean, log_std)
         val_gt[gt_col] = scale_data(log_val_vals, log_mean, log_std)
     else:
-
         train_gt[gt_col] = scale_data(train_gt[gt_col], gt_mean, gt_std)
         val_gt[gt_col] = scale_data(val_gt[gt_col], gt_mean, gt_std)
+
+        train_gt[gt_col] = scaled_data_sitewise(train_gt, gt_mean, gt_std)
+        val_gt[gt_col] = scaled_data_sitewise(val_gt, gt_mean, gt_std)
 
     # todo perhaps find a better way of treating NaN values (Californian sites for volume + SNOTEL)
     train_features = train_features.fillna(0)
