@@ -68,12 +68,11 @@ def scale_dataframe(df):
     df[scaling_cols] = df[scaling_cols].fillna(global_fillna_vals)
     assert not df[scaling_cols].isna().any().any()
 
-
     df[scaling_cols] = (df[scaling_cols] - global_fillna_vals) / global_fillna_vals_std
     assert not df[scaling_cols].isna().any().any()
 
-    nonscale_mean, nonscale_std = df[nonscale_cols].std(skipna=True), df[nonscale_cols].std(skipna=True)
-    df[nonscale_cols] = (df[nonscale_cols] - nonscale_mean) / nonscale_std
+    nonscale_mean, nonscale_std = df[non_fillna_cols].std(skipna=True), df[non_fillna_cols].std(skipna=True)
+    df[non_fillna_cols] = (df[non_fillna_cols] - nonscale_mean) / nonscale_std
 
     return df
 

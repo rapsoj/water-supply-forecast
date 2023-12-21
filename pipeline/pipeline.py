@@ -19,7 +19,6 @@ from models.fit_to_data import ensemble_models
 from models.fitters import general_xgboost_fitter, lstm_fitter
 from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
-from preprocessing.data_pruning import prune_data
 from preprocessing.helper_functions.scaling import scale_ground_truth, inv_scale_data
 
 path = os.getcwd()
