@@ -122,7 +122,7 @@ def calc_val_loss(model: nn.Module, val_set):
 
 
 def train_lstm(train_dloader: DataLoader, val_set: Dataset, model: nn.Module, hyperparams: HypParams,
-               save_dir: str = None, save_every: int = 10) -> nn.Module:
+               save_dir: str = None, save_every: int = 3) -> nn.Module:
     if save_dir is not None:
         os.makedirs(save_dir, exist_ok=True)
 
