@@ -19,7 +19,6 @@ from models.fit_to_data import ensemble_models
 from models.fitters import general_xgboost_fitter, lstm_fitter
 from preprocessing.generic_preprocessing import get_processed_dataset
 from preprocessing.pre_ml_processing import ml_preprocess_data
-from preprocessing.data_pruning import prune_data
 from preprocessing.helper_functions.scaling import scale_ground_truth, inv_scale_data
 
 path = os.getcwd()
@@ -405,6 +404,7 @@ def make_gt_and_features_siteyear_consistent(processed_data: pd.DataFrame, groun
         .reset_index(drop=True)
 
     return rel_processed_data, ground_truth
+
 
 def get_processed_data_and_ground_truth(load_from_cache=True, use_additional_sites=True):
     basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache,
