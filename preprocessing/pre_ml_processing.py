@@ -83,7 +83,7 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
     # todo interpolate variables that only stretch a certain extent back in time such that they take the average value for everything after (i.e. 0s or a site-wise average), e.g. for CPC forecasts
 
     # re-add global data into specific df
-    df = df.merge(mjo_data, on='date', how='outer') \
+    df = df.merge(mjo_data.drop_duplicates(), on='date', how='outer') \
         .merge(nino_data.drop_duplicates(), on='date', how='outer') \
         .merge(oni_data.drop_duplicates(), on='date', how='outer') \
         .merge(misc_data.drop_duplicates(), on='date', how='outer') \
