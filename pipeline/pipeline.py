@@ -408,7 +408,6 @@ def make_gt_and_features_siteyear_consistent(processed_data: pd.DataFrame, groun
 
     return rel_processed_data, ground_truth
 
-
 def get_processed_data_and_ground_truth(load_from_cache=True, use_additional_sites=True):
     basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache,
                                                   use_additional_sites=use_additional_sites)
