@@ -48,33 +48,30 @@ def scale_dataframe(df):
     sitewise_fillna_cols = scaling_cols + ['site_id', 'month']
 
     global_fillna_vals = df[scaling_cols].mean(skipna=True)
+    global_fillna_vals_std = df[scaling_cols].std(skipna=True)
     siteglobal_fillna_vals = df[sitewise_fillna_cols].groupby('site_id')[scaling_cols] \
         .apply(lambda x: x.mean(skipna=True))
-
-    '''def get_fillna_vals(df):
-        fillna_vals = df[scaling_cols].mean(skipna=True)
-        df[scaling_cols] = df[scaling_cols].fillna(fillna_vals) \
-            .fillna(siteglobal_fillna_vals.loc[df.site_id.iloc[0]]) \
-            .fillna(global_fillna_vals)
-        return fillna_vals
-
-    fillna_vals = df[sitewise_fillna_cols].groupby(['site_id', 'month']).apply(get_fillna_vals)'''
 
     def get_fillna_vals(df):
         grouped_by_month = df.groupby('month')
         fillna_vals = grouped_by_month[scaling_cols].mean()
-        df[scaling_cols] = grouped_by_month[scaling_cols].fillna(fillna_vals) \
-            .fillna(siteglobal_fillna_vals.loc[df.site_id.iloc[0]]) \
-            .fillna(global_fillna_vals)
         return fillna_vals
 
-    fillna_vals = df[sitewise_fillna_cols].groupby(['site_id']).apply(get_fillna_vals)
+    def fillna_sitemonthwise(df, fillna_vals):
+        site_id = df.site_id.iloc[0]
+        return df.groupby('month', as_index=False)[scaling_cols] \
+            .apply(lambda x: x.fillna(fillna_vals.loc[(site_id, x.name)])) \
+            .fillna(siteglobal_fillna_vals.loc[site_id])
 
-    # Now, df contains the DataFrame with NaN values imputed using sitewise averages for the corresponding month and day
-    grouped = df.groupby('site_id')
-    scaling_cols_mean = grouped[scaling_cols].transform('mean')
-    scaling_cols_std = grouped[scaling_cols].transform('std')
-    df[scaling_cols] = (df[scaling_cols] - scaling_cols_mean) / scaling_cols_std
+    fillna_vals = df[sitewise_fillna_cols].groupby(['site_id']).apply(get_fillna_vals)
+    df[scaling_cols] = df[sitewise_fillna_cols].groupby('site_id', as_index=False).apply(fillna_sitemonthwise,
+                                                                                         fillna_vals=fillna_vals)
+    df[scaling_cols] = df[scaling_cols].fillna(global_fillna_vals)
+    assert not df[scaling_cols].isna().any().any()
+
+    df[scaling_cols] = (df[scaling_cols] - global_fillna_vals) / global_fillna_vals_std
+    nonscale_mean, nonscale_std = df[nonscale_cols].std(skipna=True), df[nonscale_cols].std(skipna=True)
+    df[nonscale_cols] = (df[nonscale_cols] - nonscale_mean) / nonscale_std
 
     return df
 
