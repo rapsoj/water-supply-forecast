@@ -80,14 +80,9 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
     # df = df.groupby('date')[list(site_feat_cols)].agg(lambda x: x.dropna().mean()).reset_index()
 
     # todo interpolate variables that only stretch a certain extent back in time such that they take the average value for everything after (i.e. 0s or a site-wise average), e.g. for CPC forecasts
-
+    #print('Before merge')
     # re-add global data into specific df
-    df = df.merge(mjo_data, on='date', how='outer') \
-        .merge(nino_data.drop_duplicates(), on='date', how='outer') \
-        .merge(oni_data.drop_duplicates(), on='date', how='outer') \
-        .merge(misc_data.drop_duplicates(), on='date', how='outer') \
-        .sort_values(by='date') \
-        .reset_index(drop=True)
+
 
     # Get associated dates
     orig_dates_vals = (df.date - start_date1).dt.days
@@ -156,7 +151,7 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
     misc_data = data[global_misc_cols + shared_cols].dropna()
 
     # Keeping only SNOTEL data
-    data = data.drop(columns=global_mjo_cols + global_nino_cols + global_oni_cols + global_misc_cols)
+    #data = data.drop(columns=global_mjo_cols + global_nino_cols + global_oni_cols + global_misc_cols)
 
     processed_data = data.groupby('site_id').apply(process_features, mjo_data=mjo_data, nino_data=nino_data,
                                                    oni_data=oni_data, misc_data=misc_data) \
@@ -176,7 +171,7 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
 
     # do scaling
 
-    #assert all(site_id in site_ids for site_id in CORE_SITES), 'Error - not all core sites are in the data!'
+    assert all(site_id in site_ids for site_id in CORE_SITES), 'Error - not all core sites are in the data!'
 
     if not use_additional_sites:
         processed_data.to_csv(output_file_path, index=False)
