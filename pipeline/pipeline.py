@@ -32,8 +32,8 @@ def extract_n_sites(data: pd.DataFrame, ground_truth: pd.DataFrame, n_sites: int
     data = data[data.site_id.isin(keeping_sites)]
     ground_truth = ground_truth[ground_truth.site_id.isin(keeping_sites)]
 
-    #assert data.site_id.nunique() == n_sites, f'Number of sites is {data.site_id.nunique()}'
-    #assert ground_truth.site_id.nunique() == n_sites, f'Number of sites is {ground_truth.site_id.nunique()}'
+    assert data.site_id.nunique() == n_sites, f'Number of sites is {data.site_id.nunique()}'
+    assert ground_truth.site_id.nunique() == n_sites, f'Number of sites is {ground_truth.site_id.nunique()}'
 
     return data, ground_truth
 
@@ -50,8 +50,8 @@ def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2
     processed_data, ground_truth = get_processed_data_and_ground_truth(load_from_cache=load_from_cache,
                                                                        use_additional_sites=use_additional_sites)
     print('Extracting sites')
-
-    processed_data, ground_truth = extract_n_sites(processed_data, ground_truth, n_sites)
+    processed_data, ground_truth = extract_n_sites(processed_data, ground_truth,
+                                                   n_sites if use_additional_sites else len(CORE_SITES))
 
     ground_truth, gt_means, gt_stds = scale_ground_truth(ground_truth, gt_col)
 
@@ -64,8 +64,6 @@ def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2
     train_features, val_features, test_features, train_gt, val_gt = \
         train_val_test_split(pruned_data, ground_truth, validation_years, validation_sites=validation_sites,
                              start_year=start_year, yearwise_validation=yearwise_validation)
-
-    site_ids = pruned_data.site_id.unique()
 
     print('Running global models...')
 

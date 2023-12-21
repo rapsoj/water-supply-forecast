@@ -24,7 +24,7 @@ def get_global_data():
 
     processed_data, ground_truth = get_processed_data_and_ground_truth(load_from_cache=load_from_cache,
                                                                        use_additional_sites=use_additional_sites)
-
+    print('Extracting sites')
     processed_data, ground_truth = extract_n_sites(processed_data, ground_truth, n_sites)
 
     pruned_data = prune_data(processed_data, ground_truth)

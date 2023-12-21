@@ -341,7 +341,7 @@ def clean_era5(df_era5):
     return df_era5
 
 
-def import_usgs(current_dir, use_additional_sites):
+def import_usgs(current_dir, use_additional_sites: bool = False):
     if use_additional_sites:
         folder_path = os.path.join(current_dir, '..', 'assets', 'data', 'additional_sites')
     else:
