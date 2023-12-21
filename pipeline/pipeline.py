@@ -24,6 +24,7 @@ from preprocessing.helper_functions.scaling import scale_ground_truth, inv_scale
 
 path = os.getcwd()
 
+
 def extract_n_sites(data: pd.DataFrame, ground_truth: pd.DataFrame, n_sites: int):
     assert n_sites >= MIN_N_SITES, f'Number of sites must be at least {MIN_N_SITES}'
     site_ids = data.site_id.unique()
@@ -37,11 +38,11 @@ def extract_n_sites(data: pd.DataFrame, ground_truth: pd.DataFrame, n_sites: int
 
     return data, ground_truth
 
+
 def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)),
-                 validation_sites: tuple = tuple(CORE_SITES),
-                 gt_col: str = 'volume',
-                 load_from_cache: bool = False, start_year=FIRST_FULL_GT_YEAR, using_pca=False,
-                 use_additional_sites: bool = True, n_sites: int = DEBUG_N_SITES, yearwise_validation = False):
+                 validation_sites: tuple = tuple(CORE_SITES), gt_col: str = 'volume', load_from_cache: bool = True,
+                 start_year=FIRST_FULL_GT_YEAR, use_additional_sites: bool = False, n_sites: int = DEBUG_N_SITES,
+                 yearwise_validation=True):
     np.random.seed(0)
     random.seed(0)
     torch.random.manual_seed(0)
@@ -51,11 +52,13 @@ def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2
                                                                        use_additional_sites=use_additional_sites)
     print('Extracting sites')
 
-    processed_data, ground_truth = extract_n_sites(processed_data, ground_truth, n_sites)
+    processed_data, ground_truth = extract_n_sites(processed_data, ground_truth,
+                                                   n_sites if use_additional_sites else len(CORE_SITES))
 
     ground_truth, gt_means, gt_stds = scale_ground_truth(ground_truth, gt_col)
 
-    assert len(ground_truth.site_id.unique()) == len(gt_means.keys()), 'Mismatching site ids in ground truth and gt means'
+    assert len(ground_truth.site_id.unique()) == len(
+        gt_means.keys()), 'Mismatching site ids in ground truth and gt means'
     assert len(ground_truth.site_id.unique()) == len(gt_stds.keys()), 'Mismatching site ids in ground truth and gt stds'
 
     pruned_data = prune_data(processed_data, ground_truth)
@@ -268,11 +271,8 @@ def run_global_models(train_features, val_features, test_features, train_gt, val
                 test_pred = model(test_site)
                 test_pred = inv_scale_data(test_pred, gt_mean, gt_std)
 
-
             train_site_gt[gt_col] = inv_scale_data(train_site_gt[gt_col], gt_mean, gt_std)
             val_site_gt[gt_col] = inv_scale_data(val_site_gt[gt_col], gt_mean, gt_std)
-
-
 
             train_site_gt = train_site_gt.reset_index(drop=True)
             val_site_gt = val_site_gt.reset_index(drop=True)
