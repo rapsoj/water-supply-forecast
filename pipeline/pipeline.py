@@ -39,9 +39,9 @@ def extract_n_sites(data: pd.DataFrame, ground_truth: pd.DataFrame, n_sites: int
 
 
 def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)),
-                 validation_sites: tuple = tuple(CORE_SITES), gt_col: str = 'volume', load_from_cache: bool = False,
+                 validation_sites: tuple = tuple(CORE_SITES), gt_col: str = 'volume', load_from_cache: bool = True,
                  start_year=FIRST_FULL_GT_YEAR, use_additional_sites: bool = True, n_sites: int = DEBUG_N_SITES,
-                 yearwise_validation=True):
+                 yearwise_validation=False):
     np.random.seed(0)
     random.seed(0)
     torch.random.manual_seed(0)
