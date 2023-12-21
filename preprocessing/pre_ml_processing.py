@@ -75,9 +75,9 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
     # drop station name columns
     station_cols = [col for col in df.columns if 'station' in col]
     df = df.drop(columns=station_cols)
-    site_feat_cols = set(df.columns) - ({'site_id', 'date', 'forecast_year', 'station'} | set(date_cols))
 
     # todo - do not average over all cpc forecasts with different leads on the same date, deal with it in a smarter/more information preserving manner
+    # site_feat_cols = set(df.columns) - ({'site_id', 'date', 'forecast_year', 'station'} | set(date_cols))
     # df = df.groupby('date')[list(site_feat_cols)].agg(lambda x: x.dropna().mean()).reset_index()
 
     # todo interpolate variables that only stretch a certain extent back in time such that they take the average value for everything after (i.e. 0s or a site-wise average), e.g. for CPC forecasts
