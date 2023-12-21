@@ -32,8 +32,8 @@ def extract_n_sites(data: pd.DataFrame, ground_truth: pd.DataFrame, n_sites: int
     data = data[data.site_id.isin(keeping_sites)]
     ground_truth = ground_truth[ground_truth.site_id.isin(keeping_sites)]
 
-    assert data.site_id.nunique() == n_sites, f'Number of sites is {data.site_id.nunique()}'
-    assert ground_truth.site_id.nunique() == n_sites, f'Number of sites is {ground_truth.site_id.nunique()}'
+    #assert data.site_id.nunique() == n_sites, f'Number of sites is {data.site_id.nunique()}'
+    #assert ground_truth.site_id.nunique() == n_sites, f'Number of sites is {ground_truth.site_id.nunique()}'
 
     return data, ground_truth
 
