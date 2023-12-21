@@ -19,6 +19,7 @@ shared_cols = ['date']
 
 date_cols = ['year', 'month', 'day']
 
+
 def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.DataFrame, oni_data: pd.DataFrame,
                      misc_data: pd.DataFrame) -> pd.DataFrame:
     # Generate a df with rows for every prediction date, then gather data accordingly up until that point
@@ -172,11 +173,9 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
     scaler = StandardScaler()
     processed_data.time = scaler.fit_transform(processed_data[['time']])
 
-    site_ids = processed_data.site_id.unique()
-
     # do scaling
 
-    #assert all(site_id in site_ids for site_id in CORE_SITES), 'Error - not all core sites are in the data!'
+    # assert all(site_id in site_ids for site_id in CORE_SITES), 'Error - not all core sites are in the data!'
 
     if not use_additional_sites:
         processed_data.to_csv(output_file_path, index=False)
