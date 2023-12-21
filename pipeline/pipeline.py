@@ -42,7 +42,7 @@ def extract_n_sites(data: pd.DataFrame, ground_truth: pd.DataFrame, n_sites: int
 def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2023, 8)),
                  validation_sites: tuple = tuple(CORE_SITES), gt_col: str = 'volume', load_from_cache: bool = False,
                  start_year=FIRST_FULL_GT_YEAR, use_additional_sites: bool = True, n_sites: int = DEBUG_N_SITES,
-                 yearwise_validation=True):
+                 yearwise_validation=False):
     np.random.seed(0)
     random.seed(0)
     torch.random.manual_seed(0)
@@ -61,11 +61,11 @@ def run_pipeline(validation_years: tuple = tuple(np.arange(FIRST_FULL_GT_YEAR, 2
         gt_means.keys()), 'Mismatching site ids in ground truth and gt means'
     assert len(ground_truth.site_id.unique()) == len(gt_stds.keys()), 'Mismatching site ids in ground truth and gt stds'
 
-    pruned_data = prune_data(processed_data, ground_truth)
+    # pruned_data = prune_data(processed_data, ground_truth)
 
     # Get training, validation and test sets
     train_features, val_features, test_features, train_gt, val_gt = \
-        train_val_test_split(pruned_data, ground_truth, validation_years, validation_sites=validation_sites,
+        train_val_test_split(processed_data, ground_truth, validation_years, validation_sites=validation_sites,
                              start_year=start_year, yearwise_validation=yearwise_validation)
 
     print('Running global models...')
@@ -405,7 +405,6 @@ def make_gt_and_features_siteyear_consistent(processed_data: pd.DataFrame, groun
         .reset_index(drop=True)
 
     return rel_processed_data, ground_truth
-
 
 def get_processed_data_and_ground_truth(load_from_cache=True, use_additional_sites=True):
     basic_preprocessed_df = get_processed_dataset(load_from_cache=load_from_cache,
