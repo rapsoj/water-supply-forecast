@@ -33,7 +33,7 @@ def preprocess_column(df, column_name):
 
 
 def scale_dataframe(df):
-    # df = df[df.site_id.isin(df.site_id.unique()[:50])]
+    #df = df[df.site_id.isin(df.site_id.unique()[:50])]
 
     # Iterate over all columns in the DataFrame
     keep_cols = ['month', 'year', 'day', 'volume', 'forecast_year']
@@ -51,14 +51,24 @@ def scale_dataframe(df):
     siteglobal_fillna_vals = df[sitewise_fillna_cols].groupby('site_id')[scaling_cols] \
         .apply(lambda x: x.mean(skipna=True))
 
-    def get_fillna_vals(df):
+    '''def get_fillna_vals(df):
         fillna_vals = df[scaling_cols].mean(skipna=True)
         df[scaling_cols] = df[scaling_cols].fillna(fillna_vals) \
             .fillna(siteglobal_fillna_vals.loc[df.site_id.iloc[0]]) \
             .fillna(global_fillna_vals)
         return fillna_vals
 
-    fillna_vals = df[sitewise_fillna_cols].groupby(['site_id', 'month']).apply(get_fillna_vals)
+    fillna_vals = df[sitewise_fillna_cols].groupby(['site_id', 'month']).apply(get_fillna_vals)'''
+
+    def get_fillna_vals(df):
+        grouped_by_month = df.groupby('month')
+        fillna_vals = grouped_by_month[scaling_cols].mean()
+        df[scaling_cols] = grouped_by_month[scaling_cols].fillna(fillna_vals) \
+            .fillna(siteglobal_fillna_vals.loc[df.site_id.iloc[0]]) \
+            .fillna(global_fillna_vals)
+        return fillna_vals
+
+    fillna_vals = df[sitewise_fillna_cols].groupby(['site_id']).apply(get_fillna_vals)
 
     # Now, df contains the DataFrame with NaN values imputed using sitewise averages for the corresponding month and day
     grouped = df.groupby('site_id')
