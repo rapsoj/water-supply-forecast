@@ -135,7 +135,7 @@ def ml_preprocess_data(data: pd.DataFrame, output_file_path: str = 'ml_processed
     data["date"] = pd.to_datetime(data[date_cols].applymap(int))
     data = data.sort_values('date')
     # cannot use data outside of water year
-    data = data[(data.date.dt.month <= JULY) | (data.date.dt.month > OCTOBER)] \
+    data = data[(data.date.dt.month <= JULY) | (data.date.dt.month >= OCTOBER)] \
         .drop(columns=date_cols) \
         .reset_index(drop=True)
 

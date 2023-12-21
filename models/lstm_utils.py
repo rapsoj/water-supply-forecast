@@ -25,7 +25,7 @@ class HypParams:
     dropout_prob: float
 
 
-DEF_LSTM_HYPPARAMS = HypParams(lr=1e-3, lr_step_size=35, lr_gamma=0.1, bs=32, n_epochs=50, n_hidden=2, hidden_size=512,
+DEF_LSTM_HYPPARAMS = HypParams(lr=1e-3, lr_step_size=10, lr_gamma=0.3, bs=32, n_epochs=50, n_hidden=2, hidden_size=512,
                                dropout_prob=0.3)
 
 
@@ -85,7 +85,7 @@ def features2seqs(X: pd.DataFrame, y: pd.DataFrame = None):
     X = X[X.date.dt.month <= JULY].drop(columns=['date']).reset_index(drop=True)
     X.sort_values(by=['site_id', 'forecast_year', 'time'], inplace=True)
     if y is not None:
-        y = y.iloc[X.index].reset_index(drop=True)
+        y = y.iloc[X.index].reset_index(drop=True)[['site_id', 'forecast_year', 'volume']]
     X = X.reset_index(drop=True)
 
     if y is not None:
