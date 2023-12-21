@@ -33,8 +33,6 @@ def preprocess_column(df, column_name):
 
 
 def scale_dataframe(df):
-    #df = df[df.site_id.isin(df.site_id.unique()[:50])]
-
     # Iterate over all columns in the DataFrame
     keep_cols = ['month', 'year', 'day', 'volume', 'forecast_year']
 
@@ -65,11 +63,15 @@ def scale_dataframe(df):
 
     fillna_vals = df[sitewise_fillna_cols].groupby(['site_id']).apply(get_fillna_vals)
     df[scaling_cols] = df[sitewise_fillna_cols].groupby('site_id', as_index=False).apply(fillna_sitemonthwise,
-                                                                                         fillna_vals=fillna_vals)
+                                                                                         fillna_vals=fillna_vals) \
+        .droplevel([0, 1], axis='index')
     df[scaling_cols] = df[scaling_cols].fillna(global_fillna_vals)
     assert not df[scaling_cols].isna().any().any()
 
+
     df[scaling_cols] = (df[scaling_cols] - global_fillna_vals) / global_fillna_vals_std
+    assert not df[scaling_cols].isna().any().any()
+
     nonscale_mean, nonscale_std = df[nonscale_cols].std(skipna=True), df[nonscale_cols].std(skipna=True)
     df[nonscale_cols] = (df[nonscale_cols] - nonscale_mean) / nonscale_std
 

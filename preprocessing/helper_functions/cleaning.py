@@ -291,6 +291,22 @@ def import_basins(current_dir, use_additional_sites: bool = False):
 def clean_basins(df_basins, min_unique_noncat_vals: int = 25):
     # mostly to compress dataframe
     df_basins = df_basins[~df_basins.site_id.isna()]
+    drop_cols = ['glc_pc_s01',
+ 'glc_pc_s03',
+ 'glc_pc_s05',
+ 'glc_pc_s07',
+ 'glc_pc_s08',
+ 'glc_pc_s10',
+ 'glc_pc_s17',
+ 'glc_pc_s19',
+ 'glc_pc_u01',
+ 'glc_pc_u03',
+ 'glc_pc_u05',
+ 'glc_pc_u07',
+ 'glc_pc_u08',
+ 'glc_pc_u17',
+ 'glc_pc_u19']
+    df_basins = df_basins.drop(columns=drop_cols)
 
     return df_basins
 
