@@ -88,7 +88,7 @@ def scale_dataframe(df):
         .apply(lambda x: x
                .groupby('month')[sitewise_fillna_cols]
                .apply(lambda y: (y - fillna_means.loc[(x.name, y.name)]) / fillna_stds.loc[(x.name, y.name)])) \
-        .droplevel([0, 1])
+        .droplevel([0, 1]).loc[df.index]
     assert not df[sitewise_fillna_cols].isna().any().any()
 
     nonscale_mean, nonscale_std = df[non_fillna_cols].std(skipna=True), df[non_fillna_cols].std(skipna=True)

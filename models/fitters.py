@@ -84,6 +84,13 @@ class StreamflowModel:
         return loss
 
 
+def lstm_feat_adapter(X):
+    dataset = features2seqs(X)
+    dataloader = DataLoader(dataset, collate_fn=pad_collate_fn)
+
+    return dataloader
+
+
 def lstm_fitter(X, y, val_X, val_y, quantile: bool = True):
     assert quantile
 
@@ -107,12 +114,6 @@ def lstm_fitter(X, y, val_X, val_y, quantile: bool = True):
     #  the previous model
     full_model = train_lstm(full_dloader, None, full_model, hyperparams=DEF_LSTM_HYPPARAMS,
                             save_dir='combined_set_lstm')
-
-    def lstm_feat_adapter(X):
-        dataset = features2seqs(X)
-        dataloader = DataLoader(dataset, collate_fn=pad_collate_fn)
-
-        return dataloader
 
     train_model.eval()
     full_model.eval()
