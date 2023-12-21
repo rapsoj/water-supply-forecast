@@ -43,9 +43,9 @@ def scale_dataframe(df):
                        'mjo10W', 'oniTOTAL', 'oniANOM', 'ninoNINO1+2', 'ninoANOM', 'ninoNINO3', 'ninoANOM.1',
                        'ninoNINO4', 'ninoANOM.2',
                        'ninoNINO3.4', 'ninoANOM.3', 'pdo', 'pna', 'soi_anom', 'soi_sd']
-    non_fillna_cols = keep_cols + non_fillna_cols
+    all_non_fillna_cols = keep_cols + non_fillna_cols
     sitewise_fillna_cols = [col for col in df.columns if df[col].dtype in ('int64', 'float64')
-                            and col not in non_fillna_cols]
+                            and col not in all_non_fillna_cols]
 
     full_sitewise_fillna_cols = sitewise_fillna_cols + ['site_id', 'month']
 
