@@ -34,6 +34,8 @@ def preprocess_column(df, column_name):
 
 
 def scale_dataframe(df):
+    df = df[~df.site_id.isna()]
+
     # Iterate over all columns in the DataFrame
     keep_cols = ['month', 'year', 'day', 'volume', 'forecast_year']
 
