@@ -4,7 +4,7 @@ from functools import reduce
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
-from consts import OCTOBER, JULY, MID_MONTH_DAY, CORE_SITES
+from consts import OCTOBER, JULY, MID_MONTH_DAY, CORE_SITES, LAST_YEAR
 
 path = os.getcwd()
 
@@ -24,7 +24,8 @@ def process_features(df: pd.DataFrame, mjo_data: pd.DataFrame, nino_data: pd.Dat
                      misc_data: pd.DataFrame) -> pd.DataFrame:
     # Generate a df with rows for every prediction date, then gather data accordingly up until that point
     start_date1 = pd.to_datetime(f"{df.date.dt.year.min()}0101", format="%Y%m%d")
-    end_date1 = pd.to_datetime(f"{df.date.dt.year.max()}0701", format="%Y%m%d")
+    end_date = df.date.dt.year.max() if df.site_id.iloc[0] not in CORE_SITES else LAST_YEAR
+    end_date1 = pd.to_datetime(f"{end_date}0701", format="%Y%m%d")
 
     feat_dates1 = pd.date_range(start=start_date1, end=end_date1, freq=f'{1}MS')
     feat_dates2 = feat_dates1.shift(7, freq="D")
