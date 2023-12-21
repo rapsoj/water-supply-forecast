@@ -26,7 +26,7 @@ class HypParams:
 
 
 DEF_LSTM_HYPPARAMS = HypParams(lr=1e-3, lr_step_size=10, lr_gamma=0.3, bs=32, n_epochs=50, n_hidden=2, hidden_size=512,
-                               dropout_prob=0.3)
+                               dropout_prob=0.5)
 
 
 class SequenceDataset(Dataset):
